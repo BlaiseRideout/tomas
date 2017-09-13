@@ -1,0 +1,9 @@
+{% extends "template.html" %}
+{% block content %}
+	{% if current_user %}
+		<a href="/newtournament">New Tournament</a>
+		{% for tournament in tournaments %}
+			<a href="/tournament/{{ tournament.name }}">{{ tournament.name }}</a>
+		{% end %}
+	{% end %}
+{% end %}

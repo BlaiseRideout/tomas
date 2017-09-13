@@ -1,0 +1,24 @@
+{% extends "template.html" %}
+
+{% block title %} - Login{% end %}
+
+{% block content %}
+	<h1 id="page-title">Login</h1>
+	{% try %}
+		{% if message %}
+			<div id="message">{{ message }}</div>
+		{% end %}
+	{% except %}{% end %}
+
+	<form action="/login" method="post">
+		{% if uri %}
+			<input type="hidden" name="next" value="{{ uri }}" />
+		{% end %}
+		<input autocapitalize="off" autocorrect="off" autofocus="autofocus" id="email-field" name="email" placeholder="EMAIL" type="text" /><br/>
+
+		<input id="password-field" name="password" placeholder="PASSWORD" type="password" /><br/>
+
+		<input type="submit" value="Login"/>
+	</form>
+	<a href="/reset">Reset my password</a>
+{% end %}

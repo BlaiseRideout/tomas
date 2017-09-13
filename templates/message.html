@@ -1,0 +1,16 @@
+{% extends "template.html" %}
+
+{% block title %}{% try %}{% if title %} - {{ title }}{% end %}{% except %}{% end %}{% end %}
+
+{% block content %}
+	{% try %}
+		{% if title %}
+			<h1 id="page-title">{{ title }}</h1>
+		{% end %}
+	{% except %}{% end %}
+	{% try %}
+		{% if message %}
+			<div id="message">{% raw message %}</div>
+		{% end %}
+	{% except %}{% end %}
+{% end %}

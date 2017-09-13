@@ -1,0 +1,23 @@
+{% extends "template.html" %}
+
+{% block title %} - Signup{% end %}
+
+{% block content%}
+	<h1 id="page-name">Signup</h1>
+	{% try %}
+		{% if message %}
+			<div id="message">{{ message }}</div>
+		{% end %}
+	{% except %}{% end %}
+
+	<form action="/verify/{{ id }}" method="post">
+		<input autocapitalize="off" autocorrect="off" id="email-field" name="email" placeholder="EMAIL" type="text" {% try %}{% if email is not None %}value="{{ email }}"{% end %}{% except %}{% end %}/><br/>
+
+		<input id="password-field" name="password" placeholder="PASSWORD" type="password" /><br/>
+
+		<input id="vpassword-field" name="vpassword" placeholder="REPEAT PASSWORD" type="password" /><br/>
+
+		<input type="submit" value="Signup"/>
+	</form>
+	Already have an account? <a href="/login">Login.</a>
+{% end %}
