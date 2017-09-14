@@ -71,8 +71,9 @@ class Application(tornado.web.Application):
         tornado.web.Application.__init__(self, handlers, **settings)
 
 def periodicCleanup():
-    with db.getCur() as cur:
-        cur.execute("DELETE FROM VerifyLinks WHERE Expires <= datetime('now')")
+    pass
+#    with db.getCur() as cur:
+#        cur.execute("DELETE FROM VerifyLinks WHERE Expires <= datetime('now')")
 
 def main():
     if len(sys.argv) > 1:
