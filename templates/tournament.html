@@ -1,11 +1,9 @@
 {% extends "template.html" %}
-{% block title %} - {{ name }}{% end %}
 {% block head %}
 		<link href="{{ static_url("css/tournament.css") }}" type="text/css" rel="stylesheet" />
 		<script src="{{ static_url("js/tournament.js") }}"></script>
 {% end %}
 {% block content %}
-<h1 id="title">{{ name }}</h1>
 <div id="tournament">
 	<li><a href="#players">Players</a></li>
 	<div id="players">

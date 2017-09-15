@@ -1,15 +1,13 @@
 <table>
 	<tr>
-		<th>First Name</th>
-		<th>Last Name</th>
+		<th>Name</th>
 		<th>Country</th>
 		<th>Association</th>
 		<th>Pool</th>
 	</tr>
 	{{ #players }}
 		<tr class="player" data-id="{{ id }}">
-			<td class="firstname">{{ firstname }}</td>
-			<td class="lastname">{{ lastname }}</td>
+			<td class="name">{{ name }}</td>
 			<td class="country">{{ country }}</td>
 			<td class="association">{{ association }}</td>
 			<td class="pool">{{ pool }}</td>

@@ -45,7 +45,8 @@ class Application(tornado.web.Application):
         db.init()
 
         handlers = [
-                (r"/", MainHandler),
+                (r"/", tournament.TournamentHandler),
+                (r"/players", tournament.PlayersHandler),
                 (r"/setup", login.SetupHandler),
                 (r"/login", login.LoginHandler),
                 (r"/logout", login.LogoutHandler),
@@ -54,8 +55,6 @@ class Application(tornado.web.Application):
                 (r"/verify/([^/]+)", login.VerifyHandler),
                 (r"/reset", login.ResetPasswordHandler),
                 (r"/reset/([^/]+)", login.ResetPasswordLinkHandler),
-                (r"/newtournament", tournament.NewTournamentHandler),
-                (r"/tournament/([^/]+)", tournament.TournamentHandler),
                 #(r"/leaderboard(/[^/]*)?", leaderboard.LeaderboardHandler),
                 (r"/leaderdata(/[^/]*)?", leaderboard.LeaderDataHandler),
                 (r"/playerstats/(.*)", playerstats.PlayerStatsHandler),

@@ -1,27 +1,19 @@
 #!/usr/bin/env python3
 
+import json
+
 import handler
 import db
 
-class NewTournamentHandler(handler.BaseHandler):
-    def get(self):
-        self.render("newtournament.html")
-    def post(self):
-        name = self.get_argument("name", None)
-        if name is None:
-            return self.render("newtournament.html")
-        with db.getCur() as cur:
-            cur.execute("INSERT INTO Tournaments(Name, Owner) VALUES(?, ?)", (name, self.current_user))
-            self.redirect("/tournament/" + name)
-
-
 class TournamentHandler(handler.BaseHandler):
-    def get(self, q):
+    def get(self):
+        return self.render("tournament.html")
+
+class PlayersHandler(handler.BaseHandler):
+    def get(self):
         with db.getCur() as cur:
-            cur.execute("SELECT Name FROM Tournaments WHERE Name = ?", (q,))
-            row = cur.fetchone()
-            if row is not None:
-                name = row[0]
-                return self.render("tournament.html", name = name)
-            else:
-                return self.render("message.html", message = "No such tournament found.")
+            cur.execute("SELECT Players.Id, Players.Name, Countries.IOC, Association, Pools.Name FROM Players LEFT OUTER JOIN Countries ON Countries.Id = Players.Country LEFT OUTER JOIN Pools ON Players.Pool = Pools.Id")
+            rows = [{"id": row[0], "name": row[1], "country": row[2], "association": row[3], "pool": row[4]} for row in cur.fetchall()]
+            return self.write(json.dumps(rows))
+
+
