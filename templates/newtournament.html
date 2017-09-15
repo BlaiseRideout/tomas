@@ -1,9 +1,0 @@
-{% extends "template.html" %}
-{% block title %} - New Tournament{% end %}
-{% block content %}
-<p>Please enter a name for your new tournament</p>
-<form method="post" action="/newtournament">
-	<input type="text" name="name" placeholder="name" />
-	<input type="submit" value="Submit" />
-</form>
-{% end %}
