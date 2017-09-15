@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 
+__doc__ = """
+Main program to run a web server for WRC tournament software
+Launch this program (with an optional port number argument) on the
+web server after configuring the mysettings.py file.  If no scores
+database is found, an empty one will be created.  The first user
+account will be given admin privileges to configure other options.
+The web log is written to standard output (redirect as desired).
+"""
+
 import sys
 import os.path
 import os
@@ -76,20 +85,63 @@ def periodicCleanup():
 #        cur.execute("DELETE FROM VerifyLinks WHERE Expires <= datetime('now')")
 
 def main():
-    if len(sys.argv) > 1:
-        try:
-            socket = int(sys.argv[1])
-        except:
-            socket = sys.argv[1]
-    else:
-        socket = "/tmp/tomas.sock"
+    default_socket = "/tmp/tomas.sock"
+    socket = None
+    force = False
+    i = 1
+    errors = []
+    usage = ["usage: {0} [-f|--force] [tornado-options] [Port|Socket]",
+             "positional arguments:",
+             "  Port|Socket   Port number or unix socket to listen on",
+             "                (default: {0})".format(default_socket),
+             "",
+             "optional arguments:",
+             "  -f|--force    Force database schema updates without prompting",
+             "                (default: {0})".format(force),
+             "  -h|--help     show help information and exit",
+             "",
+             "tornado options:",
+             ]
+    usage = __doc__ + "\n" + "\n".join(usage)
+    while i < len(sys.argv):
+        if sys.argv[i].isdigit():
+            if socket is None:
+                socket = int(sys.argv[i])
+            else:
+                errors.append('Multiple port or socket arguments specified '
+                              '"{0}"'.format(sys.argv[i]))
+        elif sys.argv[i].startswith('-'):
+            if sys.argv[i] in ['-f', '--force']:
+                force = True
+                del sys.argv[i]
+                continue
+            elif sys.argv[i] in ['-h', '--help']:
+                print(usage)  # and don't exit so tornado help will print
+                if sys.argv[i] == '-h':
+                    sys.argv[i] = '--help' # tornado doesn't accept -h option
+            else:
+                pass  # Leave tornado options in place for later parsing
+        else:
+            if socket is None:
+                socket = sys.argv[i]
+            else:
+                errors.append('Multiple port or socket arguments specified '
+                              '"{0}"'.format(sys.argv[i]))
+        i += 1
+
+    if socket is None:
+        socket = default_socket
+
+    tornado.options.parse_command_line()
+    if errors:
+        print("\n  ".join(["Errors:"] + errors))
+        sys.exit(-1)
 
     if hasattr(settings, 'EMAILSERVER'):
         qm = QueMail.get_instance()
         qm.init(settings.EMAILSERVER, settings.EMAILUSER, settings.EMAILPASSWORD, settings.EMAILPORT, True)
         qm.start()
 
-    tornado.options.parse_command_line()
     http_server = tornado.httpserver.HTTPServer(Application(), max_buffer_size=24*1024**3)
     if isinstance(socket, int):
         http_server.add_sockets(tornado.netutil.bind_sockets(socket))

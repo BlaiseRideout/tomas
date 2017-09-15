@@ -3,6 +3,8 @@
 # DB
 #  DBFILE is the name of the file that contains the scores and player database.
 DBFILE = "scores.db"
+DBBACKUPS = "backups"
+DBDATEFORMAT = "%Y-%m-%d-%H-%M-%S"
 
 # PREFERENCES
 #   DROPGAMES is the default number of games a player must complete in a
