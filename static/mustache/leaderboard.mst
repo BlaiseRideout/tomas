@@ -1,0 +1,16 @@
+<table>
+	<tr class="leaderbd_col_header">
+		<th>PLACE</th>
+		<th>NAME</th>
+		<th>COUNTRY</th>
+		<th>AVG SCORE</th>
+	</tr>
+	{{#leaderboard}}
+		<tr class="leaderbd_row">
+			<td>{{ place }}</td>
+			<td><a href="/playerstats/{{ name }}">{{ name }}</a></td>
+			<td>{{ country }}</td>
+			<td>{{ score }}</td>
+		</tr>
+	{{/leaderboard}}
+</table>

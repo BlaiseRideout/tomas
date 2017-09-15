@@ -17,6 +17,9 @@ $(function() {
 	function updatePlayers() {
 		renderTemplate("players.mst", "/players", "#players");
 	}
+	function updateStandings() {
+		renderTemplate("leaderboard.mst", "/leaderboard", "#standings");
+	}
 	function updateSettings() {
 		renderTemplate("settings.mst", "/settings", "#settings", function() {
 			$("#addround").click(function() {
@@ -54,6 +57,7 @@ $(function() {
 	function update() {
 		updatePlayers();
 		updateSettings();
+		updateStandings();
 	}
 	update();
 	$("#tournament").tabs();

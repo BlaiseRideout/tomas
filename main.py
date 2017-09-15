@@ -57,8 +57,7 @@ class Application(tornado.web.Application):
                 (r"/verify/([^/]+)", login.VerifyHandler),
                 (r"/reset", login.ResetPasswordHandler),
                 (r"/reset/([^/]+)", login.ResetPasswordLinkHandler),
-                #(r"/leaderboard(/[^/]*)?", leaderboard.LeaderboardHandler),
-                (r"/leaderdata(/[^/]*)?", leaderboard.LeaderDataHandler),
+                (r"/leaderboard", leaderboard.LeaderDataHandler),
                 (r"/playerstats/(.*)", playerstats.PlayerStatsHandler),
                 (r"/playerstatsdata/(.*)", playerstats.PlayerStatsDataHandler),
         ]
