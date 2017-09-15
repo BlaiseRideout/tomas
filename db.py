@@ -4,6 +4,7 @@ import warnings
 import sqlite3
 import random
 import datetime
+import csv
 
 import util
 import settings
@@ -33,39 +34,24 @@ def init():
                 "IOC TEXT"
             ");")
 
-        cur.execute("CREATE TABLE IF NOT EXISTS Tournaments("
-                "Id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                "Owner INTEGER,"
-                "Rounds INTEGER,"
-                "Name TEXT,"
-                "UNIQUE(Name),"
-                "FOREIGN KEY(Owner) REFERENCES Users(Id) ON DELETE CASCADE"
-            ");")
-
         cur.execute("CREATE TABLE IF NOT EXISTS Rounds("
                 "Id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                "Tournament INTEGER,"
                 "Number INTEGER,"
                 "Seed TEXT,"
                 "SoftCut INTEGER,"
                 "Duplicates INTEGER,"
                 "Diversity TINYINT,"
-                "UsePools TINYINT,"
-                "FOREIGN KEY(Tournament) REFERENCES Tournaments(Id) ON DELETE CASCADE"
+                "UsePools TINYINT"
             ");")
 
         cur.execute("CREATE TABLE IF NOT EXISTS Pools("
                 "Id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                "Tournament INTEGER,"
-                "Name TEXT,"
-                "FOREIGN KEY(Tournament) REFERENCES Tournaments(Id) ON DELETE CASCADE"
+                "Name TEXT"
             ");")
 
         cur.execute("CREATE TABLE IF NOT EXISTS Players("
                 "Id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                "Tournament INTEGER,"
-                "FirstName TEXT,"
-                "LastName TEXT,"
+                "Name TEXT,"
                 "Country INTEGER,"
                 "Association TEXT,"
                 "Pool INTEGER,"
@@ -74,7 +60,6 @@ def init():
 
         cur.execute("CREATE TABLE IF NOT EXISTS Scores("
                 "Id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                "Tournament INTEGER,"
                 "GameId INTEGER,"
                 "PlayerId INTEGER,"
                 "Rank TINYINT,"
@@ -91,6 +76,15 @@ def init():
                 "Password TEXT NOT NULL,"
                 "UNIQUE(Email)"
             ");")
+
+        cur.execute("SELECT COUNT(*) FROM Countries")
+        if cur.fetchone()[0] == 0:
+            with open("countries.csv", "r") as countriesfile:
+                reader = csv.reader(countriesfile)
+                for row in reader:
+                    name = row[0]
+                    IOC = row[1]
+                    cur.execute("INSERT INTO Countries(Name, IOC) VALUES(?, ?)", (name, IOC))
 
 def addGame(scores, gamedate = None, gameid = None):
     if gamedate is None:
