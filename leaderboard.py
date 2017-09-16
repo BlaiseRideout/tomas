@@ -9,7 +9,7 @@ class LeaderDataHandler(handler.BaseHandler):
     def get(self):
         query = """SELECT
              Players.Name,
-             Countries.IOC,
+             Countries.Code,
              COALESCE(ROUND(SUM(Scores.Score) * 1.0 / COUNT(Scores.Score) * 100)
                / 100, 0) AS AvgScore
            FROM Players

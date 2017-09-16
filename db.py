@@ -32,7 +32,10 @@ schema = collections.OrderedDict({
     'Countries': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
         "Name TEXT",
-        "IOC TEXT"
+        "Code TEXT",
+        "IOC_Code TEXT",
+        "IOC_Name TEXT",
+        "Flag_Image TEXT"
     ],
     'Rounds': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
@@ -108,9 +111,15 @@ def init(force=False):
             with open("countries.csv", "r") as countriesfile:
                 reader = csv.reader(countriesfile)
                 for row in reader:
-                    name = row[0]
-                    IOC = row[1]
-                    cur.execute("INSERT INTO Countries(Name, IOC) VALUES(?, ?)", (name, IOC))
+#                    name = row[0]
+#                    c_code = row[1]
+#                    IOC_code = row[2]
+#                    IOC_name = row[3]
+#                    flag_imag = row[4]
+                    cur.execute(
+                        "INSERT INTO Countries"
+                        " (Name, Code, IOC_Code, IOC_Name, Flag_Image)"
+                        " VALUES(?, ?, ?, ?, ?)", row)
 
 def make_backup():
     backupdb = datetime.datetime.now().strftime(settings.DBDATEFORMAT) + "-" + os.path.split(settings.DBFILE)[1]
