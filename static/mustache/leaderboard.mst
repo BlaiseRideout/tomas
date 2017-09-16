@@ -2,7 +2,7 @@
 	<tr class="leaderbd_col_header">
 		<th>PLACE</th>
 		<th>NAME</th>
-		<th>COUNTRY</th>
+		<th colspan="2" >COUNTRY</th>
 		<th>AVG SCORE</th>
 	</tr>
 	{{#leaderboard}}
@@ -10,6 +10,7 @@
 			<td>{{ place }}</td>
 			<td><a href="/playerstats/{{ name }}">{{ name }}</a></td>
 			<td>{{ country }}</td>
+			<td>{{{ flag_image }}}</td>
 			<td>{{ score }}</td>
 		</tr>
 	{{/leaderboard}}

@@ -1,7 +1,7 @@
 <table>
 	<tr>
 		<th>Name</th>
-		<th>Country</th>
+		<th colspan="2" >Country</th>
 		<th>Association</th>
 		<th>Pool</th>
 	</tr>
@@ -9,6 +9,7 @@
 		<tr class="player" data-id="{{ id }}">
 			<td class="name">{{ name }}</td>
 			<td class="country">{{ country }}</td>
+			<td class="flag">{{{ flag_image }}}</td>
 			<td class="association">{{ association }}</td>
 			<td class="pool">{{ pool }}</td>
 		</tr>

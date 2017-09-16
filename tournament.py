@@ -12,8 +12,13 @@ class TournamentHandler(handler.BaseHandler):
 class PlayersHandler(handler.BaseHandler):
     def get(self):
         with db.getCur() as cur:
-            cur.execute("SELECT Players.Id, Players.Name, Countries.Code, Association, Pools.Name FROM Players LEFT OUTER JOIN Countries ON Countries.Id = Players.Country LEFT OUTER JOIN Pools ON Players.Pool = Pools.Id")
-            rows = [{"id": row[0], "name": row[1], "country": row[2], "association": row[3], "pool": row[4]} for row in cur.fetchall()]
+            cur.execute(
+                "SELECT Players.Id, Players.Name, Countries.Code, Flag_Image,"
+                " Association, Pools.Name"
+                " FROM Players LEFT OUTER JOIN Countries"
+                "   ON Countries.Id = Players.Country"
+                " LEFT OUTER JOIN Pools ON Players.Pool = Pools.Id")
+            rows = [{"id": row[0], "name": row[1], "country": row[2], "flag_image": row[3], "association": row[4], "pool": row[5]} for row in cur.fetchall()]
             return self.write(json.dumps({'players':rows}))
 
 class AddRoundHandler(handler.BaseHandler):

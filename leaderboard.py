@@ -9,7 +9,7 @@ class LeaderDataHandler(handler.BaseHandler):
     def get(self):
         query = """SELECT
              Players.Name,
-             Countries.Code,
+             Countries.Code, Flag_Image,
              COALESCE(ROUND(SUM(Scores.Score) * 1.0 / COUNT(Scores.Score) * 100)
                / 100, 0) AS AvgScore
            FROM Players
@@ -26,6 +26,7 @@ class LeaderDataHandler(handler.BaseHandler):
                     {'place': place,
                      'name':row[0],
                      'country':row[1],
-                     'score':row[2]}]
+                     'flag_image':row[2],
+                     'score':row[3]}]
                 place += 1
             self.write(json.dumps({'leaderboard':leaderboard}))

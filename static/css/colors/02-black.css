@@ -1,0 +1,113 @@
+html, body {
+	background:black;
+	color:white;
+}
+
+button, input, select, .button, .clickable,
+#navbar, #navbar > a, table th, .table > h3, .timer > h3,
+.ui-widget-content, .ui-menu .ui-menu-item, .ui-menu .ui-menu-item.ui-state-focus,
+.ui-datepicker-header.ui-widget-header, .ui-widget-content.ui-datepicker {
+	background:white;
+	color:black;
+}
+
+.ui-datepicker.ui-widget-content, .ui-widget-content .ui-state-default, .ui-widget-header .ui-state-hover  {
+	background:black;
+	color:white;
+}
+
+input::placeholder {
+	color:grey;
+}
+
+button[disabled] {
+	color:darkgrey;
+	background:grey;
+}
+
+table th {
+	border-right:1px solid white;
+}
+
+table td {
+	border:1px solid white;
+	background:black;
+}
+
+.ui-widget-content.ui-datepicker {
+	border:2px solid white;
+}
+
+.ui-widget-header .ui-icon {
+	background-image: url(https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.4/images/ui-icons_222222_256x240.png);
+}
+
+.ui-widget-header .ui-state-hover .ui-icon {
+	background-image: url(https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.4/images/ui-icons_ffffff_256x240.png);
+}
+
+.ui-menu .ui-menu-item.ui-state-focus {
+	background:#bbb;
+	color:black;
+}
+.ui-widget-content .ui-state-highlight {
+	background: #666;
+	color: #eee;
+}
+
+.bad {
+    background: #511;
+    color:      #faa;
+}
+
+.good {
+    background: white;
+    color:      black;
+}
+
+.rankpielegend {
+    margin-top: 0;
+}
+
+/* Player stats pie chart and corresponding legend colors:
+   rank_1_path is the pie slice for rank 1
+   rank_1_label is the legend label for rank 1
+   rank_label is the class for all legend rank labels
+   .rankpiechart > text are the text elemetns in the pie slice showing
+     the count of how many times that rank occurred in the time period
+   Note the color of the text in the legend is specified by 'color' since
+   it's a table while the color of the count inside the pie slice is
+   specified by 'fill' since it is a text element inside a svg.
+*/
+.rankpiechart > text {
+    fill:       black;
+}
+
+.rank_label {
+    color:      black;
+}
+
+.rank_1_path, .rank_1_label {
+    fill:       #88f;
+    background: #88f;
+}
+
+.rank_2_path, .rank_2_label {
+    fill:       #f88;
+    background: #f88;
+}
+
+.rank_3_path, .rank_3_label {
+    fill:       #8f8;
+    background: #8f8;
+}
+
+.rank_4_path, .rank_4_label {
+    fill:       #f8f;
+    background: #f8f;
+}
+
+.rank_5_path, .rank_5_label {
+    fill:       #ff8;
+    background: #ff8;
+}

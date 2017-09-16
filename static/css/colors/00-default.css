@@ -1,0 +1,126 @@
+html, body {
+	background:#111;
+	color:#eee;
+}
+
+button, input, select, .button, .clickable,
+#navbar, #navbar > a, table th, .table > h3, .timer > h3,
+.ui-widget-content, .ui-menu .ui-menu-item, .ui-menu .ui-menu-item.ui-state-focus,
+.ui-datepicker-header.ui-widget-header, .ui-widget-content.ui-datepicker {
+	background:#444;
+	color:#ddd;
+}
+
+input::placeholder {
+	color:#777;
+}
+
+button[disabled] {
+	color:#555;
+	background:#222;
+}
+
+table th {
+	border-right:1px solid #444;
+}
+
+.table > div, .timer {
+	border-bottom:1px solid #555;
+	border-left: 1px solid #555;
+	border-right:1px solid #555;
+}
+table td {
+	border:1px solid #555;
+	background:#222;
+}
+
+.ui-widget-content .ui-state-default {
+	background: #444;
+	color: #eee;
+	border: 1px solid #555;
+}
+.ui-widget-content .ui-state-hover, .ui-widget-content .ui-state-active {
+	background: #eee;
+	color: #444;
+}
+.ui-widget-content .ui-state-highlight {
+	background: #666;
+	color: #eee;
+}
+.ui-widget-header .ui-icon {
+	background-image: url(https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.4/images/ui-icons_ffffff_256x240.png);
+}
+.ui-widget-header .ui-state-hover .ui-icon {
+	background-image: url(https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.4/images/ui-icons_222222_256x240.png);
+}
+.ui-menu .ui-menu-item.ui-state-focus {
+	background:#666;
+}
+
+#key {
+	border:3px solid #555;
+}
+
+input[type="checkbox"].priority + label {
+	border: 5px solid #555;
+}
+input[type="checkbox"].priority:checked + label {
+	background:#666;
+}
+
+.bad {
+    background: #511;
+    color:      #faa;
+}
+
+.good {
+    background: #444;
+    color:      #eee;
+}
+
+.rankpielegend {
+    margin-top: 0;
+}
+
+/* Player stats pie chart and corresponding legend colors:
+   rank_1_path is the pie slice for rank 1
+   rank_1_label is the legend label for rank 1
+   rank_label is the class for all legend rank labels
+   .rankpiechart > text are the text elemetns in the pie slice showing
+     the count of how many times that rank occurred in the time period
+   Note the color of the text in the legend is specified by 'color' since
+   it's a table while the color of the count inside the pie slice is
+   specified by 'fill' since it is a text element inside a svg.
+*/
+.rankpiechart > text {
+    fill:       #111;
+}
+
+.rank_label {
+    color:      #111;
+}
+
+.rank_1_path, .rank_1_label {
+    fill:       #88f;
+    background: #88f;
+}
+
+.rank_2_path, .rank_2_label {
+    fill:       #f88;
+    background: #f88;
+}
+
+.rank_3_path, .rank_3_label {
+    fill:       #8f8;
+    background: #8f8;
+}
+
+.rank_4_path, .rank_4_label {
+    fill:       #f8f;
+    background: #f8f;
+}
+
+.rank_5_path, .rank_5_label {
+    fill:       #ff8;
+    background: #ff8;
+}
