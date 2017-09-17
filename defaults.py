@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+import datetime
+
+# Tournament Name - Used in email communications and headers
+TOURNAMENTNAME = "{0} Tournament".format(datetime.date.today().strftime('%Y'))
+
 # DB
 #  DBFILE is the name of the file that contains the scores and player database.
 DBFILE = "scores.db"

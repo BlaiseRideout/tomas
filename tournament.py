@@ -7,7 +7,12 @@ import db
 
 class TournamentHandler(handler.BaseHandler):
     def get(self):
-        return self.render("tournament.html")
+        no_user = False
+        with db.getCur() as cur:
+            cur.execute("SELECT COUNT(*) FROM Users")
+            no_user = cur.fetchone()[0] == 0
+
+        return self.render("tournament.html", no_user=no_user)
 
 class PlayersHandler(handler.BaseHandler):
     def get(self):

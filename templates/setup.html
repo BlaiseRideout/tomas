@@ -1,0 +1,20 @@
+{% extends "template.html" %}
+
+{% block title %} - Setup{% end %}
+
+{% block content %}
+	<h1 id="page-title">Setup</h1>
+	{% try %}
+		{% if message %}
+			<div id="message">{{ message }}</div>
+		{% end %}
+	{% except %}{% end %}
+
+        <p>Enter the email address for first account.
+	  This account will have administrator privileges.</p>
+	<form action="/setup" method="post">
+		<input autocapitalize="off" autocorrect="off" autofocus="autofocus" id="email-field" name="email" placeholder="EMAIL" type="text" /><br/>
+
+		<input type="submit" value="Invite"/>
+	</form>
+{% end %}

@@ -13,4 +13,11 @@
 			<div id="message">{% raw message %}</div>
 		{% end %}
 	{% except %}{% end %}
+	{% try %}
+		{% if next %}
+			<form method="get" id="next" action="{{ next_url }}">
+			  <button type="submit"> {% raw next %} </button>
+			</form>
+		{% end %}
+	{% except %}{% end %}
 {% end %}

@@ -18,9 +18,9 @@ import util
 
 log = logging.getLogger("WebServer")
 
-def format_invite(clubname, host, code):
+def format_invite(tournamentname, host, code):
     return """
-<p>You've been invited to {clubname}\n<br />
+<p>You've been invited to {tournamentname}\n<br />
 Click <a href="http://{host}/verify/{code}">this link</a>
 to accept the invite and register an account, or copy and paste the following
 into your URL bar:<br />
@@ -28,7 +28,7 @@ http://{host}/verify/{code}</p>
 
 <p>If you believe you received this email in error, it can be safely ignored.
 It is likely a user simply entered your email by mistake.</p>""".format(
-    clubname=clubname, host=host, code=code)
+    tournamentname=tournamentname, host=host, code=code)
 
 def expiration_date(start=None, duration=settings.LINKVALIDDAYS):
     if start is None:
@@ -38,8 +38,6 @@ def expiration_date(start=None, duration=settings.LINKVALIDDAYS):
 class InviteHandler(handler.BaseHandler):
     @tornado.web.authenticated
     def get(self):
-        self.render("invite.html")
-        return
         if self.current_user is not None:
             self.render("invite.html")
         self.render("login.html")
@@ -66,8 +64,10 @@ class InviteHandler(handler.BaseHandler):
                             "VALUES (?, LOWER(?), ?)",
                             (code, email, expiration_date().isoformat()))
 
-            util.sendEmail(email, "Your {0} Account".format(settings.CLUBNAME),
-                           format_invite(settings.CLUBNAME, self.request.host,
+            util.sendEmail(email, 
+                           "Your {0} Account".format(settings.TOURNAMENTNAME),
+                           format_invite(settings.TOURNAMENTNAME,
+                                         self.request.host,
                                          code))
 
             self.render("message.html",
@@ -94,8 +94,8 @@ class SetupHandler(handler.BaseHandler):
                             "VALUES (?, LOWER(?), ?)",
                             (code, email, expiration_date().isoformat()))
 
-            util.sendEmail(email, "Your {0} Account".format(settings.CLUBNAME),
-                           format_invite(settings.CLUBNAME, self.request.host,
+            util.sendEmail(email, "Your {0} Account".format(settings.TOURNAMENTNAME),
+                           format_invite(settings.TOURNAMENTNAME, self.request.host,
                                          code))
 
             self.render("message.html",
@@ -187,12 +187,13 @@ class ResetPasswordHandler(handler.BaseHandler):
                             (code, row[0], expiration_date().isoformat()))
 
                 util.sendEmail(
-                    email, "Your {0} Account".format(settings.CLUBNAME), """
-<p>Here's the link to reset your {clubname} account password.<br />
+                    email, "Your {0} Account".format(settings.TOURNAMENTNAME), """
+<p>Here's the link to reset your {tournamentname} account password.<br />
 Click <a href="http://{host}/reset/{code}">this link</a> to reset your password,
 or copy and paste the following into your URL bar:<br />
 http://{host}/reset/{code} </p>
-""".format(clubname=settings.CLUBNAME, host=self.request.host, code=code))
+""".format(tournamentname=settings.TOURNAMENTNAME,
+           host=self.request.host, code=code))
                 self.render("message.html",
                             message = "Your password reset link has been sent")
             else:
@@ -279,12 +280,16 @@ class LoginHandler(handler.BaseHandler):
                     self.set_secure_cookie("user", str(userID))
                     log.info("Successful login for {0} (ID = {1})".format(
                         email, userID))
-                    cur.execute("SELECT EXISTS(SELECT * FROM Admins WHERE Id = ?)", (userID,))
+                    cur.execute(
+                        "SELECT EXISTS(SELECT * FROM Admins WHERE Id = ?)",
+                        (userID,))
                     if cur.fetchone()[0] == 1:
                         log.info("and {0} is an admin user".format(
                             email))
                         self.set_secure_cookie("admin", "1")
-                    cur.execute("SELECT Value FROM Settings WHERE UserId = ? AND Setting = 'stylesheet';", (userID,))
+                    cur.execute("SELECT Value FROM Preferences WHERE"
+                                " UserId = ? AND Preference = 'stylesheet';",
+                                (userID,))
                     res = cur.fetchone()
                     if res != None:
                         self.set_secure_cookie("stylesheet", res[0])
@@ -303,26 +308,3 @@ class LogoutHandler(handler.BaseHandler):
         self.clear_cookie("user")
         self.clear_cookie("admin")
         self.redirect(uri)
-
-class SettingsHandler(handler.BaseHandler):
-    @tornado.web.authenticated
-    def get(self):
-        with db.getCur() as cur:
-            cur.execute("SELECT Email FROM Users WHERE Id = ?", self.current_user)
-            email = cur.fetchone()
-            if email is not None:
-                email = email[0]
-            self.render("settings.html", email = email, stylesheets=sorted(os.listdir("static/css/colors")))
-    @tornado.web.authenticated
-    def post(self):
-        stylesheet = self.get_argument('stylesheet', None)
-        email = self.get_argument('email', None)
-        if stylesheet is None or email is None:
-            self.render("message.html", message="Please pick a stylesheet and enter a valid email", title="Settings")
-        else:
-            with db.getCur() as cur:
-                cur.execute("DELETE FROM Settings WHERE UserId = ? AND Setting = 'stylesheet';", (self.current_user,))
-                cur.execute("INSERT INTO Settings(UserId, Setting, Value) VALUES(?, 'stylesheet', ?);", (self.current_user, stylesheet))
-                cur.execute("UPDATE Users SET Email = LOWER(?) WHERE Id = ? AND Email != LOWER(?)", (email, self.current_user, email))
-            self.set_secure_cookie("stylesheet", stylesheet)
-            self.redirect("/settings")

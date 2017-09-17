@@ -75,7 +75,28 @@ schema = collections.OrderedDict({
         "Email TEXT NOT NULL",
         "Password TEXT NOT NULL",
         "UNIQUE(Email)"
-    ]
+    ],
+    'Admins': [
+        'Id INTEGER PRIMARY KEY NOT NULL',
+        'FOREIGN KEY(Id) REFERENCES Users(Id) ON DELETE CASCADE'
+    ],
+    'ResetLinks': [
+        'Id CHAR(32) PRIMARY KEY NOT NULL',
+        'User INTEGER',
+        'Expires DATETIME',
+        'FOREIGN KEY(User) REFERENCES Users(Id)'
+    ],
+    'VerifyLinks': [
+        'Id CHAR(32) PRIMARY KEY NOT NULL',
+        'Email TEXT NOT NULL',
+        'Expires DATETIME'
+    ],
+    'Preferences': [
+        'UserId INTEGER',
+        'Preference TEXT NOT NULL',
+        'Value SETTING NOT NULL',
+        'FOREIGN KEY(UserId) REFERENCES Users(Id)'
+    ],
 })
 
 

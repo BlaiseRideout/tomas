@@ -11,7 +11,7 @@ def stringify(x):
 
 class BaseHandler(tornado.web.RequestHandler):
     def get_current_user(self):
-        return "1"
+#        return "1"
         return stringify(self.get_secure_cookie("user"))
 
     def render(self, template_name, **kwargs):

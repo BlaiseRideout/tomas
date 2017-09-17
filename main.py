@@ -33,6 +33,7 @@ import login
 import leaderboard
 import playerstats
 import tournament
+import preferences
 
 # import and define tornado-y things
 from tornado.options import define, options
@@ -62,6 +63,7 @@ class Application(tornado.web.Application):
                 (r"/setup", login.SetupHandler),
                 (r"/login", login.LoginHandler),
                 (r"/logout", login.LogoutHandler),
+                (r"/preferences", preferences.PreferencesHandler),
                 (r"/invite", login.InviteHandler),
                 (r"/verify/([^/]+)", login.VerifyHandler),
                 (r"/reset", login.ResetPasswordHandler),

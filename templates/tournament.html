@@ -5,6 +5,10 @@
 {% end %}
 {% block content %}
 <div id="tournament">
+	{% if no_user %}
+		<p>It appears you've no users. Would you like to create one?</p>
+		<a class="button" href="/setup">SETUP</a>
+	{% end %}
 	<ul>
 		<li><a href="#players">Players</a></li>
 		<li><a href="#settings">Settings</a></li>

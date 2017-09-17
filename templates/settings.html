@@ -1,0 +1,19 @@
+{% extends "template.html" %}
+
+{% block title %} - User Settings{% end %}
+
+{% block content %}
+	<h1>User Settings</h1>
+	<form action="/settings" method="post" id="settingsform">
+		<label for="email">Email: </label>
+		<input id="email" name="email" type="text" value="{{ email }}" />
+		<label for="stylesheet">Stylesheet: </label>
+		<select id="stylesheet" name="stylesheet">
+			{% for sheet in stylesheets %}
+			<option value="{{ sheet }}"{% if sheet == stylesheet %} selected{% end %}>{{ sheet }}</option>
+			{% end %}
+		</select>
+		<input type="submit" value="Update"/>
+		<a href="/reset">Reset password</a>
+	</form>
+{% end %}
