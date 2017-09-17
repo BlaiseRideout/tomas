@@ -7,11 +7,11 @@
 	</tr>
 	{{ #players }}
 		<tr class="player" data-id="{{ id }}">
-			<td class="name">{{ name }}</td>
-			<td class="country">{{ country }}</td>
+			<td class="name"><input type="text" data-colname="Name" class="playerfield" value="{{ name }}" /></td>
+			<td class="country"><span class="countryselect" data-countryid="{{ countryid }}">{{ country }}</span></td>
 			<td class="flag">{{{ flag_image }}}</td>
-			<td class="association">{{ association }}</td>
-			<td class="pool">{{ pool }}</td>
+			<td class="association"><input type="text" data-colname="Association" class="playerfield" value="{{ association }}" /></td>
+			<td class="pool"><input type="text" data-colname="Pool" class="playerfield" value="{{ pool }}" /></td>
 		</tr>
 	{{ /players }}
 </table>

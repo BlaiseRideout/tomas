@@ -18,13 +18,25 @@ class PlayersHandler(handler.BaseHandler):
     def get(self):
         with db.getCur() as cur:
             cur.execute(
-                "SELECT Players.Id, Players.Name, Countries.Code, Flag_Image,"
+                "SELECT Players.Id, Players.Name, Countries.Code, Countries.Id, Flag_Image,"
                 " Association, Pools.Name"
                 " FROM Players LEFT OUTER JOIN Countries"
                 "   ON Countries.Id = Players.Country"
                 " LEFT OUTER JOIN Pools ON Players.Pool = Pools.Id")
-            rows = [{"id": row[0], "name": row[1], "country": row[2], "flag_image": row[3], "association": row[4], "pool": row[5]} for row in cur.fetchall()]
+            rows = [{"id": row[0], "name": row[1], "country": row[2], "countryid": row[3], "flag_image": row[4], "association": row[5], "pool": row[6]} for row in cur.fetchall()]
             return self.write(json.dumps({'players':rows}))
+    def post(self):
+        player = self.get_argument("player", None)
+        if player is None:
+            return self.write(json.dumps({'status':"error", 'message':"Please provide a player"}))
+        info = self.get_argument("info", None)
+        if info is None:
+            return self.write(json.dumps({'status':"error", 'message':"Please provide an info object"}))
+        info = json.loads(info)
+        with db.getCur() as cur:
+            for colname, val in info.items():
+                cur.execute("UPDATE Players SET {0} = ? WHERE Id = ?".format(colname), (val, player)) # TODO: fix SQL injection
+            return self.write(json.dumps({'status':"success"}))
 
 class AddRoundHandler(handler.BaseHandler):
     def post(self):
@@ -58,5 +70,11 @@ class SettingsHandler(handler.BaseHandler):
         print(settings)
         with db.getCur() as cur:
             for colname, val in settings.items():
-                cur.execute("UPDATE Rounds SET {0} = ?".format(colname), (val,))
+                cur.execute("UPDATE Rounds SET {0} = ? WHERE Id = ?".format(colname), (val, round)) # TODO: fix SQL injection
             return self.write(json.dumps({'status':"success"}))
+
+class CountriesHandler(handler.BaseHandler):
+    def get(self):
+        with db.getCur() as cur:
+            cur.execute("SELECT Id, Name, Code, IOC_Code, IOC_Name, Flag_Image FROM Countries")
+            return self.write(json.dumps([{'Id': row[0], 'Name': row[1], 'Code': row[2], 'IOC_Code': row[3], 'IOC_Name': row[4], 'Flag_Image': row[5]} for row in cur.fetchall()]))

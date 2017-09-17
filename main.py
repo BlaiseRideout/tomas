@@ -60,6 +60,7 @@ class Application(tornado.web.Application):
                 (r"/addround", tournament.AddRoundHandler),
                 (r"/deleteround", tournament.DeleteRoundHandler),
                 (r"/settings", tournament.SettingsHandler),
+                (r"/countries", tournament.CountriesHandler),
                 (r"/setup", login.SetupHandler),
                 (r"/login", login.LoginHandler),
                 (r"/logout", login.LogoutHandler),

@@ -10,6 +10,7 @@ as field separators.
 import argparse
 import db
 import csv
+import sys
 
 def load_players(playerfile, headers=False):
     with db.getCur() as cur:
@@ -49,7 +50,7 @@ if __name__ == "__main__":
     if args.clear:
         with db.getCur() as cur:
             cur.execute("DELETE FROM Players")
-            
+
     for i, f in enumerate(args.players if args.players else [sys.stdin]):
         print("Loading players from {0}...".format(f.name))
         load_players(f, headers=args.skip_header_row)

@@ -1,5 +1,6 @@
 $(function() {
 	var templates = {};
+	var countries, countryOptions;
 	function renderTemplate(template, endpoint, selector, callback) {
 		if(templates[template] === undefined)
 			$.get("/static/mustache/" + template, function(data) {
@@ -15,7 +16,56 @@ $(function() {
 			});
 	}
 	function updatePlayers() {
-		renderTemplate("players.mst", "/players", "#players");
+		renderTemplate("players.mst", "/players", "#players", function() {
+			var updatePlayer = function() {
+				var player = $(this).parents(".player").data("id");
+				var colname = $(this).data("colname");
+				var newVal = $(this).val();
+				var info = {};
+				info[colname] = newVal;
+				console.log(info);
+				$.post("/players", {'player': player, 'info':JSON.stringify(info)}, function(data) {
+					if(data['status'] !== "success")
+						console.log(data);
+				}, "json")
+			};
+			countrySelect(function() {
+				$(".countryselect").change(updatePlayer);
+			});
+			$(".playerfield").change(updatePlayer).keyup(updatePlayer);
+		});
+	}
+	function countrySelect(callback) {
+		if(countries === undefined)
+			$.getJSON("/countries", function(data) {
+				countries = data;
+				countryOptions = [];
+				for(var i = 0; i < countries.length; ++i) {
+					var country = document.createElement("option");
+					$(country).text(data[i]['Code']);
+					$(country).val(data[i]['Id']);
+					$(country).data("flag", data[i]['Flag_Image'])
+					countryOptions[i] = country;
+				}
+				countrySelect(callback);
+			});
+		else {
+			$("span.countryselect").each(function(i, elem) {
+				var country = $(elem).data("countryid");
+				var select = document.createElement("select");
+				select.className = this.className;
+				$(elem).replaceWith(select);
+				for(var i = 0; i < countryOptions.length; ++i)
+					select.appendChild(countryOptions[i].cloneNode(true));
+				$(select).val(country);
+				$(select).data("colname", "Country");
+				$(select).change(function() {
+					$(this).parent().next(".flag").html(countries[this.selectedIndex]["Flag_Image"]);
+				});
+			});
+			if(typeof callback === 'function')
+				callback();
+		}
 	}
 	function updateStandings() {
 		renderTemplate("leaderboard.mst", "/leaderboard", "#standings");

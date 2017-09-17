@@ -46,16 +46,12 @@ schema = collections.OrderedDict({
         "Diversity TINYINT",
         "UsePools TINYINT"
     ],
-    'Pools': [
-        "Id INTEGER PRIMARY KEY AUTOINCREMENT",
-        "Name TEXT"
-    ],
     'Players': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
         "Name TEXT",
         "Country INTEGER",
         "Association TEXT",
-        "Pool INTEGER",
+        "Pool TEXT",
         "FOREIGN KEY(Country) REFERENCES Countries(Id) ON DELETE CASCADE"
     ],
     'Scores': [

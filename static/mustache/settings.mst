@@ -28,6 +28,6 @@
 	<label for="round{{ id }}-diversity">Same country avoidance</label>
 
 	<br />
-	<button class="deleteround">Delete</button>
+	<button class="deleteround">Delete Round {{ number }}</button>
 </div>
 {{ /rounds }}
