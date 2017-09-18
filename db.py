@@ -60,6 +60,7 @@ schema = collections.OrderedDict({
         "Country INTEGER",
         "Association TEXT",
         "Pool TEXT",
+        "Inactive TINYINT DEFAULT 0",
         "FOREIGN KEY(Country) REFERENCES Countries(Id) ON DELETE CASCADE"
     ],
     'Scores': [

@@ -13,6 +13,12 @@
 		<link href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.theme.min.css" rel="stylesheet" type="text/css" />
 		<link href="{{ static_url("css/style.css") }}" type="text/css" rel="stylesheet" />
 
+		{% if current_user and stylesheet %}
+			<link href="{{ static_url("css/colors/" + stylesheet) }}" type="text/css" rel="stylesheet" />
+		{% else %}
+			<link href="{{ static_url("css/colors/00-default.css") }}" type="text/css" rel="stylesheet" />
+		{% end %}
+
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.2.1/mustache.min.js" type="text/javascript"></script>

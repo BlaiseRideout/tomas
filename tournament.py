@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 import json
+import re
 
+import tornado.web
 import handler
 import db
 
@@ -14,31 +16,58 @@ class TournamentHandler(handler.BaseHandler):
 
         return self.render("tournament.html", no_user=no_user)
 
+player_fields = ["id", "name", "country", "countryid", "flag_image",
+                 "association", "pool", "inactive"]
+valid_values = re.compile(r'^[\w\s():,.\'+-]*$')
+
 class PlayersHandler(handler.BaseHandler):
+    global player_fields
     def get(self):
+        editable = self.current_user is not None
         with db.getCur() as cur:
             cur.execute(
-                "SELECT Players.Id, Players.Name, Countries.Code, Countries.Id, Flag_Image,"
-                " Association, Pools.Name"
-                " FROM Players"
-                " LEFT OUTER JOIN Countries"
+                "SELECT Players.Id, Players.Name, Countries.Code, Countries.Id,"
+                " Flag_Image, Association, Pool, Inactive"
+                " FROM Players LEFT OUTER JOIN Countries"
                 "   ON Countries.Id = Players.Country"
-                " LEFT OUTER JOIN Pools"
-                "   ON Players.Pool = Pools.Id")
-            rows = [{"id": row[0], "name": row[1], "country": row[2], "countryid": row[3], "flag_image": row[4], "association": row[5], "pool": row[6]} for row in cur.fetchall()]
-            return self.write(json.dumps({'players':rows}))
+                " ORDER BY Players.Name asc")
+            rows = [dict(zip(player_fields, row)) for row in cur.fetchall()]
+            return self.write(json.dumps({'players':rows, 'editable': editable}))
+    @tornado.web.authenticated
     def post(self):
+        global player_fields
+        global valid_values
         player = self.get_argument("player", None)
-        if player is None:
-            return self.write(json.dumps({'status':"error", 'message':"Please provide a player"}))
+        if player is None or not (player.isdigit() or player == '-1'):
+            return self.write(json.dumps(
+                {'status':"error", 'message':"Please provide a player"}))
         info = self.get_argument("info", None)
         if info is None:
-            return self.write(json.dumps({'status':"error", 'message':"Please provide an info object"}))
+            return self.write(json.dumps(
+                {'status':"error", 'message':"Please provide an info object"}))
         info = json.loads(info)
-        with db.getCur() as cur:
-            for colname, val in info.items():
-                cur.execute("UPDATE Players SET {0} = ? WHERE Id = ?".format(colname), (val, player)) # TODO: fix SQL injection
+        try:
+            with db.getCur() as cur:
+                for colname, val in info.items():
+                    if (colname.lower() not in player_fields or 
+                        not valid_values.match(val) or
+                        (colname.lower() == 'name' and len(val) == 0)):
+                        return self.write(json.dumps(
+                            {'status':"error", 
+                             'message':"Invalid column or value provided"}))
+                    if player == '-1':
+                        cur.execute("INSERT INTO Players (Name, Country, Inactive) VALUES"
+                                    " ('newplayer',"
+                                    "  (select Id from Countries limit 1), 1)")
+                    else:
+                        cur.execute("UPDATE Players SET {0} = ? WHERE Id = ?"
+                                    .format(colname),
+                                    (val, player))
             return self.write(json.dumps({'status':"success"}))
+        except:
+            return self.write(json.dumps(
+                {'status':"error", 
+                 'message':"Invalid info provided"}))
 
 class AddRoundHandler(handler.BaseHandler):
     def post(self):
@@ -57,6 +86,7 @@ class DeleteRoundHandler(handler.BaseHandler):
 
 class SettingsHandler(handler.BaseHandler):
     def get(self):
+        editable = self.current_user is not None
         with db.getCur() as cur:
             cur.execute("SELECT Id, Seed, SoftCut, Duplicates, Diversity, UsePools FROM Rounds")
             rounds = [
