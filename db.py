@@ -56,7 +56,7 @@ schema = collections.OrderedDict({
     ],
     'Players': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
-        "Name TEXT",
+        "Name TEXT NOT NULL",
         "Country INTEGER",
         "Association TEXT",
         "Pool TEXT",
