@@ -10,8 +10,9 @@ class LeaderDataHandler(handler.BaseHandler):
         query = """SELECT
              Players.Name,
              Countries.Code, Flag_Image,
-             COALESCE(ROUND(SUM(Scores.Score) * 1.0 / COUNT(Scores.Score) * 100)
-               / 100, 0) AS AvgScore
+             COALESCE(
+                 ROUND(SUM(Scores.Score) * 1.0 / COUNT(Scores.Score) * 100) / 100
+             , 0) AS AvgScore
            FROM Players
            LEFT JOIN Scores ON Players.Id = Scores.PlayerId
            LEFT JOIN Countries ON Players.Country = Countries.Id

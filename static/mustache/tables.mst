@@ -1,0 +1,30 @@
+<ul>
+	{{ #rounds }}
+			<li><a href="#round-{{ round }}">Round {{ round }}</a></li>
+	{{ /rounds }}
+</ul>
+{{ #rounds }}
+	<div class="round" data-round="{{ round }}" id="round-{{ round }}">
+		<button class="genround">Generate</button>
+		<table class="tables">
+			<tr>
+				<th>Wind</th>
+				<th>Name</th>
+				<th colspan="2">Country</th>
+			</tr>
+			{{ #tables }}
+				<tr>
+					<th colspan="4">TABLE {{ table }}</h3>
+				</tr>
+				{{ #players }}
+					<tr class="player">
+						<td class="windicator">{{ wind }}</td>
+						<td class="name">{{ player.name }}</td>
+						<td class="country">{{ player.country }}</td>
+						<td class="flag">{{{ player.flag }}}</td>
+					</tr>
+				{{ /players}}
+			{{ /tables }}
+		</table>
+	</div>
+{{ /rounds }}

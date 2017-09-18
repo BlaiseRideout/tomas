@@ -1,33 +1,33 @@
 <button id="addround">Add Round</button>
 {{ #rounds }}
-<div class="round" data-roundid="{{ id }}">
-	<h2>Round {{ number }}</h2>
+	<div class="round" data-roundid="{{ id }}">
+		<h2>Round {{ id }}</h2>
 
-	<input type="checkbox" class="roundsetting" id="round{{ id }}-pools" data-colname="UsePools"{{ #usepools }} checked{{ /usepools }}/>
-	<label for="round{{ id }}-pools">Use pools?</label>
+		<input type="checkbox" class="roundsetting" id="round{{ id }}-pools" data-colname="UsePools"{{ #usepools }} checked{{ /usepools }}/>
+		<label for="round{{ id }}-pools">Use pools?</label>
 
-	<br />
+		<br />
 
 
-	<input type="checkbox" class="roundsetting" id="round{{ id }}-softcut" data-colname="SoftCut"{{ #softcut }} checked{{ /softcut }}/>
-	<label for="round{{ id }}-softcut">Use softcut?</label>
+		<input type="checkbox" class="roundsetting" id="round{{ id }}-softcut" data-colname="SoftCut"{{ #softcut }} checked{{ /softcut }}/>
+		<label for="round{{ id }}-softcut">Use softcut?</label>
 
-	<br />
+		<br />
 
-	<label for="round{{ id }}-seed">Seed</label>
-	<input type="text" class="roundsetting" id="round{{ id }}-seed" data-colname="Seed" value="{{ seed }}"/>
+		<label for="round{{ id }}-seed">Seed</label>
+		<input type="text" class="roundsetting" id="round{{ id }}-seed" data-colname="Seed" value="{{ seed }}"/>
 
-	<br />
+		<br />
 
-	<label for="round{{ id }}-duplicates">No of duplicates allowed</label>
-	<input type="number" class="roundsetting" id="round{{ id }}-duplicates" data-colname="Duplicates" value="{{ duplicates }}" min="0"/>
+		<label for="round{{ id }}-duplicates">No of duplicates allowed</label>
+		<input type="number" class="roundsetting" id="round{{ id }}-duplicates" data-colname="Duplicates" value="{{ duplicates }}" min="0"/>
 
-	<br />
+		<br />
 
-	<input type="checkbox" class="roundsetting" id="round{{ id }}-diversity" data-colname="Diversity" {{ #diversity }} checked{{ /diversity }}/>
-	<label for="round{{ id }}-diversity">Same country avoidance</label>
+		<input type="checkbox" class="roundsetting" id="round{{ id }}-diversity" data-colname="Diversity" {{ #diversity }} checked{{ /diversity }}/>
+		<label for="round{{ id }}-diversity">Same country avoidance</label>
 
-	<br />
-	<button class="deleteround">Delete Round {{ number }}</button>
-</div>
+		<br />
+		<button class="deleteround">Delete Round {{ id }}</button>
+	</div>
 {{ /rounds }}

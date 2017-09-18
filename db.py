@@ -39,12 +39,20 @@ schema = collections.OrderedDict({
     ],
     'Rounds': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
-        "Number INTEGER",
         "Seed TEXT",
         "SoftCut INTEGER",
         "Duplicates INTEGER",
         "Diversity TINYINT",
         "UsePools TINYINT"
+    ],
+    'Seating': [
+        "Id INTEGER PRIMARY KEY AUTOINCREMENT",
+        "Round INTEGER",
+        "Player INTEGER",
+        "TableNum INTEGER",
+        "Wind TINYINT",
+        "FOREIGN KEY(Player) REFERENCES Players(Id) ON DELETE CASCADE",
+        "FOREIGN KEY(Round) REFERENCES Rounds(Id) ON DELETE CASCADE"
     ],
     'Players': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",

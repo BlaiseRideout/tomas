@@ -104,10 +104,24 @@ $(function() {
 			$(".roundsetting").change(updateSetting).keyup(updateSetting);
 		});
 	}
+	function updateSeating() {
+		renderTemplate("tables.mst", "/seating", "#seating", function() {
+			if($("#seating").hasClass("ui-tabs"))
+				$("#seating").tabs("destroy");
+			$("#seating").tabs();
+			$(".genround").click(function() {
+				var round = $(this).parents(".round").data("round");
+				$.post("/seating", {"round":round}, function(data) {
+					updateSeating();
+				}, "json");
+			});
+		});
+	}
 	function update() {
 		updatePlayers();
 		updateSettings();
 		updateStandings();
+		updateSeating();
 	}
 	update();
 	$("#tournament").tabs();

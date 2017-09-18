@@ -57,10 +57,14 @@ class Application(tornado.web.Application):
         handlers = [
                 (r"/", tournament.TournamentHandler),
                 (r"/players", tournament.PlayersHandler),
+                (r"/seating", tournament.SeatingHandler),
                 (r"/addround", tournament.AddRoundHandler),
                 (r"/deleteround", tournament.DeleteRoundHandler),
                 (r"/settings", tournament.SettingsHandler),
                 (r"/countries", tournament.CountriesHandler),
+                (r"/leaderboard", leaderboard.LeaderDataHandler),
+                (r"/playerstats/(.*)", playerstats.PlayerStatsHandler),
+                (r"/playerstatsdata/(.*)", playerstats.PlayerStatsDataHandler),
                 (r"/setup", login.SetupHandler),
                 (r"/login", login.LoginHandler),
                 (r"/logout", login.LogoutHandler),
@@ -69,9 +73,6 @@ class Application(tornado.web.Application):
                 (r"/verify/([^/]+)", login.VerifyHandler),
                 (r"/reset", login.ResetPasswordHandler),
                 (r"/reset/([^/]+)", login.ResetPasswordLinkHandler),
-                (r"/leaderboard", leaderboard.LeaderDataHandler),
-                (r"/playerstats/(.*)", playerstats.PlayerStatsHandler),
-                (r"/playerstatsdata/(.*)", playerstats.PlayerStatsDataHandler),
         ]
         settings = dict(
                 template_path = os.path.join(os.path.dirname(__file__), "templates"),
