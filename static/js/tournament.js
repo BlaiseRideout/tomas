@@ -11,7 +11,8 @@ $(function() {
 			});
 		else
 			$.getJSON(endpoint, function(data) {
-				$(selector).html(Mustache.render(templates[template], data));
+				$(selector).html(Mustache.render(
+				    templates[template], data));
 				if(typeof callback === "function")
 					callback(data);
 			});
@@ -22,18 +23,38 @@ $(function() {
 				var player = $(this).parents(".player").data("id");
 				var colname = $(this).data("colname");
 				var newVal = $(this).val();
-				var info = {};
+			    var info = {};
+			    var input = $(this);
 				info[colname] = newVal;
 				console.log(info);
 				$.post("/players", {'player': player, 'info':JSON.stringify(info)}, function(data) {
-					if(data['status'] !== "success")
-						console.log(data);
+				    if(data['status'] == "success") {
+					input.removeClass("bad");
+					input.addClass("good");
+				    } else {
+					console.log(data);
+					input.removeClass("good");
+					input.addClass("bad");
+				    }
 				}, "json")
 			};
+		    var addNewPlayer = function () {
+			$.post("/players", 
+			       {'player': '-1', 
+				'info':JSON.stringify({'name': '?'})},
+			       function(data) {
+				    if(data['status'] == "success") {
+					updatePlayers();
+				    } else {
+					console.log(data);
+				    }
+				}, "json")
+		    };
 			countrySelect(function() {
 				$(".countryselect").change(updatePlayer);
 			});
-			$(".playerfield").change(updatePlayer).keyup(updatePlayer);
+		    $(".playerfield").change(updatePlayer).keyup(updatePlayer);
+		    $(".addplayerbutton").click(addNewPlayer);
 		});
 	}
 	function countrySelect(callback) {

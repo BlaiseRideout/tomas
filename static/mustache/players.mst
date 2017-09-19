@@ -4,14 +4,55 @@
 		<th colspan="2" >Country</th>
 		<th>Association</th>
 		<th>Pool</th>
+		<th>
+		    <input type="checkbox" class="playerlisting" 
+			   id="showinactive" data-colname="Inactive"{{ #showinactive }} checked{{ /showinactive }}/>
+		    Show All
+		</th>
 	</tr>
 	{{ #players }}
 		<tr class="player" data-id="{{ id }}">
-			<td class="name"><input type="text" data-colname="Name" class="playerfield" value="{{ name }}" /></td>
-			<td class="country"><span class="countryselect" data-countryid="{{ countryid }}">{{ country }}</span></td>
-			<td class="flag">{{{ flag_image }}}</td>
-			<td class="association"><input type="text" data-colname="Association" class="playerfield" value="{{ association }}" /></td>
-			<td class="pool"><input type="text" data-colname="Pool" class="playerfield" value="{{ pool }}" /></td>
+		    <td class="name"><input type="text" data-colname="Name"
+			class="playerfield" value="{{ name }}"
+			{{ ^editable }} disabled {{ /editable }}/></td>
+		    <td class="country">
+			{{ #editable }}
+			<span class="countryselect" 
+			      data-countryid="{{ countryid }}">
+			    {{ country }}
+			</span>
+			{{ /editable }}
+			{{ ^editable }}
+			    {{ country }}
+			{{ /editable }}
+		    </td>
+		    <td class="flag">{{{ flag_image }}}</td>
+		    <td class="association"><input type="text"
+			data-colname="Association" class="playerfield"
+			value="{{ association }}"
+			{{ ^editable }} disabled {{ /editable }}/></td>
+		    <td class="pool"><input type="text" data-colname="Pool"
+			class="playerfield" value="{{ pool }}"
+			{{ ^editable }} disabled {{ /editable }}/></td>
+		    <td class="inactive">
+			<input type="button" data-colname="Inactive"
+			  class="playerfield" 
+			  {{ ^editable }} disabled
+			     value="{{ #inactive }}Inactive {{ /inactive }}" 
+			  {{ /editable }} 
+			  {{ #editable }} 
+			     value="{{ #inactive }}Reactivate{{ /inactive }}{{ ^inactive }}Make inactive{{ /inactive }}" 
+			  {{ /editable }} 
+			/>
+		    </td>
 		</tr>
 	{{ /players }}
+	{{ #editable }}
+	<tr>
+	    <td colspan="6" class="addplayer">
+		<input type="button" class="addplayerbutton" 
+		       value="Add player..." />
+	    </td>
+	</tr>
+	{{ /editable }}
 </table>
