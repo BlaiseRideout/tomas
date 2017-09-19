@@ -39,6 +39,7 @@ schema = collections.OrderedDict({
     ],
     'Rounds': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
+        "Algorithm INTEGER",
         "Seed TEXT",
         "SoftCut INTEGER",
         "Duplicates INTEGER",
@@ -136,11 +137,6 @@ def init(force=False):
             with open("countries.csv", "r") as countriesfile:
                 reader = csv.reader(countriesfile)
                 for row in reader:
-#                    name = row[0]
-#                    c_code = row[1]
-#                    IOC_code = row[2]
-#                    IOC_name = row[3]
-#                    flag_imag = row[4]
                     cur.execute(
                         "INSERT INTO Countries"
                         " (Name, Code, IOC_Code, IOC_Name, Flag_Image)"

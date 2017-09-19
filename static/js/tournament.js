@@ -1,6 +1,7 @@
 $(function() {
 	var templates = {};
 	var countries, countryOptions;
+	var algorithms, algorithmsSelect;
 	function renderTemplate(template, endpoint, selector, callback) {
 		if(templates[template] === undefined)
 			$.get("/static/mustache/" + template, function(data) {
@@ -67,6 +68,32 @@ $(function() {
 				callback();
 		}
 	}
+	function algorithmSelect(callback) {
+		if(algorithms === undefined)
+			$.getJSON("/algorithms", function(data) {
+				algorithms = data;
+				algorithmsSelect = document.createElement("select");
+				for(var i = 0; i < algorithms.length; ++i) {
+					var algorithm = document.createElement("option");
+					$(algorithm).text(algorithms[i]['Name']);
+					$(algorithm).val(algorithms[i]['Id']);
+					algorithmsSelect.appendChild(algorithm);
+				}
+				algorithmSelect(callback);
+			});
+		else {
+			$("span.algorithmselect").each(function(i, elem) {
+				var algorithm = $(elem).data("algorithm");
+				var select = algorithmsSelect.cloneNode(true);
+				select.className = this.className;
+				$(elem).replaceWith(select);
+				$(select).val(algorithm);
+				$(select).data("colname", "Algorithm");
+			});
+			if(typeof callback === 'function')
+				callback();
+		}
+	}
 	function updateStandings() {
 		renderTemplate("leaderboard.mst", "/leaderboard", "#standings");
 	}
@@ -101,7 +128,9 @@ $(function() {
 				}, "json");
 
 			}
-			$(".roundsetting").change(updateSetting).keyup(updateSetting);
+			algorithmSelect(function() {
+				$(".roundsetting").change(updateSetting).keyup(updateSetting);
+			});
 		});
 	}
 	function updateSeating() {
@@ -118,8 +147,8 @@ $(function() {
 		});
 	}
 	function update() {
-		updatePlayers();
 		updateSettings();
+		updatePlayers();
 		updateStandings();
 		updateSeating();
 	}

@@ -29,7 +29,7 @@ import db
 import settings
 
 import login
-#import seating
+import seating
 import leaderboard
 import playerstats
 import tournament
@@ -57,11 +57,12 @@ class Application(tornado.web.Application):
         handlers = [
                 (r"/", tournament.TournamentHandler),
                 (r"/players", tournament.PlayersHandler),
-                (r"/seating", tournament.SeatingHandler),
                 (r"/addround", tournament.AddRoundHandler),
                 (r"/deleteround", tournament.DeleteRoundHandler),
                 (r"/settings", tournament.SettingsHandler),
                 (r"/countries", tournament.CountriesHandler),
+                (r"/algorithms", seating.AlgorithmsHandler),
+                (r"/seating", seating.SeatingHandler),
                 (r"/leaderboard", leaderboard.LeaderDataHandler),
                 (r"/playerstats/(.*)", playerstats.PlayerStatsHandler),
                 (r"/playerstatsdata/(.*)", playerstats.PlayerStatsDataHandler),

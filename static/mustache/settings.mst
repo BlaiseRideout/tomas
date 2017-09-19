@@ -3,11 +3,15 @@
 	<div class="round" data-roundid="{{ id }}">
 		<h2>Round {{ id }}</h2>
 
+		<label for="round{{ id }}-algorithm">Seating algorithm</label>
+		<span id="round{{ id }}-algorithm" class="algorithmselect roundsetting" data-algorithm="{{ algorithm }}">{{ algname }}</span>
+
+		<br />
+
 		<input type="checkbox" class="roundsetting" id="round{{ id }}-pools" data-colname="UsePools"{{ #usepools }} checked{{ /usepools }}/>
 		<label for="round{{ id }}-pools">Use pools?</label>
 
 		<br />
-
 
 		<input type="checkbox" class="roundsetting" id="round{{ id }}-softcut" data-colname="SoftCut"{{ #softcut }} checked{{ /softcut }}/>
 		<label for="round{{ id }}-softcut">Use softcut?</label>
