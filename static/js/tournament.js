@@ -154,9 +154,15 @@ $(function() {
 	}
 	function updateSeating() {
 		renderTemplate("tables.mst", "/seating", "#seating", function() {
-			if($("#seating").hasClass("ui-tabs"))
+			var currentTab;
+			if($("#seating").hasClass("ui-tabs")) {
+				currentTab = $("#seating").tabs().tabs("option", "active");
+				console.log(currentTab);
 				$("#seating").tabs("destroy");
+			}
 			$("#seating").tabs();
+			if(currentTab !== undefined)
+				$("#seating").tabs("option", "active", currentTab);
 			$(".genround").click(function() {
 				var round = $(this).parents(".round").data("round");
 				$.post("/seating", {"round":round}, function(data) {

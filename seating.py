@@ -119,23 +119,49 @@ class SeatingHandler(handler.BaseHandler):
                     )
                 round, algorithm, seed, softcut, duplicates, diversity, usepools = cur.fetchone()
                 cur.execute("""
-                        SELECT Players.Id,
+                        SELECT
+                        Players.Id,
+                        Pool,
                         COALESCE(SUM(Scores.Score), 0) AS NetScore
                          FROM Players
                            LEFT OUTER JOIN Scores ON Players.Id = Scores.PlayerId AND Scores.Round < ?
                          GROUP BY Players.Id
                          ORDER BY NetScore DESC
                     """, (round,))
-                players = [row[0] for row in cur.fetchall()]
+                players = [
+                        {
+                            "Id": player,
+                            "Pool": pool,
+                            "Score": score
+                        }
+                        for player, pool, score in cur.fetchall()
+                    ]
 
                 if algorithm is None:
                     algorithm = 0
-                players = ALGORITHMS[algorithm].seat(players)
+
+                if seed is not None and len(seed) > 0:
+                    random.seed(seed)
+
+                if usepools:
+                    pools = {}
+                    for player in players:
+                        player["Pool"] = player["Pool"] or ""
+                        if not player["Pool"] in pools:
+                            pools[player["Pool"]] = []
+                        pools[player["Pool"]] += [player]
+                    players = []
+                    for pool in pools.values():
+                        players += ALGORITHMS[algorithm].seat(pool)
+                else:
+                    players = ALGORITHMS[algorithm].seat(players)
+
+                random.seed()
 
                 if len(players) > 0:
                     bindings = []
                     for i, player in enumerate(players):
-                        bindings += [round, player, int(i / 4), i % 4]
+                        bindings += [round, player["Id"], int(i / 4), i % 4]
                     cur.execute("DELETE FROM Seating WHERE Round = ?", (round,))
                     playerquery = "(?, ?, ?, ?)"
                     cur.execute("""
