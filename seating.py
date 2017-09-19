@@ -188,7 +188,8 @@ class SeatingHandler(handler.BaseHandler):
                     )
                 self.write(json.dumps({"status":"success"}))
 
-POPULATION = 256
+POPULATION = 32
+IMPROVECOUNT = 10
 
 defaultHeuristic = lambda p1, p2:0
 
@@ -198,24 +199,33 @@ def bestArrangement(tables, heuristic = defaultHeuristic, population = POPULATIO
     tables = tables[:]
     tabless = [(tablesScore(tables, heuristic), tables)] * POPULATION
 
-    iteration = 0
+    improved = 0
 
-    while iteration < numplayers and tabless[0][0] > 0:
+    while tabless[0][0] > 0 and improved < IMPROVECOUNT:
         for j in range(POPULATION):
             newTables = mutateTables(tabless[j][1])
             score = tablesScore(newTables, heuristic)
             tabless += [(score, newTables)]
+        bestScore = tabless[0][0]
+
         tabless.sort(key=itemgetter(0))
         tabless = tabless[0:POPULATION]
 
-        iteration += 1
+        if bestScore != tabless[0][0]:
+            improved = 0
+        else:
+            improved += 1
+
 
     return tabless[0][1]
 
 def mutateTables(tables):
     tables = tables[:]
     a = random.randint(0, len(tables) - 1)
-    b = random.randint(0, len(tables) - 1)
+    tableset = set(range(0, int(len(tables) / 4)))
+    table = int(a / 4)
+    otable = random.sample(tableset - set([table]), 1)[0]
+    b = otable * 4 + random.randint(0, 3)
     tables[a], tables[b] = tables[b], tables[a]
 
     return tables
