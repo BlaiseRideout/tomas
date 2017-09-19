@@ -1,6 +1,6 @@
 $(function() {
 	var templates = {};
-	var countries, countryOptions;
+	var countries, countriesSelect;
 	var algorithms, algorithmsSelect;
 	function renderTemplate(template, endpoint, selector, callback) {
 		if(templates[template] === undefined)
@@ -39,8 +39,8 @@ $(function() {
 				}, "json")
 			};
 		    var addNewPlayer = function () {
-			$.post("/players", 
-			       {'player': '-1', 
+			$.post("/players",
+			       {'player': '-1',
 				'info':JSON.stringify({'name': '?'})},
 			       function(data) {
 				    if(data['status'] == "success") {
@@ -61,24 +61,22 @@ $(function() {
 		if(countries === undefined)
 			$.getJSON("/countries", function(data) {
 				countries = data;
-				countryOptions = [];
+				countriesSelect = document.createElement("select");
 				for(var i = 0; i < countries.length; ++i) {
 					var country = document.createElement("option");
 					$(country).text(data[i]['Code']);
 					$(country).val(data[i]['Id']);
 					$(country).data("flag", data[i]['Flag_Image'])
-					countryOptions[i] = country;
+					countriesSelect.appendChild(country);
 				}
 				countrySelect(callback);
 			});
 		else {
 			$("span.countryselect").each(function(i, elem) {
 				var country = $(elem).data("countryid");
-				var select = document.createElement("select");
+				select = countriesSelect.cloneNode(true);
 				select.className = this.className;
 				$(elem).replaceWith(select);
-				for(var i = 0; i < countryOptions.length; ++i)
-					select.appendChild(countryOptions[i].cloneNode(true));
 				$(select).val(country);
 				$(select).data("colname", "Country");
 				$(select).change(function() {

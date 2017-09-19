@@ -238,6 +238,3 @@ def playerGames(players, c):
                 playergames[(players[i], players[j])] = games
 
     return playergames
-
-def seatSnake(players):
-    return players
