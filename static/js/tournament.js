@@ -10,7 +10,8 @@ $(function() {
 			});
 		else
 			$.getJSON(endpoint, function(data) {
-				$(selector).html(Mustache.render(templates[template], data));
+				$(selector).html(Mustache.render(
+				    templates[template], data));
 				if(typeof callback === "function")
 					callback(data);
 			});
@@ -37,8 +38,9 @@ $(function() {
 				}, "json")
 			};
 		    var addNewPlayer = function () {
-			$.post("/players", {'player': '-1', 
-					    'info':JSON.stringify({})},
+			$.post("/players", 
+			       {'player': '-1', 
+				'info':JSON.stringify({'name': '?'})},
 			       function(data) {
 				    if(data['status'] == "success") {
 					updatePlayers();
@@ -51,7 +53,7 @@ $(function() {
 				$(".countryselect").change(updatePlayer);
 			});
 		    $(".playerfield").change(updatePlayer).keyup(updatePlayer);
-		    $(".addplayer").click(addNewPlayer);
+		    $(".addplayerbutton").click(addNewPlayer);
 		});
 	}
 	function countrySelect(callback) {

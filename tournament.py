@@ -18,7 +18,7 @@ class TournamentHandler(handler.BaseHandler):
 
 player_fields = ["id", "name", "country", "countryid", "flag_image",
                  "association", "pool", "inactive"]
-valid_values = re.compile(r'^[\w\s():,.\'+-]*$')
+valid_values = re.compile(r'^[\w\s():,.\'+-\u202F]*$')
 
 class PlayersHandler(handler.BaseHandler):
     global player_fields
@@ -57,7 +57,7 @@ class PlayersHandler(handler.BaseHandler):
                              'message':"Invalid column or value provided"}))
                     if player == '-1':
                         cur.execute("INSERT INTO Players (Name, Country, Inactive) VALUES"
-                                    " ('newplayer',"
+                                    " ('\u202Fnewplayer',"
                                     "  (select Id from Countries limit 1), 1)")
                     else:
                         cur.execute("UPDATE Players SET {0} = ? WHERE Id = ?"

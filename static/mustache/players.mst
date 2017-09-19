@@ -50,7 +50,8 @@
 	{{ #editable }}
 	<tr>
 	    <td colspan="6" class="addplayer">
-		<input type="button" class="addplayer" value="Add player..." />
+		<input type="button" class="addplayerbutton" 
+		       value="Add player..." />
 	    </td>
 	</tr>
 	{{ /editable }}
