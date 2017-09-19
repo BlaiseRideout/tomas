@@ -102,7 +102,7 @@ class SeatingHandler(handler.BaseHandler):
                                             for wind, name in players.items()
                                         ]
                                 }
-                                for table, players in tables.items()
+                                for table, players in tables.items() if len(players) == 4
                             ]
                     }
                     for round, tables in rounds.items()
@@ -121,6 +121,7 @@ class SeatingHandler(handler.BaseHandler):
                 cur.execute("""
                         SELECT
                         Players.Id,
+                        Players.Country,
                         Pool,
                         COALESCE(SUM(Scores.Score), 0) AS NetScore
                          FROM Players
@@ -131,10 +132,11 @@ class SeatingHandler(handler.BaseHandler):
                 players = [
                         {
                             "Id": player,
+                            "Country": country,
                             "Pool": pool,
                             "Score": score
                         }
-                        for player, pool, score in cur.fetchall()
+                        for player, country, pool, score in cur.fetchall()
                     ]
 
                 if algorithm is None:
@@ -156,6 +158,20 @@ class SeatingHandler(handler.BaseHandler):
                 else:
                     players = ALGORITHMS[algorithm].seat(players)
 
+                if duplicates:
+                    playergames = playerGames(players, cur)
+                    heuristic = \
+                            (lambda playergames: \
+                                lambda p1, p2: \
+                                    playergames[(p1["Id"], p2["Id"])] or playergames[(p1["Id"], p2["Id"])] or 0
+                            )(playergames)
+                    players = bestArrangement(players, heuristic)
+
+                if diversity:
+                    heuristic = lambda p1, p2: \
+                            1 if p1["Country"] == p2["Country"] else 0
+                    players = bestArrangement(players, heuristic)
+
                 random.seed()
 
                 if len(players) > 0:
@@ -174,30 +190,25 @@ class SeatingHandler(handler.BaseHandler):
 
 POPULATION = 256
 
-def bestArrangement(tables, playergames, population = POPULATION):
+defaultHeuristic = lambda p1, p2:0
+
+def bestArrangement(tables, heuristic = defaultHeuristic, population = POPULATION):
     numplayers = len(tables)
 
-    tabless = []
-    for i in range(POPULATION):
-        tables = tables[:]
-        random.shuffle(tables)
-        tabless += [(tablesScore(tables, playergames), tables)]
-    tabless.sort(key=itemgetter(0))
+    tables = tables[:]
+    tabless = [(tablesScore(tables, heuristic), tables)] * POPULATION
 
-    minScore = tabless[0][0]
     iteration = 0
 
-    while iteration < numplayers and minScore > 0:
+    while iteration < numplayers and tabless[0][0] > 0:
         for j in range(POPULATION):
             newTables = mutateTables(tabless[j][1])
-            tabless += [(tablesScore(newTables, playergames), newTables)]
+            score = tablesScore(newTables, heuristic)
+            tabless += [(score, newTables)]
         tabless.sort(key=itemgetter(0))
         tabless = tabless[0:POPULATION]
 
         iteration += 1
-        if minScore != tabless[0][0]:
-            minScore = tabless[0][0]
-            improved = 0
 
     return tabless[0][1]
 
@@ -209,42 +220,23 @@ def mutateTables(tables):
 
     return tables
 
-def tablesScore(players, playergames):
+def tablesScore(players, heuristic = defaultHeuristic):
     numplayers = len(players)
-    if numplayers >= 8:
-        tables_5p = numplayers % 4
-        total_tables = int(numplayers / 4)
-        tables_4p = total_tables - tables_5p
-    else:
-        if numplayers >= 5:
-            tables_5p = 1
-        else:
-            tables_5p = 0
-        total_tables = 1
-        tables_4p = total_tables - tables_5p
-
     score = 0
 
-    for i in range(0, tables_4p * 4, 4):
+    for i in range(0, numplayers, 4):
         table = players[i:i+4]
-        score += tableScore(table, playergames)
-
-    for i in range(tables_4p * 4, numplayers, 5):
-        table = players[i:i+5]
-        score += tableScore(table, playergames)
+        score += tableScore(table, heuristic)
 
     return score
 
-def tableScore(players, playergames):
+def tableScore(players, heuristic = defaultHeuristic):
     numplayers = len(players)
 
     score = 0
     for i in range(numplayers):
         for j in range(i + 1, numplayers):
-            if (players[i], players[j]) in playergames:
-                score += playergames[(players[i], players[j])]
-            elif (players[j], players[i]) in playergames:
-                score += playergames[(players[j], players[i])]
+            score += heuristic(players[i], players[j])
     return score
 
 def playerGames(players, c):
