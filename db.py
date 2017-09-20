@@ -58,11 +58,13 @@ schema = collections.OrderedDict({
     'Players': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
         "Name TEXT NOT NULL",
+        "Number INTEGER",
         "Country INTEGER",
         "Association TEXT",
         "Pool TEXT",
         "Inactive TINYINT DEFAULT 0",
-        "FOREIGN KEY(Country) REFERENCES Countries(Id) ON DELETE CASCADE"
+        "FOREIGN KEY(Country) REFERENCES Countries(Id) ON DELETE CASCADE",
+        "UNIQUE(Number)"
     ],
     'Scores': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",

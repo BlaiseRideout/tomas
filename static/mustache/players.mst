@@ -1,6 +1,7 @@
 <table>
-	<tr>
+    <tr>
 		<th>Name</th>
+		<th>Number</th>
 		<th colspan="2" >Country</th>
 		<th>Association</th>
 		<th>Pool</th>
@@ -15,6 +16,9 @@
 		    <td class="name"><input type="text" data-colname="Name"
 			class="playerfield" value="{{ name }}"
 			{{ ^editable }} disabled {{ /editable }}/></td>
+		    <td class="number"><input type="text" data-colname="Number"
+			class="playerfield" value="{{ number }}"
+			{{ ^editable }} disabled {{ /editable }}/></td>
 		    <td class="country">
 			{{ #editable }}
 			<span class="countryselect" 
@@ -23,7 +27,7 @@
 			</span>
 			{{ /editable }}
 			{{ ^editable }}
-			    {{ country }}
+			{{ country }}
 			{{ /editable }}
 		    </td>
 		    <td class="flag">{{{ flag_image }}}</td>
@@ -49,7 +53,7 @@
 	{{ /players }}
 	{{ #editable }}
 	<tr>
-	    <td colspan="6" class="addplayer">
+	    <td colspan="7" class="addplayer">
 		<input type="button" class="addplayerbutton" 
 		       value="Add player..." />
 	    </td>

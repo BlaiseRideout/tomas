@@ -17,9 +17,13 @@ class TournamentHandler(handler.BaseHandler):
 
         return self.render("tournament.html", no_user=no_user)
 
-player_fields = ["id", "name", "country", "countryid", "flag_image",
+player_fields = ["id", "name", "number", "country", "countryid", "flag_image",
                  "association", "pool", "inactive"]
-valid_values = re.compile(r'^[\w\s():,.\'+-\u202F]*$')
+valid = {
+    'all': re.compile(r'^[\w\s():,.\'+-\u202F]*$'),
+    'name': re.compile(r'^[\w\s():,.\'+-\u202F]+$'),
+    'number': re.compile(r'^\d*$')
+}
 
 class PlayersHandler(handler.BaseHandler):
     global player_fields
@@ -27,8 +31,8 @@ class PlayersHandler(handler.BaseHandler):
         editable = self.current_user is not None
         with db.getCur() as cur:
             cur.execute(
-                "SELECT Players.Id, Players.Name, Countries.Code, Countries.Id,"
-                " Flag_Image, Association, Pool, Inactive"
+                "SELECT Players.Id, Players.Name, Number, Countries.Code,"
+                " Countries.Id, Flag_Image, Association, Pool, Inactive"
                 " FROM Players LEFT OUTER JOIN Countries"
                 "   ON Countries.Id = Players.Country"
                 " ORDER BY Players.Name asc")
@@ -37,7 +41,7 @@ class PlayersHandler(handler.BaseHandler):
     @tornado.web.authenticated
     def post(self):
         global player_fields
-        global valid_values
+        global valid
         player = self.get_argument("player", None)
         if player is None or not (player.isdigit() or player == '-1'):
             return self.write(json.dumps(
@@ -50,9 +54,10 @@ class PlayersHandler(handler.BaseHandler):
         try:
             with db.getCur() as cur:
                 for colname, val in info.items():
-                    if (colname.lower() not in player_fields or 
-                        not valid_values.match(val) or
-                        (colname.lower() == 'name' and len(val) == 0)):
+                    col = colname.lower()
+                    if not (col in player_fields and
+                            (valid[col].match(val) if col in valid else 
+                             valid['all'].match(val))):
                         return self.write(json.dumps(
                             {'status':"error", 
                              'message':"Invalid column or value provided"}))
@@ -89,7 +94,8 @@ class SettingsHandler(handler.BaseHandler):
     def get(self):
         editable = self.current_user is not None
         with db.getCur() as cur:
-            cur.execute("SELECT Id, Algorithm, Seed, SoftCut, Duplicates, Diversity, UsePools FROM Rounds")
+            cur.execute("SELECT Id, COALESCE(Algorithm, 0), Seed, SoftCut,"
+                        "Duplicates, Diversity, UsePools FROM Rounds")
             rounds = [
                     {
                         "id": roundid,
