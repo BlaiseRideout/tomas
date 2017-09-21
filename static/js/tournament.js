@@ -2,16 +2,20 @@ $(function() {
 	var templates = {};
 	var countries, countriesSelect;
 	var algorithms, algorithmsSelect;
+	var showInactive = false;
 
-	function renderTemplate(template, endpoint, selector, callback) {
+	function renderTemplate(template, endpoint, selector, callback, extra) {
 		if (templates[template] === undefined)
 			$.get("/static/mustache/" + template, function(data) {
 				Mustache.parse(data);
 				templates[template] = data;
-				renderTemplate(template, endpoint, selector, callback);
+				renderTemplate(template, endpoint, selector, callback, extra);
 			});
 		else
 			$.getJSON(endpoint, function(data) {
+				for (k in extra) {
+					data[k] = extra[k]
+				};
 				$(selector).html(Mustache.render(
 					templates[template], data));
 				if (typeof callback === "function")
@@ -28,6 +32,7 @@ $(function() {
 				var info = {};
 				var input = $(this);
 				info[colname] = newVal;
+				console.log('Player ' + player + ' update');
 				console.log(info);
 				$.post("/players", {
 					'player': player,
@@ -44,23 +49,67 @@ $(function() {
 					}
 				}, "json")
 			};
-		    var addNewPlayer = function () {
-			$.post("/players",
-			       {'player': '-1',
-				'info':JSON.stringify({'name': '?'})},
-			       function(data) {
-				    if(data['status'] == "success") {
-					updatePlayers();
-				    } else {
-					console.log(data);
-				    }
-				}, "json")
-		    };
+			var addNewPlayer = function() {
+				$.post("/players", {
+						'player': '-1',
+						'info': JSON.stringify({
+							'name': '?'
+						})
+					},
+					function(data) {
+						if (data['status'] == "success") {
+							$("#showinactive").prop("checked", true);
+							showInactive = true;
+							updatePlayers();
+						}
+						else {
+							console.log(data);
+						}
+					}, "json")
+			};
+			var showHideInactive = function() {
+				if ($('#showinactive').prop('checked')) {
+					$(".player[data-status='1']").show();
+				}
+				else {
+					$(".player[data-status='1']").hide()
+				};
+			};
+			var togglePlayerActiveStatus = function() {
+				var button = $(this),
+					row = button.parents(".player")
+				player = row.data("id"),
+					colname = button.data("colname"),
+					current = row.attr("data-status"),
+					inactive = current == '1';
+				info = {};
+				info[colname] = inactive ? '0' : '1';
+				$.post("/players", {
+					'player': player,
+					'info': JSON.stringify(info)
+				}, function(data) {
+					if (data['status'] == "success") {
+						button.attr('value',
+							inactive ? "Make inactive" : "Reactivate");
+						row.attr("data-status", info[colname]);
+						showHideInactive();
+					}
+					else {
+						console.log(data);
+					}
+				}, "json");
+			};
 			countrySelect(function() {
 				$(".countryselect").change(updatePlayer);
 			});
 			$(".playerfield").change(updatePlayer).keyup(updatePlayer);
 			$(".addplayerbutton").click(addNewPlayer);
+			$(".playerfield[data-colname='Inactive']").click(
+				togglePlayerActiveStatus);
+			$("#showinactive").click(showHideInactive);
+			showHideInactive();
+		}, {
+			'showinactive': showInactive
 		});
 	}
 
@@ -69,7 +118,7 @@ $(function() {
 			$.getJSON("/countries", function(data) {
 				countries = data;
 				countriesSelect = document.createElement("select");
-				for(var i = 0; i < countries.length; ++i) {
+				for (var i = 0; i < countries.length; ++i) {
 					var country = document.createElement("option");
 					$(country).text(data[i]['Code']);
 					$(country).val(data[i]['Id']);
@@ -171,13 +220,13 @@ $(function() {
 	function updateSeating() {
 		renderTemplate("tables.mst", "/seating", "#seating", function() {
 			var currentTab;
-			if($("#seating").hasClass("ui-tabs")) {
+			if ($("#seating").hasClass("ui-tabs")) {
 				currentTab = $("#seating").tabs().tabs("option", "active");
 				console.log(currentTab);
 				$("#seating").tabs("destroy");
 			}
 			$("#seating").tabs();
-			if(currentTab !== undefined)
+			if (currentTab !== undefined)
 				$("#seating").tabs("option", "active", currentTab);
 			$(".genround").click(function() {
 				var round = $(this).parents(".round").data("round");

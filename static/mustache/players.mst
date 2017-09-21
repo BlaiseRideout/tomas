@@ -12,7 +12,8 @@
 		</th>
 	</tr>
 	{{ #players }}
-		<tr class="player" data-id="{{ id }}">
+		<tr class="player" data-id="{{ id }}" 
+		    data-status="{{ inactive }}">
 		    <td class="name"><input type="text" data-colname="Name"
 			class="playerfield" value="{{ name }}"
 			{{ ^editable }} disabled {{ /editable }}/></td>
