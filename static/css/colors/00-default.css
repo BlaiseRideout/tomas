@@ -1,4 +1,4 @@
-html, body {
+html, body, #tournament > ul {
 	background:#111;
 	color:#eee;
 }
@@ -34,26 +34,26 @@ table td {
 	background:#222;
 }
 
-.ui-widget-content .ui-state-default {
+.ui-widget-content, .ui-state-default, #tournament li {
 	background: #444;
 	color: #eee;
 	border: 1px solid #555;
 }
-.ui-widget-content .ui-state-hover, .ui-widget-content .ui-state-active {
+.ui-widget-content, .ui-state-hover, .ui-widget-content .ui-state-active {
 	background: #eee;
 	color: #444;
 }
-.ui-widget-content .ui-state-highlight {
+.ui-widget-content, .ui-state-highlight {
 	background: #666;
 	color: #eee;
 }
-.ui-widget-header .ui-icon {
+.ui-widget-header, .ui-icon {
 	background-image: url(https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.4/images/ui-icons_ffffff_256x240.png);
 }
-.ui-widget-header .ui-state-hover .ui-icon {
+.ui-widget-header, .ui-state-hover, .ui-icon {
 	background-image: url(https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.4/images/ui-icons_222222_256x240.png);
 }
-.ui-menu .ui-menu-item.ui-state-focus {
+.ui-menu, .ui-menu-item, .ui-state-focus {
 	background:#666;
 }
 

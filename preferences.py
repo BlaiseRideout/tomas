@@ -30,8 +30,8 @@ class PreferencesHandler(handler.BaseHandler):
                 pref = cur.fetchone()
                 if pref is not None:
                     stylesheet = pref[0]
-        return self.render("preferences.html", email=email,
-                           stylesheet=stylesheet, stylesheets=stylesheets)
+        return self.render("preferences.html", email=email, 
+                           stylesheets=stylesheets)
 
     @tornado.web.authenticated
     def post(self):

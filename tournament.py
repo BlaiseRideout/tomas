@@ -7,6 +7,7 @@ import tornado.web
 import handler
 import db
 import seating
+import settings
 
 class TournamentHandler(handler.BaseHandler):
     def get(self):
@@ -15,7 +16,8 @@ class TournamentHandler(handler.BaseHandler):
             cur.execute("SELECT COUNT(*) FROM Users")
             no_user = cur.fetchone()[0] == 0
 
-        return self.render("tournament.html", no_user=no_user)
+        return self.render("tournament.html", no_user=no_user,
+                           tournamentname=settings.TOURNAMENTNAME)
 
 player_fields = ["id", "name", "number", "country", "countryid", "flag_image",
                  "association", "pool", "inactive"]

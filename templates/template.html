@@ -1,7 +1,9 @@
 <!doctype html>
 <html>
 	<head>
-		<title>Tournament Mahjong {% block title %}{% end %}</title>
+		<title>{% if tournamentname %} {{ tournamentname }} 
+		  {% else %} Tournament Mahjong {% end %}
+		  {% block title %}{% end %}</title>
 
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width = device-width, initial-scale = 1.0, user-scalable=no" />
@@ -27,7 +29,9 @@
 		{% block head %}{% end %}
 	</head>
 	<body>
-		<div id="navbar">
+	  <img src="{{ static_url("images/favicon.png") }}" class="sitelogo"
+		 alt="Logo">
+	  <div id="navbar">
 			<a href="/">Home</a>
 			{% if not current_user %}
 				<a href="/login?next={{ request.uri }}">Login</a>

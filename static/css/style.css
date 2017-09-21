@@ -15,6 +15,17 @@ html, body {
 	vertical-align:middle;
 }
 
+.sitelogo {
+    height: 70px;
+    padding: 10px;
+	float:left;
+}
+
+.ui-tabs-nav {
+    margin:auto;
+    vertical-align:middle;
+}
+
 #navbar > a {
 	display:inline;
 	height:100%;
@@ -27,7 +38,7 @@ html, body {
 
 #content {
 	width:96%;
-	max-width:700px;
+	max-width:1500px;
 	position:relative;
 	display:inline-block;
 	margin-top:1em;
@@ -60,8 +71,9 @@ button, input[type="submit"] {
 	cursor:pointer;
 }
 
-button:hover, input[type="submit"]:hover, a:hover  {
-	text-decoration:underline;
+button:hover, input[type="submit"]:hover, a:hover, .colheader:hover {
+    text-decoration:underline;
+    cursor:pointer;
 }
 
 button[disabled] {
