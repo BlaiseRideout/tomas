@@ -1,15 +1,20 @@
 <table>
     <tr>
-		<th>Name</th>
-		<th>Number</th>
-		<th colspan="2" >Country</th>
-		<th>Association</th>
-		<th>Pool</th>
-		<th>
-		    <input type="checkbox" class="playerlisting" 
-			   id="showinactive" data-colname="Inactive"{{ #showinactive }} checked{{ /showinactive }}/>
-		    Show All
-		</th>
+	<th class="colheader" data-type="str" data-fieldname="name">
+	    Name</th>
+	<th class="colheader" data-type="num" data-fieldname="number">
+	    Number</th>
+	<th class="colheader" data-type="str" data-fieldname="country" colspan="2" >
+	    Country</th>
+	<th class="colheader" data-type="str" data-fieldname="association">
+	    Association</th>
+	<th class="colheader" data-type="str" data-fieldname="pool">
+	    Pool</th>
+	<th class="colheader" data-type="str" data-fieldname="inactive">
+	    <input type="checkbox" class="playerlisting" 
+		   id="showinactive" data-colname="Inactive"{{ #showinactive }} checked{{ /showinactive }}/>
+	    Show All
+	</th>
 	</tr>
 	{{ #players }}
 		<tr class="player" data-id="{{ id }}" 
