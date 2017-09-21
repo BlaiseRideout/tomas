@@ -3,15 +3,19 @@
 		<th>PLACE</th>
 		<th>NAME</th>
 		<th colspan="2" >COUNTRY</th>
+		<th>GAMES</th>
 		<th>AVG SCORE</th>
+		<th>STATUS</th>
 	</tr>
 	{{#leaderboard}}
-		<tr class="leaderbd_row">
+		<tr class="leaderbd_row" data-status="{{ inactive }}">
 			<td>{{ place }}</td>
 			<td><a href="/playerstats/{{ name }}">{{ name }}</a></td>
 			<td>{{ country }}</td>
 			<td>{{{ flag_image }}}</td>
+			<td>{{ games_played }}</td>
 			<td>{{ score }}</td>
+			<td>{{ #inactive }}Inactive{{ /inactive }}</td>
 		</tr>
 	{{/leaderboard}}
 </table>

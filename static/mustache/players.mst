@@ -43,7 +43,7 @@
 			<input type="button" data-colname="Inactive"
 			  class="playerfield" 
 			  {{ ^editable }} disabled
-			     value="{{ #inactive }}Inactive {{ /inactive }}" 
+			     value="{{ #inactive }}Inactive{{ /inactive }}" 
 			  {{ /editable }} 
 			  {{ #editable }} 
 			     value="{{ #inactive }}Reactivate{{ /inactive }}{{ ^inactive }}Make inactive{{ /inactive }}" 
