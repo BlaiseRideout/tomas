@@ -1,8 +1,13 @@
 <!doctype html>
 <html>
 	<head>
-		<title>{% if tournamentname %} {{ tournamentname }} 
-		  {% else %} Tournament Mahjong {% end %}
+		<title>
+		  {% try %}
+		      {% if tournamentname %} {{ tournamentname }}
+		      {% else %} Tournament Mahjong {% end %}
+		  {% except %}
+		      Tournament Mahjong
+		  {% end %}
 		  {% block title %}{% end %}</title>
 
 		<meta charset="utf-8" />

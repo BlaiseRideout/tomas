@@ -258,14 +258,17 @@ class LoginHandler(handler.BaseHandler):
             else:
                 return self.redirect(uri)
 
-        self.render("login.html", uri = uri)
+        self.render("login.html", uri = uri, 
+                    tournamentname=settings.TOURNAMENTNAME)
     def post(self):
         email = self.get_argument('email', None)
         password = self.get_argument('password', None)
         uri = self.get_argument('next', '/')
 
         if not email or not password or email == "" or password == "":
-            self.render("login.html", message = "Please enter an email and password")
+            self.render("login.html", 
+                        message = "Please enter an email and password", 
+                        tournamentname=settings.TOURNAMENTNAME)
             return
 
         with db.getCur() as cur:
@@ -298,7 +301,8 @@ class LoginHandler(handler.BaseHandler):
                         self.redirect(uri)
                         return
         log.info("Invalid login attempt for {0}".format(email))
-        self.render("login.html", message = "Incorrect email and password")
+        self.render("login.html", message = "Incorrect email and password", 
+                    tournamentname=settings.TOURNAMENTNAME)
 
 class LogoutHandler(handler.BaseHandler):
     def get(self):

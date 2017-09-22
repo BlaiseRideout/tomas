@@ -1,7 +1,8 @@
 $(function() {
 	var templates = {};
+	var templatedata = {};
 	var selects = {};
-	var showInactive = false;
+	var showInactive = true;
 	var sortkeys = {}; /* Most recent sorting for each template */
 	/* Structure sortkeys[templatename] =
 	    {'table': list of rows (table) in data to be sorted,
@@ -30,13 +31,14 @@ $(function() {
 	function compareFunc(keyspecs) {
 		if (keyspecs.length > 0) {
 			var spec = keyspecs[0],
-				inner = compareFunc(keyspecs.slice(1));
+				inner = compareFunc(keyspecs.slice(1)),
+				fld = spec[0];
 			return function(a, b) {
 				if (spec[2] == 'str') {
-					if (a[spec[0]] < b[spec[0]]) {
+					if (a[fld] < b[fld]) {
 						return -1 * spec[1]
 					}
-					else if (a[spec[0]] > b[spec[0]]) {
+					else if (a[fld] > b[fld]) {
 						return spec[1]
 					}
 					else {
@@ -44,11 +46,11 @@ $(function() {
 					}
 				}
 				else {
-					if (a[spec[0]] - b[spec[0]] == 0) {
+					if (a[fld] - b[fld] == 0) {
 						return (inner && inner(a, b)) || 0
 					}
 					else {
-						return (a[spec[0]] - b[spec[0]]) * spec[1]
+						return (a[fld] - b[fld]) * spec[1]
 					}
 				}
 			}
@@ -84,28 +86,32 @@ $(function() {
 		if (typeof callback === "function") callback();
 	}
 
-	function renderTemplate(template, endpoint, selector, callback, extra) {
+	function renderTemplate(template, endpoint, selector, callback, extra, reload) {
 		if (templates[template] === undefined)
 			$.get("/static/mustache/" + template, function(data) {
 				Mustache.parse(data);
 				templates[template] = data;
-				renderTemplate(template, endpoint, selector, callback, extra);
-			});
-		else
+				renderTemplate(template, endpoint, selector, callback, extra, reload);
+			})
+		else if (templatedata[template] === undefined || reload)
 			$.getJSON(endpoint, function(data) {
-				for (k in extra) {
-					data[k] = extra[k]
-				};
-				if (sortkeys[template]) {
-					var toSort = data[sortkeys[template]['table']];
-					toSort.sort(compareFunc(sortkeys[template]['keys']));
-					data[sortkeys[template]['table']] = toSort
-				}
-				$(selector).html(Mustache.render(
-					templates[template], data));
-				if (typeof callback === "function")
-					callback(data);
-			});
+				templatedata[template] = data;
+				renderTemplate(template, endpoint, selector, callback, extra, false);
+			})
+		else {
+			for (k in extra) {
+				templatedata[template][k] = extra[k]
+			};
+			if (sortkeys[template]) {
+				var toSort = templatedata[template][sortkeys[template]['table']];
+				toSort.sort(compareFunc(sortkeys[template]['keys']));
+				templatedata[template][sortkeys[template]['table']] = toSort
+			}
+			$(selector).html(Mustache.render(
+				templates[template], templatedata[template]));
+			if (typeof callback === "function")
+				callback(templatedata[template]);
+		};
 	}
 
 	function fillSelect(endpoint, selector, displayrow, valuerow, callback) {
@@ -125,7 +131,7 @@ $(function() {
 			$(selector).each(function(i, elem) {
 				var select = selects[endpoint].cloneNode(true);
 				select.className = this.className;
-				console.log($(elem).data("value"));
+				/* console.log($(elem).data("value")); */
 				$(select).val($(elem).data("value"));
 				$(select).data("colname", $(elem).data("colname"));
 				$(elem).replaceWith(select);
@@ -135,84 +141,87 @@ $(function() {
 		}
 	}
 
-	function updatePlayers() {
-		renderTemplate("players.mst", "/players", "#players", function() {
-			var updatePlayer = function() {
-				var player = $(this).parents(".player").data("id");
-				var colname = $(this).data("colname");
-				var newVal = $(this).val();
-				var info = {};
-				var input = $(this);
-				info[colname] = newVal;
-				console.log('Player ' + player + ' update');
-				console.log(info);
-				$.post("/players", {
-					'player': player,
-					'info': JSON.stringify(info)
-				}, function(data) {
-					if (data['status'] == "success") {
-						input.removeClass("bad");
-						input.addClass("good");
-					}
-					else {
-						console.log(data);
-						input.removeClass("good");
-						input.addClass("bad");
-					}
-				}, "json")
-			};
-			var addNewPlayer = function() {
-				$.post("/players", {
-						'player': '-1',
-						'info': JSON.stringify({
-							'name': '?'
-						})
-					},
-					function(data) {
-						if (data['status'] == "success") {
-							$("#showinactive").prop("checked", true);
-							showInactive = true;
-							updatePlayers();
-						}
-						else {
-							console.log(data);
-						}
-					}, "json")
-			};
-			var showHideInactive = function() {
-				if ($('#showinactive').prop('checked')) {
-					showInactive = true;
-					$(".player[data-status='1']").show();
+	var updatePlayer = function() {
+		var player = $(this).parents(".player").data("id");
+		var colname = $(this).data("colname");
+		var newVal = $(this).val();
+		var info = {};
+		var input = $(this);
+		info[colname] = newVal;
+		console.log('Player ' + player + ' update');
+		console.log(info);
+		$.post("/players", {
+				'player': player,
+				'info': JSON.stringify(info)
+			},
+			function(data) {
+				if (data['status'] == "success") {
+					input.removeClass("bad");
+					input.addClass("good");
 				}
 				else {
-					showInactive = false;
-					$(".player[data-status='1']").hide()
-				};
-			};
-			var togglePlayerActiveStatus = function() {
-				var button = $(this),
-					row = button.parents(".player")
-				player = row.data("id"),
-					colname = button.data("colname"),
-					current = row.attr("data-status"),
-					inactive = current == '1';
-				info = {};
-				info[colname] = inactive ? '0' : '1';
-				$.post("/players", {
-					'player': player,
-					'info': JSON.stringify(info)
-				}, function(data) {
-					if (data['status'] == "success") {
-						button.attr('value',
-							inactive ? "Make inactive" : "Reactivate");
-						row.attr("data-status", info[colname]);
-						showHideInactive();
-					}
-					else {
-						console.log(data);
-					}
-				}, "json");
-			};
+					console.log(data);
+					input.removeClass("good");
+					input.addClass("bad");
+				}
+			}, "json")
+	};
+	var addNewPlayer = function() {
+		$.post("/players", {
+				'player': '-1',
+				'info': JSON.stringify({
+					'name': '?'
+				})
+			},
+			function(data) {
+				if (data['status'] == "success") {
+					$("#showinactive").prop("checked", true);
+					showInactive = true;
+					updatePlayers();
+				}
+				else {
+					console.log(data);
+				}
+			}, "json")
+	};
+	var showHideInactive = function() {
+		showInactive = $('#showinactive').prop('checked');
+		if (showInactive) {
+			$(".player[data-status='1']").show();
+		}
+		else {
+			$(".player[data-status='1']").hide()
+		};
+	};
+	var togglePlayerActiveStatus = function() {
+		var button = $(this),
+			row = button.parents(".player"),
+			player = row.data("id"),
+			colname = button.data("colname"),
+			inactive = row.attr("data-status") == '1',
+			info = {};
+		info[colname] = inactive ? '0' : '1';
+		$.post("/players", {
+			'player': player,
+			'info': JSON.stringify(info)
+		}, function(data) {
+			if (data['status'] == "success") {
+				button.attr('value',
+					inactive ? "Make inactive" : "Reactivate");
+				row.attr("data-status", info[colname]);
+				showHideInactive();
+			}
+			else {
+				console.log(data);
+			}
+		}, "json");
+	};
+
+	function updatePlayers(reload) {
+		if (reload === undefined) {
+			reload = true
+		};
+		renderTemplate("players.mst", "/players", "#players", function() {
 			fillSelect("/countries", "span.countryselect", "Code", "Id", function() {
 				$(".countryselect").change(function() {
 					updatePlayer();
@@ -223,22 +232,27 @@ $(function() {
 			$(".addplayerbutton").click(addNewPlayer);
 			$(".playerfield[data-colname='Inactive']").click(
 				togglePlayerActiveStatus);
-			$(".colheader").click(function() {
-				updateSortKeys("players.mst",
-					$(this).data("fieldname"),
-					$(this).data("type"),
-					"players",
-					updatePlayers);
+			$(".colheader").click(function(ev) {
+				if ($(ev.target).attr('class') == 'colheader') {
+					updateSortKeys("players.mst",
+						$(this).data("fieldname"),
+						$(this).data("type"),
+						"players",
+						function() {
+							updatePlayers(false)
+						});
+				}
 			});
 			$("#showinactive").click(showHideInactive);
 		}, {
 			'showinactive': showInactive
-		});
+		}, reload);
 	}
 
 
 	function updateStandings() {
-		renderTemplate("leaderboard.mst", "/leaderboard", "#standings");
+		renderTemplate("leaderboard.mst", "/leaderboard", "#standings",
+			null, null, true);
 	}
 
 	function updateSettings() {
@@ -283,37 +297,49 @@ $(function() {
 			fillSelect("/orderings", "span.orderingselect", "Name", "Id", function() {
 				$(".roundsetting").change(updateSetting).keyup(updateSetting);
 			});
-		});
+		}, null, true);
 	}
 
 	function updateSeating() {
 		renderTemplate("tables.mst", "/seating", "#seating", function() {
-			var currentTab;
-			if ($("#seating").hasClass("ui-tabs")) {
-				currentTab = $("#seating").tabs().tabs("option", "active");
-				console.log(currentTab);
-				$("#seating").tabs("destroy");
-			}
-			$("#seating").tabs();
-			if (currentTab !== undefined)
-				$("#seating").tabs("option", "active", currentTab);
-			$(".genround").click(function() {
-				var round = $(this).parents(".round").data("round");
-				$.post("/seating", {
-					"round": round
-				}, function(data) {
-					updateSeating();
-				}, "json");
-			});
-		});
+				var currentTab;
+				if ($("#seating").hasClass("ui-tabs")) {
+					currentTab = $("#seating").tabs().tabs("option", "active");
+					console.log(currentTab);
+					$("#seating").tabs("destroy");
+				}
+				$("#seating").tabs();
+				if (currentTab !== undefined)
+					$("#seating").tabs("option", "active", currentTab);
+				$(".genround").click(function() {
+					var round = $(this).parents(".round").data("round");
+					$.post("/seating", {
+						"round": round
+					}, function(data) {
+						updateSeating();
+					}, "json");
+				});
+			},
+			null, true);
 	}
 
-	function update() {
-		updateSettings();
-		updatePlayers();
-		updateStandings();
-		updateSeating();
-	}
-	update();
-	$("#tournament").tabs();
+	$("#tournament").tabs().find('li').click(function(ev) {
+		var id = $(ev.target).parents('li').data('id');
+		if (id == 'settings') {
+			return updateSettings()
+		}
+		else if (id == 'players') {
+			return updatePlayers()
+		}
+		else if (id == 'standings') {
+			return updateStandings()
+		}
+		else if (id == 'seating') {
+			return updateSeating()
+		}
+		else {
+			console.log('Unexpected click event for data-id = ' + id)
+		}
+	});
+	updatePlayers();
 });

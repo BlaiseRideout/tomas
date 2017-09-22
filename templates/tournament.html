@@ -10,15 +10,19 @@
 		<a class="button" href="/setup">SETUP</a>
 	{% end %}
 	<ul>
-		<li><a href="#players">Players</a></li>
-		<li><a href="#settings">Settings</a></li>
-		<li><a href="#standings">Standings</a></li>
-		<li><a href="#seating">Seating</a></li>
+		<li data-id="players"><a href="#players">Players</a></li>
+	  {% if is_admin %}
+		<li data-id="settings"><a href="#settings">Settings</a></li>
+	  {% end %}
+		<li data-id="standings"><a href="#standings">Standings</a></li>
+		<li data-id="seating"><a href="#seating">Seating</a></li>
 	</ul>
 	<div id="players">
 	</div>
+     {% if is_admin %}
 	<div id="settings">
 	</div>
+     {% end %}
 	<div id="standings">
 	</div>
 	<div id="seating">
