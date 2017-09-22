@@ -155,9 +155,11 @@ $(function() {
 			};
 			var showHideInactive = function() {
 				if ($('#showinactive').prop('checked')) {
+					showInactive = true;
 					$(".player[data-status='1']").show();
 				}
 				else {
+					showInactive = false;
 					$(".player[data-status='1']").hide()
 				};
 			};
@@ -200,7 +202,6 @@ $(function() {
 					updatePlayers);
 			});
 			$("#showinactive").click(showHideInactive);
-			showHideInactive();
 		}, {
 			'showinactive': showInactive
 		});
