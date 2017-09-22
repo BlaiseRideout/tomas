@@ -126,6 +126,7 @@ class SeatingHandler(handler.BaseHandler):
                         COALESCE(SUM(Scores.Score), 0) AS NetScore
                          FROM Players
                            LEFT OUTER JOIN Scores ON Players.Id = Scores.PlayerId AND Scores.Round < ?
+                         WHERE Players.Inactive = 0
                          GROUP BY Players.Id
                          ORDER BY NetScore DESC
                     """, (round,))
