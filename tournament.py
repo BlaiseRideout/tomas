@@ -64,7 +64,7 @@ class PlayersHandler(handler.BaseHandler):
     global player_fields
     def get(self):
         return self.write(json.dumps(getPlayers(self)))
-    @tornado.web.authenticated
+    @handler.is_admin_ajax
     def post(self):
         global player_fields
         global valid
@@ -102,12 +102,14 @@ class PlayersHandler(handler.BaseHandler):
                  'message':"Invalid info provided"}))
 
 class AddRoundHandler(handler.BaseHandler):
+    @handler.is_admin_ajax
     def post(self):
         with db.getCur() as cur:
             cur.execute("INSERT INTO Rounds(Id) VALUES((SELECT COUNT(*) + 1 FROM Rounds))")
             return self.write(json.dumps({'status':"success"}))
 
 class DeleteRoundHandler(handler.BaseHandler):
+    @handler.is_admin_ajax
     def post(self):
         round = self.get_argument("round", None)
         if round is None:
@@ -144,8 +146,10 @@ def getSettings(self):
     return None
 
 class SettingsHandler(handler.BaseHandler):
+    @handler.is_admin_ajax
     def get(self):
         return self.write(json.dumps({'rounds':getSettings(self)}))
+    @handler.is_admin_ajax
     def post(self):
         round = self.get_argument("round", None)
         if round is None:
