@@ -48,6 +48,11 @@ ALGORITHMS = [
     StraightAcross()
 ]
 
+ORDERINGS = [
+    ("Number", "ORDER BY Players.Number ASC"),
+    ("Ranking", "ORDER BY NetScore DESC")
+]
+
 class AlgorithmsHandler(handler.BaseHandler):
     def get(self):
         return self.write(json.dumps(
@@ -57,6 +62,18 @@ class AlgorithmsHandler(handler.BaseHandler):
                     'Name': alg.name
                 }
                 for num, alg in enumerate(ALGORITHMS)
+            ]
+        ))
+
+class OrderingsHandler(handler.BaseHandler):
+    def get(self):
+        return self.write(json.dumps(
+            [
+                {
+                    'Id': num,
+                    'Name': ordering[0]
+                }
+                for num, ordering in enumerate(ORDERINGS)
             ]
         ))
 
@@ -113,12 +130,12 @@ class SeatingHandler(handler.BaseHandler):
         if round is not None:
             with db.getCur() as cur:
                 cur.execute(
-                        "SELECT Id, Algorithm, Seed, SoftCut, Duplicates, Diversity, UsePools"
+                        "SELECT Id, COALESCE(Ordering, 0), COALESCE(Algorithm, 0), Seed, SoftCut, SoftCutSize, Duplicates, Diversity, UsePools"
                         " FROM Rounds WHERE Id = ?",
                         (round,)
                     )
-                round, algorithm, seed, softcut, duplicates, diversity, usepools = cur.fetchone()
-                cur.execute("""
+                round, ordering, algorithm, seed, softcut, softcutsize, duplicates, diversity, usepools = cur.fetchone()
+                query = """
                         SELECT
                         Players.Id,
                         Players.Country,
@@ -128,8 +145,9 @@ class SeatingHandler(handler.BaseHandler):
                            LEFT OUTER JOIN Scores ON Players.Id = Scores.PlayerId AND Scores.Round < ?
                          WHERE Players.Inactive = 0
                          GROUP BY Players.Id
-                         ORDER BY NetScore DESC
-                    """, (round,))
+                    """
+                query += ORDERINGS[ordering][1]
+                cur.execute(query, (round,))
                 players = [
                         {
                             "Id": player,
@@ -157,7 +175,17 @@ class SeatingHandler(handler.BaseHandler):
                     for pool in pools.values():
                         players += ALGORITHMS[algorithm].seat(pool)
                 else:
-                    players = ALGORITHMS[algorithm].seat(players)
+                    if softcut:
+                        softcutsize = softcutsize or 32
+                        softcutsize = int(softcutsize)
+                        players = []
+                        for i in range(0, len(players), softcutsize):
+                            if i + softcutsize * 2 > len(players) and len(players) - (i + softcutsize) < softcutsize / 2:
+                                players += ALGORITHMS[algorithm].seat(players[i:])
+                            else:
+                                players += ALGORITHMS[algorithm].seat(players[i:softcutsize])
+                    else:
+                        players = ALGORITHMS[algorithm].seat(players)
 
                 if duplicates:
                     playergames = playerGames(players, cur)

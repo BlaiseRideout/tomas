@@ -58,10 +58,10 @@ class PlayersHandler(handler.BaseHandler):
                 for colname, val in info.items():
                     col = colname.lower()
                     if not (col in player_fields and
-                            (valid[col].match(val) if col in valid else 
+                            (valid[col].match(val) if col in valid else
                              valid['all'].match(val))):
                         return self.write(json.dumps(
-                            {'status':"error", 
+                            {'status':"error",
                              'message':"Invalid column or value provided"}))
                     if player == '-1':
                         cur.execute("INSERT INTO Players (Name, Country, Inactive) VALUES"
@@ -74,7 +74,7 @@ class PlayersHandler(handler.BaseHandler):
             return self.write(json.dumps({'status':"success"}))
         except:
             return self.write(json.dumps(
-                {'status':"error", 
+                {'status':"error",
                  'message':"Invalid info provided"}))
 
 class AddRoundHandler(handler.BaseHandler):
@@ -96,20 +96,23 @@ class SettingsHandler(handler.BaseHandler):
     def get(self):
         editable = self.current_user is not None
         with db.getCur() as cur:
-            cur.execute("SELECT Id, COALESCE(Algorithm, 0), Seed, SoftCut,"
+            cur.execute("SELECT Id, COALESCE(Ordering, 0), COALESCE(Algorithm, 0), Seed, SoftCut, SoftCutSize,"
                         "Duplicates, Diversity, UsePools FROM Rounds")
             rounds = [
                     {
                         "id": roundid,
+                        "ordering": ordering,
+                        "orderingname": seating.ORDERINGS[ordering][0],
                         "algorithm": algorithm,
                         "algname": seating.ALGORITHMS[algorithm].name,
                         "seed": seed,
                         "softcut": softcut,
+                        "softcutsize": softcutsize,
                         "duplicates": duplicates,
                         "diversity": diversity,
                         "usepools": usepools
                     }
-                    for roundid, algorithm, seed, softcut, duplicates, diversity, usepools in cur.fetchall()
+                    for roundid, ordering, algorithm, seed, softcut, softcutsize, duplicates, diversity, usepools in cur.fetchall()
                 ]
             return self.write(json.dumps({'rounds':rounds}))
     def post(self):

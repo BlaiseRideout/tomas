@@ -1,7 +1,6 @@
 $(function() {
 	var templates = {};
-	var countries, countriesSelect;
-	var algorithms, algorithmsSelect;
+	var selects = {};
 	var showInactive = false;
 	var sortkeys = {}; /* Most recent sorting for each template */
 	/* Structure sortkeys[templatename] =
@@ -109,6 +108,33 @@ $(function() {
 			});
 	}
 
+	function fillSelect(endpoint, selector, displayrow, valuerow, callback) {
+		if (selects[endpoint] === undefined)
+			$.getJSON(endpoint, function(data) {
+				selects[endpoint] = document.createElement("select");
+				for (var i = 0; i < data.length; ++i) {
+					var option = document.createElement("option");
+					$(option).text(data[i][displayrow]);
+					$(option).val(data[i][valuerow]);
+					$(option).data("selectData", data[i]);
+					selects[endpoint].appendChild(option);
+				}
+				fillSelect(endpoint, selector, displayrow, valuerow, callback);
+			});
+		else {
+			$(selector).each(function(i, elem) {
+				var select = selects[endpoint].cloneNode(true);
+				select.className = this.className;
+				console.log($(elem).data("value"));
+				$(select).val($(elem).data("value"));
+				$(select).data("colname", $(elem).data("colname"));
+				$(elem).replaceWith(select);
+			});
+			if (typeof callback === 'function')
+				callback();
+		}
+	}
+
 	function updatePlayers() {
 		renderTemplate("players.mst", "/players", "#players", function() {
 			var updatePlayer = function() {
@@ -187,8 +213,11 @@ $(function() {
 					}
 				}, "json");
 			};
-			countrySelect(function() {
-				$(".countryselect").change(updatePlayer);
+			fillSelect("/countries", "span.countryselect", "Code", "Id", function() {
+				$(".countryselect").change(function() {
+					updatePlayer();
+					$(this).parent().next(".flag").html($(this).data("selectData")["Flag_Image"]);
+				});
 			});
 			$(".playerfield").change(updatePlayer).keyup(updatePlayer);
 			$(".addplayerbutton").click(addNewPlayer);
@@ -207,63 +236,6 @@ $(function() {
 		});
 	}
 
-	function countrySelect(callback) {
-		if (countries === undefined)
-			$.getJSON("/countries", function(data) {
-				countries = data;
-				countriesSelect = document.createElement("select");
-				for (var i = 0; i < countries.length; ++i) {
-					var country = document.createElement("option");
-					$(country).text(data[i]['Code']);
-					$(country).val(data[i]['Id']);
-					$(country).data("flag", data[i]['Flag_Image'])
-					countriesSelect.appendChild(country);
-				}
-				countrySelect(callback);
-			});
-		else {
-			$("span.countryselect").each(function(i, elem) {
-				var country = $(elem).data("countryid");
-				select = countriesSelect.cloneNode(true);
-				select.className = this.className;
-				$(elem).replaceWith(select);
-				$(select).val(country);
-				$(select).data("colname", "Country");
-				$(select).change(function() {
-					$(this).parent().next(".flag").html(countries[this.selectedIndex]["Flag_Image"]);
-				});
-			});
-			if (typeof callback === 'function')
-				callback();
-		}
-	}
-
-	function algorithmSelect(callback) {
-		if (algorithms === undefined)
-			$.getJSON("/algorithms", function(data) {
-				algorithms = data;
-				algorithmsSelect = document.createElement("select");
-				for (var i = 0; i < algorithms.length; ++i) {
-					var algorithm = document.createElement("option");
-					$(algorithm).text(algorithms[i]['Name']);
-					$(algorithm).val(algorithms[i]['Id']);
-					algorithmsSelect.appendChild(algorithm);
-				}
-				algorithmSelect(callback);
-			});
-		else {
-			$("span.algorithmselect").each(function(i, elem) {
-				var algorithm = $(elem).data("algorithm");
-				var select = algorithmsSelect.cloneNode(true);
-				select.className = this.className;
-				$(elem).replaceWith(select);
-				$(select).val(algorithm);
-				$(select).data("colname", "Algorithm");
-			});
-			if (typeof callback === 'function')
-				callback();
-		}
-	}
 
 	function updateStandings() {
 		renderTemplate("leaderboard.mst", "/leaderboard", "#standings");
@@ -305,7 +277,10 @@ $(function() {
 				}, "json");
 
 			}
-			algorithmSelect(function() {
+			fillSelect("/algorithms", "span.algorithmselect", "Name", "Id", function() {
+				$(".roundsetting").change(updateSetting).keyup(updateSetting);
+			});
+			fillSelect("/orderings", "span.orderingselect", "Name", "Id", function() {
 				$(".roundsetting").change(updateSetting).keyup(updateSetting);
 			});
 		});

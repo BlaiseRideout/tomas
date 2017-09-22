@@ -39,9 +39,11 @@ schema = collections.OrderedDict({
     ],
     'Rounds': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
+        "Ordering INTEGER",
         "Algorithm INTEGER",
         "Seed TEXT",
-        "SoftCut INTEGER",
+        "SoftCut TINYINT",
+        "SoftCutSize INTEGER",
         "Duplicates INTEGER",
         "Diversity TINYINT",
         "UsePools TINYINT"

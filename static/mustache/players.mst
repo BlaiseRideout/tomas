@@ -11,13 +11,13 @@
 	<th class="colheader" data-type="str" data-fieldname="pool">
 	    Pool</th>
 	<th class="colheader" data-type="str" data-fieldname="inactive">
-	    <input type="checkbox" class="playerlisting" 
+	    <input type="checkbox" class="playerlisting"
 		   id="showinactive" data-colname="Inactive"{{ #showinactive }} checked{{ /showinactive }}/>
 	    Show All
 	</th>
 	</tr>
 	{{ #players }}
-		<tr class="player" data-id="{{ id }}" 
+		<tr class="player" data-id="{{ id }}"
 		    data-status="{{ inactive }}">
 		    <td class="name"><input type="text" data-colname="Name"
 			class="playerfield" value="{{ name }}"
@@ -27,8 +27,8 @@
 			{{ ^editable }} disabled {{ /editable }}/></td>
 		    <td class="country">
 			{{ #editable }}
-			<span class="countryselect" 
-			      data-countryid="{{ countryid }}">
+			<span class="countryselect" data-colname="Country"
+			      data-value="{{ countryid }}">
 			    {{ country }}
 			</span>
 			{{ /editable }}
@@ -46,13 +46,13 @@
 			{{ ^editable }} disabled {{ /editable }}/></td>
 		    <td class="inactive">
 			<input type="button" data-colname="Inactive"
-			  class="playerfield" 
+			  class="playerfield"
 			  {{ ^editable }} disabled
-			     value="{{ #inactive }}Inactive{{ /inactive }}" 
-			  {{ /editable }} 
-			  {{ #editable }} 
-			     value="{{ #inactive }}Reactivate{{ /inactive }}{{ ^inactive }}Make inactive{{ /inactive }}" 
-			  {{ /editable }} 
+			     value="{{ #inactive }}Inactive{{ /inactive }}"
+			  {{ /editable }}
+			  {{ #editable }}
+			     value="{{ #inactive }}Reactivate{{ /inactive }}{{ ^inactive }}Make inactive{{ /inactive }}"
+			  {{ /editable }}
 			/>
 		    </td>
 		</tr>
@@ -60,7 +60,7 @@
 	{{ #editable }}
 	<tr>
 	    <td colspan="7" class="addplayer">
-		<input type="button" class="addplayerbutton" 
+		<input type="button" class="addplayerbutton"
 		       value="Add player..." />
 	    </td>
 	</tr>

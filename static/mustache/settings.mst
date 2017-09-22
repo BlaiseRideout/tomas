@@ -3,8 +3,12 @@
 	<div class="round" data-roundid="{{ id }}">
 		<h2>Round {{ id }}</h2>
 
+		<label for="round{{ id }}-ordering">Ordering</label>
+		<span id="round{{ id }}-ordering" class="orderingselect roundsetting" data-colname="Ordering" data-value="{{ ordering }}">{{ orderingname }}</span>
+
+		<br />
 		<label for="round{{ id }}-algorithm">Seating algorithm</label>
-		<span id="round{{ id }}-algorithm" class="algorithmselect roundsetting" data-algorithm="{{ algorithm }}">{{ algname }}</span>
+		<span id="round{{ id }}-algorithm" class="algorithmselect roundsetting" data-colname="Algorithm" data-value="{{ algorithm }}">{{ algname }}</span>
 
 		<br />
 
@@ -15,6 +19,11 @@
 
 		<input type="checkbox" class="roundsetting" id="round{{ id }}-softcut" data-colname="SoftCut"{{ #softcut }} checked{{ /softcut }}/>
 		<label for="round{{ id }}-softcut">Use softcut?</label>
+
+		<br />
+
+		<label for="round{{ id }}-softcutsize">Softcut Size</label>
+		<input type="text" class="roundsetting" id="round{{ id }}-softcutsize" data-colname="SoftCutSize"{{ #softcutsize }} checked{{ /softcutsize }}/>
 
 		<br />
 
