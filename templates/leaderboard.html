@@ -1,0 +1,21 @@
+<table>
+	<tr class="leaderbd_col_header">
+		<th>PLACE</th>
+		<th>NAME</th>
+		<th colspan="2" >COUNTRY</th>
+		<th>GAMES</th>
+		<th>AVG SCORE</th>
+		<th>STATUS</th>
+	</tr>
+	{% for row in leaderboard %}
+		<tr class="leaderbd_row" data-status="{{ row['inactive'] }}">
+			<td>{{ row['place'] }}</td>
+			<td><a href="/playerstats/{{ row['name'] }}">{{ row['name'] }}</a></td>
+			<td>{{ row['country'] }}</td>
+			<td>{% raw row['flag_image'] %}</td>
+			<td>{{ row['games_played'] }}</td>
+			<td>{{ row['score'] }}</td>
+			<td>{% if row['inactive'] %}Inactive{% end %}</td>
+		</tr>
+	{% end %}
+</table>

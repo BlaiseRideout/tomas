@@ -1,0 +1,33 @@
+<script src="{{ static_url("js/tables.js") }}" type="text/javascript"></script>
+<div id="seating">
+	<ul>
+		{% for round in rounds %}
+				<li><a href="#round-{{ round['round'] }}">Round {{ round['round'] }}</a></li>
+		{% end %}
+	</ul>
+	{% for round in rounds %}
+		<div class="round" data-round="{{ round['round'] }}" id="round-{{ round['round'] }}">
+			<button class="genround">Generate</button>
+			<table class="tables">
+				<tr>
+					<th>Wind</th>
+					<th>Name</th>
+					<th colspan="2">Country</th>
+				</tr>
+				{% for table in round['tables'] %}
+					<tr>
+						<th colspan="4">TABLE {{ table['table'] }}</h3>
+					</tr>
+					{% for player in table['players'] %}
+						<tr class="player">
+							<td class="windicator">{{ player['wind'] }}</td>
+							<td class="name">{{ player['player']['name'] }}</td>
+							<td class="country">{{ player['player']['country'] }}</td>
+							<td class="flag">{% raw player['player']['flag'] %}</td>
+						</tr>
+					{% end %}
+				{% end %}
+			</table>
+		</div>
+	{% end %}
+</div>

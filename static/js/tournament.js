@@ -97,11 +97,11 @@ $(function() {
 			$.getJSON(endpoint, function(data) {
 				templatedata[template] = data;
 				renderTemplate(template, endpoint, selector, callback, extra, false);
-			})
+			});
 		else {
 			for (k in extra) {
 				templatedata[template][k] = extra[k]
-			};
+			}
 			if (sortkeys[template]) {
 				var toSort = templatedata[template][sortkeys[template]['table']];
 				toSort.sort(compareFunc(sortkeys[template]['keys']));
@@ -114,7 +114,7 @@ $(function() {
 		};
 	}
 
-	function fillSelect(endpoint, selector, displayrow, valuerow, callback) {
+	window.fillSelect = function(endpoint, selector, displayrow, valuerow, callback) {
 		if (selects[endpoint] === undefined)
 			$.getJSON(endpoint, function(data) {
 				selects[endpoint] = document.createElement("select");
@@ -249,97 +249,27 @@ $(function() {
 		}, reload);
 	}
 
-
-	function updateStandings() {
-		renderTemplate("leaderboard.mst", "/leaderboard", "#standings",
-			null, null, true);
-	}
-
-	function updateSettings() {
-		renderTemplate("settings.mst", "/settings", "#settings", function() {
-			$("#addround").click(function() {
-				$.post("/addround", function(data) {
-					if (data['status'] === "success")
-						updateSettings();
-				}, "json");
+	$("#tournament").tabs({
+		beforeLoad: function( event, ui ) {
+			ui.jqXHR.fail(function() {
+				ui.panel.html(
+					"Couldn't load this tab. We'll try to fix this as soon as possible.");
 			});
-			$(".deleteround").click(function() {
-				$.post("/deleteround", {
-					'round': $(this).parent().data("roundid")
-				}, function(data) {
-					if (data['status'] === "success")
-						updateSettings();
-					else
-						console.log(data);
-				}, "json");
-			});
-			var updateSetting = function() {
-				var round = $(this).parent().data("roundid");
-				var settings = {};
-				console.log($(this).val());
-				if ($(this).attr('type') === "checkbox")
-					settings[$(this).data("colname")] = $(this).prop('checked') ? 1 : 0;
-				else
-					settings[$(this).data("colname")] = $(this).val();
-				console.log(settings);
-				$.post("/settings", {
-					'round': round,
-					'settings': JSON.stringify(settings)
-				}, function(data) {
-					if (data['status'] !== "success")
-						console.log(data);
-				}, "json");
-
-			}
-			fillSelect("/algorithms", "span.algorithmselect", "Name", "Id", function() {
-				$(".roundsetting").change(updateSetting).keyup(updateSetting);
-			});
-			fillSelect("/orderings", "span.orderingselect", "Name", "Id", function() {
-				$(".roundsetting").change(updateSetting).keyup(updateSetting);
-			});
-		}, null, true);
-	}
-
-	function updateSeating() {
-		renderTemplate("tables.mst", "/seating", "#seating", function() {
-				var currentTab;
-				if ($("#seating").hasClass("ui-tabs")) {
-					currentTab = $("#seating").tabs().tabs("option", "active");
-					console.log(currentTab);
-					$("#seating").tabs("destroy");
-				}
-				$("#seating").tabs();
-				if (currentTab !== undefined)
-					$("#seating").tabs("option", "active", currentTab);
-				$(".genround").click(function() {
-					var round = $(this).parents(".round").data("round");
-					$.post("/seating", {
-						"round": round
-					}, function(data) {
-						updateSeating();
-					}, "json");
-				});
-			},
-			null, true);
-	}
-
-	$("#tournament").tabs().find('li').click(function(ev) {
+		}
+	}).find('li').click(function(ev) {
 		var id = $(ev.target).parents('li').data('id');
-		if (id == 'settings') {
-			return updateSettings()
-		}
-		else if (id == 'players') {
+		if (id == 'players') {
 			return updatePlayers()
-		}
-		else if (id == 'standings') {
-			return updateStandings()
-		}
-		else if (id == 'seating') {
-			return updateSeating()
 		}
 		else {
 			console.log('Unexpected click event for data-id = ' + id)
 		}
 	});
 	updatePlayers();
+	window.updateTab = function(callback) {
+		var current_index = $("#tournament").tabs("option","active");
+		$("#tournament").tabs('load', current_index);
+		if(typeof callback === 'function')
+			callback();
+	}
 });

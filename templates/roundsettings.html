@@ -1,0 +1,47 @@
+<script src="{{ static_url('js/roundsettings.js') }}" type="text/javascript" />
+<button id="addround">Add Round</button>
+{% for round in rounds %}
+	<div class="round" data-roundid="{{ round['id'] }}">
+		<h2>Round {{ round['id'] }}</h2>
+
+		<label for="round{{ round['id'] }}-ordering">Ordering</label>
+		<span id="round{{ round['id'] }}-ordering" class="orderingselect roundsetting" data-colname="Ordering" data-value="{{ round['ordering'] }}">{{ round['orderingname'] }}</span>
+
+		<br />
+		<label for="round{{ round['id'] }}-algorithm">Seating algorithm</label>
+		<span id="round{{ round['id'] }}-algorithm" class="algorithmselect roundsetting" data-colname="Algorithm" data-value="{{ round['algorithm'] }}">{{ round['algname'] }}</span>
+
+		<br />
+
+		<input type="checkbox" class="roundsetting" id="round{{ round['id'] }}-pools" data-colname="UsePools"{% if round['usepools'] %} checked{% end %}/>
+		<label for="round{{ round['id'] }}-pools">Use pools?</label>
+
+		<br />
+
+		<input type="checkbox" class="roundsetting" id="round{{ round['id'] }}-softcut" data-colname="SoftCut"{% if round['softcut'] %} checked{% end %}/>
+		<label for="round{{ round['id'] }}-softcut">Use softcut?</label>
+
+		<br />
+
+		<label for="round{{ round['id'] }}-softcutsize">Softcut Size</label>
+		<input type="text" class="roundsetting" id="round{{ round['id'] }}-softcutsize" data-colname="SoftCutSize"{% if round['softcutsize'] %} checked{% end %}/>
+
+		<br />
+
+		<label for="round{{ round['id'] }}-seed">Seed</label>
+		<input type="text" class="roundsetting" id="round{{ round['id'] }}-seed" data-colname="Seed" value="{{ round['seed'] }}"/>
+
+		<br />
+
+		<label for="round{{ round['id'] }}-duplicates">No of duplicates allowed</label>
+		<input type="number" class="roundsetting" id="round{{ round['id'] }}-duplicates" data-colname="Duplicates" value="{{ round['duplicates'] }}" min="0"/>
+
+		<br />
+
+		<input type="checkbox" class="roundsetting" id="round{{ round['id'] }}-diversity" data-colname="Diversity" {% if round['diversity'] %} checked{% end %}/>
+		<label for="round{{ round['id'] }}-diversity">Same country avoidance</label>
+
+		<br />
+		<button class="deleteround">Delete Round {{ round['id'] }}</button>
+	</div>
+{% end %}

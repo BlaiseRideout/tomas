@@ -77,54 +77,61 @@ class OrderingsHandler(handler.BaseHandler):
             ]
         ))
 
+def getSeating():
+    with db.getCur() as cur:
+        cur.execute("""
+                SELECT Rounds.Id, Seating.TableNum, Seating.Wind, Players.Name,
+                 Countries.Code, Countries.Flag_Image
+                 FROM Rounds
+                 LEFT OUTER JOIN Seating
+                   ON Rounds.Id = Seating.Round
+                 LEFT OUTER JOIN Players
+                   ON Players.Id = Seating.Player
+                 LEFT OUTER JOIN Countries
+                   ON Countries.Id = Players.Country
+            """)
+        rounds = {}
+        for row in cur.fetchall():
+            round, table, wind, name, country, flag = row
+            if round is not None:
+                if not round in rounds:
+                    rounds[round] = {}
+                if table is not None:
+                    if not table in rounds[round]:
+                        rounds[round][table] = {}
+                    if wind is not None and name is not None:
+                        rounds[round][table][wind] = {"name":name, "country":country, "flag":flag}
+        winds = "東南西北"
+        rounds = [
+                {
+                    'round':round,
+                    'tables':
+                        [
+                            {
+                                'table':table,
+                                'players':
+                                    [
+                                        {
+                                            'player': name,
+                                            'wind':winds[wind]
+                                        }
+                                        for wind, name in players.items()
+                                    ]
+                            }
+                            for table, players in tables.items() if len(players) == 4
+                        ]
+                }
+                for round, tables in rounds.items()
+            ]
+        return rounds
+
+class ShowSeatingHandler(handler.BaseHandler):
+    def get(self):
+        return self.render("tables.html", rounds = getSeating())
+
 class SeatingHandler(handler.BaseHandler):
     def get(self):
-        with db.getCur() as cur:
-            cur.execute("""
-                    SELECT Rounds.Id, Seating.TableNum, Seating.Wind, Players.Name,
-                     Countries.Code, Countries.Flag_Image
-                     FROM Rounds
-                     LEFT OUTER JOIN Seating
-                       ON Rounds.Id = Seating.Round
-                     LEFT OUTER JOIN Players
-                       ON Players.Id = Seating.Player
-                     LEFT OUTER JOIN Countries
-                       ON Countries.Id = Players.Country
-                """)
-            rounds = {}
-            for row in cur.fetchall():
-                round, table, wind, name, country, flag = row
-                if round is not None:
-                    if not round in rounds:
-                        rounds[round] = {}
-                    if table is not None:
-                        if not table in rounds[round]:
-                            rounds[round][table] = {}
-                        if wind is not None and name is not None:
-                            rounds[round][table][wind] = {"name":name, "country":country, "flag":flag}
-            winds = "東南西北"
-            rounds = [
-                    {
-                        'round':round,
-                        'tables':
-                            [
-                                {
-                                    'table':table,
-                                    'players':
-                                        [
-                                            {
-                                                'player': name,
-                                                'wind':winds[wind]
-                                            }
-                                            for wind, name in players.items()
-                                        ]
-                                }
-                                for table, players in tables.items() if len(players) == 4
-                            ]
-                    }
-                    for round, tables in rounds.items()
-                ]
-            return self.write(json.dumps({'rounds':rounds}))
+        return self.write(json.dumps({'rounds':getSeating()}))
     def post(self):
         round = self.get_argument('round', None)
         if round is not None:

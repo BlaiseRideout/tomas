@@ -27,19 +27,27 @@ valid = {
     'number': re.compile(r'^\d*$')
 }
 
+def getPlayers(self):
+    editable = self.current_user is not None
+    with db.getCur() as cur:
+        cur.execute(
+            "SELECT Players.Id, Players.Name, Number, Countries.Code,"
+            " Countries.Id, Flag_Image, Association, Pool, Inactive"
+            " FROM Players LEFT OUTER JOIN Countries"
+            "   ON Countries.Id = Players.Country"
+            " ORDER BY Players.Name asc")
+        rows = [dict(zip(player_fields, row)) for row in cur.fetchall()]
+        return {'players':rows, 'editable': editable}
+
+class ShowPlayersHandler(handler.BaseHandler):
+    def get(self):
+        data = getPlayers(self)
+        return self.render("players.html", editable = data['editable'], players = data['players'])
+
 class PlayersHandler(handler.BaseHandler):
     global player_fields
     def get(self):
-        editable = self.current_user is not None
-        with db.getCur() as cur:
-            cur.execute(
-                "SELECT Players.Id, Players.Name, Number, Countries.Code,"
-                " Countries.Id, Flag_Image, Association, Pool, Inactive"
-                " FROM Players LEFT OUTER JOIN Countries"
-                "   ON Countries.Id = Players.Country"
-                " ORDER BY Players.Name asc")
-            rows = [dict(zip(player_fields, row)) for row in cur.fetchall()]
-            return self.write(json.dumps({'players':rows, 'editable': editable}))
+        return self.write(json.dumps(getPlayers(self)))
     @tornado.web.authenticated
     def post(self):
         global player_fields
@@ -92,29 +100,33 @@ class DeleteRoundHandler(handler.BaseHandler):
             cur.execute("DELETE FROM Rounds WHERE Id = ?", (round,))
             return self.write(json.dumps({'status':"success"}))
 
+def getSettings(self):
+    editable = self.current_user is not None
+    with db.getCur() as cur:
+        cur.execute("SELECT Id, COALESCE(Ordering, 0), COALESCE(Algorithm, 0), Seed, SoftCut, SoftCutSize,"
+                    "Duplicates, Diversity, UsePools FROM Rounds")
+        rounds = [
+                {
+                    "id": roundid,
+                    "ordering": ordering,
+                    "orderingname": seating.ORDERINGS[ordering][0],
+                    "algorithm": algorithm,
+                    "algname": seating.ALGORITHMS[algorithm].name,
+                    "seed": seed,
+                    "softcut": softcut,
+                    "softcutsize": softcutsize,
+                    "duplicates": duplicates,
+                    "diversity": diversity,
+                    "usepools": usepools
+                }
+                for roundid, ordering, algorithm, seed, softcut, softcutsize, duplicates, diversity, usepools in cur.fetchall()
+            ]
+        return rounds
+    return None
+
 class SettingsHandler(handler.BaseHandler):
     def get(self):
-        editable = self.current_user is not None
-        with db.getCur() as cur:
-            cur.execute("SELECT Id, COALESCE(Ordering, 0), COALESCE(Algorithm, 0), Seed, SoftCut, SoftCutSize,"
-                        "Duplicates, Diversity, UsePools FROM Rounds")
-            rounds = [
-                    {
-                        "id": roundid,
-                        "ordering": ordering,
-                        "orderingname": seating.ORDERINGS[ordering][0],
-                        "algorithm": algorithm,
-                        "algname": seating.ALGORITHMS[algorithm].name,
-                        "seed": seed,
-                        "softcut": softcut,
-                        "softcutsize": softcutsize,
-                        "duplicates": duplicates,
-                        "diversity": diversity,
-                        "usepools": usepools
-                    }
-                    for roundid, ordering, algorithm, seed, softcut, softcutsize, duplicates, diversity, usepools in cur.fetchall()
-                ]
-            return self.write(json.dumps({'rounds':rounds}))
+        return self.write(json.dumps({'rounds':getSettings(self)}))
     def post(self):
         round = self.get_argument("round", None)
         if round is None:
@@ -128,6 +140,11 @@ class SettingsHandler(handler.BaseHandler):
             for colname, val in settings.items():
                 cur.execute("UPDATE Rounds SET {0} = ? WHERE Id = ?".format(colname), (val, round)) # TODO: fix SQL injection
             return self.write(json.dumps({'status':"success"}))
+
+
+class ShowSettingsHandler(handler.BaseHandler):
+    def get(self):
+        return self.render("roundsettings.html", rounds=getSettings(self))
 
 class CountriesHandler(handler.BaseHandler):
     def get(self):
