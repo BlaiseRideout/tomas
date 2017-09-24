@@ -3,10 +3,11 @@
 import json
 import os
 import re
+import tornado.web
 
 import handler
 import db
-import tornado.web
+import settings
 
 email_pattern = re.compile(r'^[A-Z0-9][A-Z0-9._-]*@[A-Z0-9._-]*\.[A-Z]\w+$',
                            re.IGNORECASE)
@@ -16,8 +17,9 @@ class PreferencesHandler(handler.BaseHandler):
     def get(self):
         stylesheets = sorted(os.listdir("static/css/colors"))
         stylesheet = stylesheets[0]
+        cutsize = None
         with db.getCur() as cur:
-            cur.execute("SELECT Email FROM Users WHERE Id = ?", 
+            cur.execute("SELECT Email FROM Users WHERE Id = ?",
                         self.current_user)
             email = cur.fetchone()
             if email is not None:
@@ -30,18 +32,26 @@ class PreferencesHandler(handler.BaseHandler):
                 pref = cur.fetchone()
                 if pref is not None:
                     stylesheet = pref[0]
-        return self.render("preferences.html", email=email, 
-                           stylesheets=stylesheets)
+            if self.get_is_admin():
+                cur.execute("SELECT Value FROM GlobalPreferences WHERE Preference = 'CutSize'")
+                cutsize = cur.fetchone()
+                if cutsize is None:
+                    cutsize = settings.DEFAULTCUTSIZE
+                else:
+                    cutsize = cutsize[0]
+        return self.render("preferences.html", email=email,
+                           stylesheets=stylesheets, cutsize=cutsize)
 
     @tornado.web.authenticated
     def post(self):
         global email_pattern
         stylesheet = self.get_argument('stylesheet', None)
         email = self.get_argument('email', None)
+        cutsize = self.get_argument('cutsize', None)
         if (stylesheet is None or email is None or
             email_pattern.match(email) is None):
             self.render("message.html",
-                        message="Please pick a stylesheet and enter a valid email", 
+                        message="Please pick a stylesheet and enter a valid email",
                         title="Preference Errors",
                         next="Preferences", next_url="/preferences")
         else:
@@ -58,9 +68,11 @@ class PreferencesHandler(handler.BaseHandler):
                     "UPDATE Users SET Email = LOWER(?)"
                     " WHERE Id = ? AND Email != LOWER(?)",
                     (email, self.current_user, email))
+                if self.get_is_admin() and cutsize is not None:
+                    cur.execute("REPLACE INTO GlobalPreferences(Preference, Value) VALUES('CutSize', ?)", (cutsize,))
             self.set_secure_cookie("stylesheet", stylesheet)
             self.render("message.html",
-                        message="", 
+                        message="",
                         title="Preferences Updated",
                         next="Preferences", next_url="/preferences")
-    
+

@@ -12,9 +12,7 @@ DBBACKUPS = "backups"
 DBDATEFORMAT = "%Y-%m-%d-%H-%M-%S"
 
 # PREFERENCES
-#   DROPGAMES is the default number of games a player must complete in a
-#   quarter in order to have the lowest score dropped from the average.
-DROPGAMES = 9
+DEFAULTCUTSIZE = 32
 #   LINKVALIDDAYS is the number of days links for invitations and
 #   password resets should remain valid.  They expire after LINKVALIDDAYS
 #   has passed.

@@ -129,6 +129,23 @@ class ShowSeatingHandler(handler.BaseHandler):
     def get(self):
         return self.render("tables.html", rounds = getSeating())
 
+def fixTables(players, cur, duplicates, diversity):
+    if diversity:
+        heuristic = lambda p1, p2: \
+                1 if p1["Country"] == p2["Country"] else 0
+    else:
+        heuristic = lambda p1, p2: 0
+
+    if duplicates:
+        playergames = playerGames(players, cur)
+        heuristic = \
+                (lambda playergames: \
+                    lambda p1, p2: \
+                        (playergames[(p1["Id"], p2["Id"])] or playergames[(p1["Id"], p2["Id"])] or 0) + heuristic(p1, p2)
+                )(playergames)
+
+    return bestArrangement(players, heuristic)
+
 class SeatingHandler(handler.BaseHandler):
     def get(self):
         return self.write(json.dumps({'rounds':getSeating()}))
@@ -137,11 +154,39 @@ class SeatingHandler(handler.BaseHandler):
         if round is not None:
             with db.getCur() as cur:
                 cur.execute(
-                        "SELECT Id, COALESCE(Ordering, 0), COALESCE(Algorithm, 0), Seed, SoftCut, SoftCutSize, Duplicates, Diversity, UsePools"
-                        " FROM Rounds WHERE Id = ?",
+                        """SELECT
+                            Id,
+                            COALESCE(Ordering, 0),
+                            COALESCE(Algorithm, 0),
+                            Seed,
+                            Cut,
+                            SoftCut,
+                            Cut2x,
+                            Duplicates,
+                            Diversity,
+                            UsePools
+                             FROM Rounds WHERE Id = ?""",
                         (round,)
                     )
-                round, ordering, algorithm, seed, softcut, softcutsize, duplicates, diversity, usepools = cur.fetchone()
+                round, ordering, algorithm, seed, cut, softcut, cut2x, duplicates, diversity, usepools = cur.fetchone()
+                cut = cut == 1
+                softcut = softcut == 1
+                cut2x = cut2x == 1
+                duplicates = duplicates == 1
+                diversity = diversity == 1
+                usepools = usepools == 1
+
+                if cut or softcut:
+                    cur.execute("SELECT Value FROM GlobalPreferences WHERE Preference = 'CutSize'")
+                    cutsize = cur.fetchone()
+                    if cutsize is None:
+                        cutsize = int(settings.DEFAULTCUTSIZE)
+                    else:
+                        cutsize = int(cutsize[0])
+
+                    if cut2x:
+                        cutsize *= 2
+
                 query = """
                         SELECT
                         Players.Id,
@@ -155,15 +200,18 @@ class SeatingHandler(handler.BaseHandler):
                     """
                 query += ORDERINGS[ordering][1]
                 cur.execute(query, (round,))
-                players = [
-                        {
-                            "Id": player,
-                            "Country": country,
-                            "Pool": pool,
-                            "Score": score
-                        }
-                        for player, country, pool, score in cur.fetchall()
-                    ]
+                pools = {
+                        "":[
+                            {
+                                "Id": player,
+                                "Country": country,
+                                "Pool": pool,
+                                "Score": score
+                            }
+                            for player, country, pool, score in cur.fetchall()
+                        ]
+                    }
+                print(pools)
 
                 if algorithm is None:
                     algorithm = 0
@@ -172,41 +220,31 @@ class SeatingHandler(handler.BaseHandler):
                     random.seed(seed)
 
                 if usepools:
+                    playerpools = pools
                     pools = {}
-                    for player in players:
-                        player["Pool"] = player["Pool"] or ""
-                        if not player["Pool"] in pools:
-                            pools[player["Pool"]] = []
-                        pools[player["Pool"]] += [player]
-                    players = []
-                    for pool in pools.values():
-                        players += ALGORITHMS[algorithm].seat(pool)
-                else:
-                    if softcut:
-                        softcutsize = softcutsize or 32
-                        softcutsize = int(softcutsize)
-                        players = []
-                        for i in range(0, len(players), softcutsize):
-                            if i + softcutsize * 2 > len(players) and len(players) - (i + softcutsize) < softcutsize / 2:
-                                players += ALGORITHMS[algorithm].seat(players[i:])
+                    for pool, players in playerpools.items():
+                        for player in players:
+                            playerpool = pool + (player["Pool"] or "")
+                            if not playerpool in pools:
+                                pools[playerpool] = []
+                            pools[playerpool] += [player]
+
+                if softcut or cut:
+                    playerpools = pools
+                    pools = {}
+                    for pool, players in playerpools.items():
+                        for i in range(0, cutsize if cut else len(players), cutsize):
+                            playerpool = pool + str(i)
+                            if not playerpool in pools:
+                                pools[playerpool] = []
+                            if i + cutsize * 2 > len(players) and len(players) - (i + cutsize) < cutsize / 2:
+                                pools[playerpool] += players[i:]
                             else:
-                                players += ALGORITHMS[algorithm].seat(players[i:softcutsize])
-                    else:
-                        players = ALGORITHMS[algorithm].seat(players)
+                                pools[playerpool] += players[i:cutsize]
 
-                if duplicates:
-                    playergames = playerGames(players, cur)
-                    heuristic = \
-                            (lambda playergames: \
-                                lambda p1, p2: \
-                                    playergames[(p1["Id"], p2["Id"])] or playergames[(p1["Id"], p2["Id"])] or 0
-                            )(playergames)
-                    players = bestArrangement(players, heuristic)
-
-                if diversity:
-                    heuristic = lambda p1, p2: \
-                            1 if p1["Country"] == p2["Country"] else 0
-                    players = bestArrangement(players, heuristic)
+                players = []
+                for pool in pools.values():
+                    players += fixTables(ALGORITHMS[algorithm].seat(pool), cur, duplicates, diversity)
 
                 random.seed()
 

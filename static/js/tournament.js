@@ -1,7 +1,7 @@
 $(function() {
 	var templates = {};
 	var templatedata = {};
-	var selects = {};
+	var selects = {}, selectData = {};
 	var showInactive = true;
 	var sortkeys = {}; /* Most recent sorting for each template */
 	/* Structure sortkeys[templatename] =
@@ -118,11 +118,11 @@ $(function() {
 		if (selects[endpoint] === undefined)
 			$.getJSON(endpoint, function(data) {
 				selects[endpoint] = document.createElement("select");
+				selectData[endpoint] = data;
 				for (var i = 0; i < data.length; ++i) {
 					var option = document.createElement("option");
 					$(option).text(data[i][displayrow]);
 					$(option).val(data[i][valuerow]);
-					$(option).data("selectData", data[i]);
 					selects[endpoint].appendChild(option);
 				}
 				fillSelect(endpoint, selector, displayrow, valuerow, callback);
@@ -131,9 +131,9 @@ $(function() {
 			$(selector).each(function(i, elem) {
 				var select = selects[endpoint].cloneNode(true);
 				select.className = this.className;
-				/* console.log($(elem).data("value")); */
 				$(select).val($(elem).data("value"));
 				$(select).data("colname", $(elem).data("colname"));
+				$(select).data("selectData", selectData[endpoint]);
 				$(elem).replaceWith(select);
 			});
 			if (typeof callback === 'function')
@@ -141,7 +141,7 @@ $(function() {
 		}
 	}
 
-	var updatePlayer = function() {
+	var updatePlayer = function(callback) {
 		var player = $(this).parents(".player").data("id");
 		var colname = $(this).data("colname");
 		var newVal = $(this).val();
@@ -158,13 +158,15 @@ $(function() {
 				if (data['status'] == "success") {
 					input.removeClass("bad");
 					input.addClass("good");
+					if(typeof callback === 'function')
+						callback.call(this);
 				}
 				else {
 					console.log(data);
 					input.removeClass("good");
 					input.addClass("bad");
 				}
-			}, "json")
+			}.bind(this), "json")
 	};
 	var addNewPlayer = function() {
 		$.post("/players", {
@@ -174,7 +176,7 @@ $(function() {
 				})
 			},
 			function(data) {
-				if (data['status'] == "success") {
+				if (data['status'] === "success") {
 					$("#showinactive").prop("checked", true);
 					showInactive = true;
 					updatePlayers();
@@ -182,7 +184,7 @@ $(function() {
 				else {
 					console.log(data);
 				}
-			}, "json")
+			}, "json");
 	};
 	var showHideInactive = function() {
 		showInactive = $('#showinactive').prop('checked');
@@ -224,12 +226,22 @@ $(function() {
 		renderTemplate("players.mst", "/players", "#players", function() {
 			fillSelect("/countries", "span.countryselect", "Code", "Id", function() {
 				$(".countryselect").change(function() {
-					updatePlayer();
-					$(this).parent().next(".flag").html($(this).data("selectData")["Flag_Image"]);
+					updatePlayer.call(this, function() {
+						$(this).parent().next(".flag").html($(this).data("selectData")[this.selectedIndex]["Flag_Image"]);
+					});
 				});
 			});
 			$(".playerfield").change(updatePlayer).keyup(updatePlayer);
 			$(".addplayerbutton").click(addNewPlayer);
+			$(".deleteplayerbutton").click(function() {
+				var player = $(this).parents(".player").data("id");
+				$.post("/deleteplayer", {'player': player}, function(data) {
+					if(data['status'] === "success")
+						updatePlayers();
+					else
+						console.log(data);
+				}, "json");
+			});
 			$(".playerfield[data-colname='Inactive']").click(
 				togglePlayerActiveStatus);
 			$(".colheader").click(function(ev) {

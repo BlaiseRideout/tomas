@@ -13,8 +13,18 @@
 
 		<br />
 
+		<label for="round{{ round['id'] }}-seed">Seed</label>
+		<input type="text" class="roundsetting" id="round{{ round['id'] }}-seed" data-colname="Seed" value="{{ round['seed'] }}"/>
+
+		<br />
+
 		<input type="checkbox" class="roundsetting" id="round{{ round['id'] }}-pools" data-colname="UsePools"{% if round['usepools'] %} checked{% end %}/>
 		<label for="round{{ round['id'] }}-pools">Use pools?</label>
+
+		<br />
+
+		<input type="checkbox" class="roundsetting" id="round{{ round['id'] }}-cut" data-colname="Cut"{% if round['cut'] %} checked{% end %}/>
+		<label for="round{{ round['id'] }}-cut">Use cutoff?</label>
 
 		<br />
 
@@ -23,18 +33,13 @@
 
 		<br />
 
-		<label for="round{{ round['id'] }}-softcutsize">Softcut Size</label>
-		<input type="text" class="roundsetting" id="round{{ round['id'] }}-softcutsize" data-colname="SoftCutSize"{% if round['softcutsize'] %} checked{% end %}/>
+		<input type="checkbox" class="roundsetting" id="round{{ round['id'] }}-cut2x" data-colname="Cut2x"{% if round['cut2x'] %} checked{% end %}/>
+		<label for="round{{ round['id'] }}-cut2x">Double cutsize?</label>
 
 		<br />
 
-		<label for="round{{ round['id'] }}-seed">Seed</label>
-		<input type="text" class="roundsetting" id="round{{ round['id'] }}-seed" data-colname="Seed" value="{{ round['seed'] }}"/>
-
-		<br />
-
-		<label for="round{{ round['id'] }}-duplicates">No of duplicates allowed</label>
-		<input type="number" class="roundsetting" id="round{{ round['id'] }}-duplicates" data-colname="Duplicates" value="{{ round['duplicates'] }}" min="0"/>
+		<input type="checkbox" class="roundsetting" id="round{{ round['id'] }}-duplicates" data-colname="Duplicates" {% if round['duplicates'] %} checked{% end %}/>
+		<label for="round{{ round['id'] }}-duplicates">Fix duplicates</label>
 
 		<br />
 

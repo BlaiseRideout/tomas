@@ -13,6 +13,9 @@
 			<option value="{{ sheet }}"{% if sheet == stylesheet %} selected{% end %}>{{ sheet }}</option>
 			{% end %}
 		</select>
+		{% if is_admin %}
+			<input type="number" value="{{ cutsize }}" name="cutsize" id="cutsize" />
+		{% end %}
 		<input type="submit" value="Update"/>
 		<a href="/reset">Reset password</a>
 	</form>

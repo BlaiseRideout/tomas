@@ -15,6 +15,9 @@
 		   id="showinactive" data-colname="Inactive"{{ #showinactive }} checked{{ /showinactive }}/>
 	    Show All
 	</th>
+	<th>
+		Delete
+	</th>
 	</tr>
 	{{ #players }}
 		<tr class="player" data-id="{{ id }}"
@@ -55,11 +58,18 @@
 			  {{ /editable }}
 			/>
 		    </td>
+			<td class="delete">
+			<input type="button"
+			  class="deleteplayerbutton"
+				value="Delete"
+			  {{ ^editable }} disabled{{ /editable }}
+			/>
+			</td>
 		</tr>
 	{{ /players }}
 	{{ #editable }}
 	<tr>
-	    <td colspan="7" class="addplayer">
+	    <td colspan="8" class="addplayer">
 		<input type="button" class="addplayerbutton"
 		       value="Add player..." />
 	    </td>

@@ -47,10 +47,10 @@ table td {
 	background: #666;
 	color: #eee;
 }
-.ui-widget-header, .ui-icon {
+.ui-icon {
 	background-image: url(https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.4/images/ui-icons_ffffff_256x240.png);
 }
-.ui-widget-header, .ui-state-hover, .ui-icon {
+.ui-state-hover, .ui-icon {
 	background-image: url(https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.4/images/ui-icons_222222_256x240.png);
 }
 .ui-menu, .ui-menu-item, .ui-state-focus {

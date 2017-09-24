@@ -44,6 +44,22 @@ class ShowPlayersHandler(handler.BaseHandler):
         data = getPlayers(self)
         return self.render("players.html", editable = data['editable'], players = data['players'])
 
+class DeletePlayerHandler(handler.BaseHandler):
+    @tornado.web.authenticated
+    def post(self):
+        player = self.get_argument("player", None)
+        if player is None or not player.isdigit():
+            return self.write(json.dumps(
+                {'status':"error", 'message':"Please provide a player"}))
+        try:
+            with db.getCur() as cur:
+                cur.execute("DELETE FROM Players WHERE Id = ?", (player,))
+                return self.write(json.dumps({'status':"success"}))
+        except:
+            return self.write(json.dumps(
+                {'status':"error",
+                 'message':"Couldn't delete player"}))
+
 class PlayersHandler(handler.BaseHandler):
     global player_fields
     def get(self):
@@ -72,9 +88,9 @@ class PlayersHandler(handler.BaseHandler):
                             {'status':"error",
                              'message':"Invalid column or value provided"}))
                     if player == '-1':
-                        cur.execute("INSERT INTO Players (Name, Country, Inactive) VALUES"
+                        cur.execute("INSERT INTO Players (Name, Country) VALUES"
                                     " ('\u202Fnewplayer',"
-                                    "  (select Id from Countries limit 1), 1)")
+                                    "  (select Id from Countries limit 1))")
                     else:
                         cur.execute("UPDATE Players SET {0} = ? WHERE Id = ?"
                                     .format(colname),
@@ -103,7 +119,7 @@ class DeleteRoundHandler(handler.BaseHandler):
 def getSettings(self):
     editable = self.current_user is not None
     with db.getCur() as cur:
-        cur.execute("SELECT Id, COALESCE(Ordering, 0), COALESCE(Algorithm, 0), Seed, SoftCut, SoftCutSize,"
+        cur.execute("SELECT Id, COALESCE(Ordering, 0), COALESCE(Algorithm, 0), Seed, Cut, SoftCut, Cut2x,"
                     "Duplicates, Diversity, UsePools FROM Rounds")
         rounds = [
                 {
@@ -113,13 +129,14 @@ def getSettings(self):
                     "algorithm": algorithm,
                     "algname": seating.ALGORITHMS[algorithm].name,
                     "seed": seed,
+                    "cut": cut,
                     "softcut": softcut,
-                    "softcutsize": softcutsize,
+                    "cut2x": cut2x,
                     "duplicates": duplicates,
                     "diversity": diversity,
                     "usepools": usepools
                 }
-                for roundid, ordering, algorithm, seed, softcut, softcutsize, duplicates, diversity, usepools in cur.fetchall()
+                for roundid, ordering, algorithm, seed, cut, softcut, cut2x, duplicates, diversity, usepools in cur.fetchall()
             ]
         return rounds
     return None

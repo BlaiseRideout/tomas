@@ -57,6 +57,7 @@ class Application(tornado.web.Application):
         handlers = [
                 (r"/", tournament.TournamentHandler),
                 (r"/players", tournament.PlayersHandler),
+                (r"/deleteplayer", tournament.DeletePlayerHandler),
                 (r"/players.html", tournament.ShowPlayersHandler),
                 (r"/addround", tournament.AddRoundHandler),
                 (r"/deleteround", tournament.DeleteRoundHandler),

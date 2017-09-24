@@ -42,11 +42,13 @@ schema = collections.OrderedDict({
         "Ordering INTEGER",
         "Algorithm INTEGER",
         "Seed TEXT",
+        "Cut TINYINT",
         "SoftCut TINYINT",
-        "SoftCutSize INTEGER",
-        "Duplicates INTEGER",
+        "Cut2x TINYINT",
+        "Duplicates TINYINT",
         "Diversity TINYINT",
-        "UsePools TINYINT"
+        "UsePools TINYINT",
+        "Rounds INTEGER"
     ],
     'Seating': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
@@ -100,6 +102,10 @@ schema = collections.OrderedDict({
         'Id CHAR(32) PRIMARY KEY NOT NULL',
         'Email TEXT NOT NULL',
         'Expires DATETIME'
+    ],
+    'GlobalPreferences': [
+        'Preference TEXT PRIMARY KEY',
+        'Value SETTING NOT NULL'
     ],
     'Preferences': [
         'UserId INTEGER',
