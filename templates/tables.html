@@ -10,22 +10,45 @@
 			<button class="genround">Generate</button>
 			<table class="tables">
 				<tr>
-					<th>Wind</th>
+					{% if round['winds'] %}
+						<th>Wind</th>
+					{% end %}
 					<th>Name</th>
 					<th colspan="2">Country</th>
+					<th>Raw Score</th>
+					<th>Chombos</th>
+					<th>Rank</th>
+					<th>Score</th>
 				</tr>
 				{% for table in round['tables'] %}
-					<tr>
-						<th colspan="4">TABLE {{ table['table'] }}</h3>
-					</tr>
-					{% for player in table['players'] %}
-						<tr class="player">
-							<td class="windicator">{{ player['wind'] }}</td>
-							<td class="name">{{ player['player']['name'] }}</td>
-							<td class="country">{{ player['player']['country'] }}</td>
-							<td class="flag">{% raw player['player']['flag'] %}</td>
+					<thead>
+						<tr>
+							<th colspan="4">TABLE {{ table['table'] }}</h3>
+							<th colspan="4" class="tabletotal">TOTAL {{ table['total'] }}</th>
 						</tr>
-					{% end %}
+					</thead>
+					<tbody class="table" data-tableid="{{ table['table'] }}" >
+						{% for player in table['players'] %}
+							<tr class="player" data-playerid="{{ player['player']['id'] }}">
+								{% if round['winds'] %}
+									<td class="windicator">{{ player['wind'] }}</td>
+								{% end %}
+								<td class="name">{{ player['player']['name'] }}</td>
+								<td class="country">{{ player['player']['country'] }}</td>
+								<td class="flag">{% raw player['player']['flag'] %}</td>
+								<td class="rawscore">
+									{% if current_user %}
+										<input type="number" value="{{ player['player']['rawscore'] }}" class="playerscore" step="100" />
+									{% else %}
+										{{ player['player']['rawscore'] }}
+									{% end %}
+								</td>
+								<td class="chombos">{{ player['player']['chombos'] }}</td>
+								<td class="rank">{{ player['player']['rank'] }}</td>
+								<td class="score">{{ player['player']['score'] }}</td>
+							</tr>
+						{% end %}
+					</tbody>
 				{% end %}
 			</table>
 		</div>

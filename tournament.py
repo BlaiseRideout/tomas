@@ -120,7 +120,7 @@ def getSettings(self):
     editable = self.current_user is not None
     with db.getCur() as cur:
         cur.execute("SELECT Id, COALESCE(Ordering, 0), COALESCE(Algorithm, 0), Seed, Cut, SoftCut, Cut2x,"
-                    "Duplicates, Diversity, UsePools FROM Rounds")
+                    "Duplicates, Diversity, UsePools, Winds, Games FROM Rounds")
         rounds = [
                 {
                     "id": roundid,
@@ -128,15 +128,17 @@ def getSettings(self):
                     "orderingname": seating.ORDERINGS[ordering][0],
                     "algorithm": algorithm,
                     "algname": seating.ALGORITHMS[algorithm].name,
-                    "seed": seed,
+                    "seed": seed or "",
                     "cut": cut,
                     "softcut": softcut,
                     "cut2x": cut2x,
                     "duplicates": duplicates,
                     "diversity": diversity,
-                    "usepools": usepools
+                    "usepools": usepools,
+                    "winds": winds,
+                    "games": games
                 }
-                for roundid, ordering, algorithm, seed, cut, softcut, cut2x, duplicates, diversity, usepools in cur.fetchall()
+                for roundid, ordering, algorithm, seed, cut, softcut, cut2x, duplicates, diversity, usepools, winds, games in cur.fetchall()
             ]
         return rounds
     return None

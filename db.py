@@ -45,10 +45,11 @@ schema = collections.OrderedDict({
         "Cut TINYINT",
         "SoftCut TINYINT",
         "Cut2x TINYINT",
-        "Duplicates TINYINT",
-        "Diversity TINYINT",
-        "UsePools TINYINT",
-        "Rounds INTEGER"
+        "Duplicates TINYINT DEFAULT 1",
+        "Diversity TINYINT DEFAULT 1",
+        "UsePools TINYINT DEFAULT 1",
+        "Winds TINYINT DEFAULT 1",
+        "Games INTEGER DEFAULT 1"
     ],
     'Seating': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
@@ -72,7 +73,7 @@ schema = collections.OrderedDict({
     ],
     'Scores': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
-        "GameId INTEGER",
+        "Game INTEGER",
         "Round INTEGER",
         "PlayerId INTEGER",
         "Rank TINYINT",
@@ -80,7 +81,8 @@ schema = collections.OrderedDict({
         "Score REAL",
         "Chombos INTEGER",
         "FOREIGN KEY(Round) REFERENCES Rounds(Id) ON DELETE CASCADE",
-        "FOREIGN KEY(PlayerId) REFERENCES Players(Id) ON DELETE CASCADE"
+        "FOREIGN KEY(PlayerId) REFERENCES Players(Id) ON DELETE CASCADE",
+        "CONSTRAINT OneScorePerPlayerPerGame UNIQUE (Round, Game, PlayerId)"
     ],
     'Users': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",

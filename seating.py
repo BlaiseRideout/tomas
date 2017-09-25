@@ -80,31 +80,56 @@ class OrderingsHandler(handler.BaseHandler):
 def getSeating():
     with db.getCur() as cur:
         cur.execute("""
-                SELECT Rounds.Id, Seating.TableNum, Seating.Wind, Players.Name,
-                 Countries.Code, Countries.Flag_Image
+                SELECT Rounds.Id,
+                 Rounds.Winds,
+                 Seating.TableNum,
+                 Seating.Wind,
+                 Players.Id,
+                 Players.Name,
+                 Countries.Code,
+                 Countries.Flag_Image,
+                 COALESCE(Scores.Rank, 0),
+                 COALESCE(Scores.RawScore, 0),
+                 COALESCE(Scores.Score, 0),
+                 COALESCE(Scores.Chombos, 0)
                  FROM Rounds
                  LEFT OUTER JOIN Seating
                    ON Rounds.Id = Seating.Round
                  LEFT OUTER JOIN Players
                    ON Players.Id = Seating.Player
+                 LEFT OUTER JOIN Scores
+                   ON Rounds.Id = Scores.Round AND Players.Id = Scores.PlayerId
                  LEFT OUTER JOIN Countries
                    ON Countries.Id = Players.Country
             """)
         rounds = {}
         for row in cur.fetchall():
-            round, table, wind, name, country, flag = row
+            round, winds, table, wind, playerid, name, country, flag, rank, rawscore, score, chombos  = row
             if round is not None:
                 if not round in rounds:
-                    rounds[round] = {}
+                    rounds[round] = {
+                                'winds':winds,
+                                'tables':{}
+                            }
                 if table is not None:
-                    if not table in rounds[round]:
-                        rounds[round][table] = {}
+                    if not table in rounds[round]['tables']:
+                        rounds[round]['tables'][table] = {}
                     if wind is not None and name is not None:
-                        rounds[round][table][wind] = {"name":name, "country":country, "flag":flag}
+                        rounds[round]['tables'][table][wind] = {
+                                "id":playerid,
+                                "name":name,
+                                "country":country,
+                                "flag":flag,
+                                "rank":rank,
+                                "rawscore":rawscore,
+                                "score":score,
+                                "chombos":chombos
+                            }
         winds = "東南西北"
         rounds = [
                 {
                     'round':round,
+                    'winds':tables['winds'],
                     'tables':
                         [
                             {
@@ -118,11 +143,14 @@ def getSeating():
                                         for wind, name in players.items()
                                     ]
                             }
-                            for table, players in tables.items() if len(players) == 4
+                            for table, players in tables['tables'].items() if len(players) == 4
                         ]
                 }
                 for round, tables in rounds.items()
             ]
+        for round in rounds:
+            for table in round['tables']:
+                table['total'] = sum([player['player']['rawscore'] for player in table['players']])
         return rounds
 
 class ShowSeatingHandler(handler.BaseHandler):

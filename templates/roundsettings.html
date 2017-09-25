@@ -18,6 +18,11 @@
 
 		<br />
 
+		<label for="round{{ round['id'] }}-games">Number of games</label>
+		<input type="number" class="roundsetting" id="round{{ round['id'] }}-games" data-colname="Games" value="{{ round['games'] }}"/>
+
+		<br />
+
 		<input type="checkbox" class="roundsetting" id="round{{ round['id'] }}-pools" data-colname="UsePools"{% if round['usepools'] %} checked{% end %}/>
 		<label for="round{{ round['id'] }}-pools">Use pools?</label>
 
@@ -47,6 +52,12 @@
 		<label for="round{{ round['id'] }}-diversity">Same country avoidance</label>
 
 		<br />
+
+		<input type="checkbox" class="roundsetting" id="round{{ round['id'] }}-winds" data-colname="Winds" {% if round['winds'] %} checked{% end %}/>
+		<label for="round{{ round['id'] }}-winds">Assign winds</label>
+
+		<br />
+
 		<button class="deleteround">Delete Round {{ round['id'] }}</button>
 	</div>
 {% end %}
