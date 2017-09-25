@@ -73,7 +73,7 @@ schema = collections.OrderedDict({
     ],
     'Scores': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
-        "Game INTEGER",
+        "GameId INTEGER",
         "Round INTEGER",
         "PlayerId INTEGER",
         "Rank TINYINT",
@@ -82,7 +82,7 @@ schema = collections.OrderedDict({
         "Chombos INTEGER",
         "FOREIGN KEY(Round) REFERENCES Rounds(Id) ON DELETE CASCADE",
         "FOREIGN KEY(PlayerId) REFERENCES Players(Id) ON DELETE CASCADE",
-        "CONSTRAINT OneScorePerPlayerPerGame UNIQUE (Round, Game, PlayerId)"
+        "CONSTRAINT OneScorePerPlayerPerGame UNIQUE (Round, GameId, PlayerId)"
     ],
     'Users': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",

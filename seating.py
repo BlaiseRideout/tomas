@@ -166,10 +166,13 @@ def fixTables(players, cur, duplicates, diversity):
 
     if duplicates:
         playergames = playerGames(players, cur)
+        oldheuristic = heuristic
         heuristic = \
                 (lambda playergames: \
                     lambda p1, p2: \
-                        (playergames[(p1["Id"], p2["Id"])] or playergames[(p1["Id"], p2["Id"])] or 0) + heuristic(p1, p2)
+                        (playergames[(p1["Id"], p2["Id"])] if (p1["Id"], p2["Id"]) in playergames else \
+                            playergames[(p1["Id"], p2["Id"])] if (p1["Id"], p2["Id"]) in playergames else \
+                            0) + oldheuristic(p1, p2)
                 )(playergames)
 
     return bestArrangement(players, heuristic)
@@ -228,17 +231,17 @@ class SeatingHandler(handler.BaseHandler):
                     """
                 query += ORDERINGS[ordering][1]
                 cur.execute(query, (round,))
-                pools = {
-                        "":[
-                            {
-                                "Id": player,
-                                "Country": country,
-                                "Pool": pool,
-                                "Score": score
-                            }
-                            for player, country, pool, score in cur.fetchall()
-                        ]
-                    }
+                players = []
+                for i, row in enumerate(cur.fetchall()):
+                    player, country, pool, score = row
+                    players += [{
+                                    "Index":i,
+                                    "Id": player,
+                                    "Country": country,
+                                    "Pool": pool,
+                                    "Score": score
+                                }]
+                pools = {"": players}
                 print(pools)
 
                 if algorithm is None:
@@ -363,8 +366,8 @@ def playerGames(players, c):
                 WHERE PlayerId = ? AND GameId IN (
                     SELECT GameId FROM Scores WHERE PlayerId = ?
                   )
-                """, (players[i], players[j])).fetchone()[0]
+                """, (players[i]['Id'], players[j]['Id'])).fetchone()[0]
             if games != 0:
-                playergames[(players[i], players[j])] = games
+                playergames[(players[i]['Id'], players[j]['Id'])] = games
 
     return playergames
