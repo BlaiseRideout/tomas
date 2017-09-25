@@ -1,7 +1,8 @@
 $(function() {
 	var templates = {};
 	var templatedata = {};
-	var selects = {}, selectData = {};
+	var selects = {},
+		selectData = {};
 	var showInactive = true;
 	var sortkeys = {}; /* Most recent sorting for each template */
 	/* Structure sortkeys[templatename] =
@@ -165,7 +166,7 @@ $(function() {
 				if (data['status'] == "success") {
 					input.removeClass("bad");
 					input.addClass("good");
-					if(typeof callback === 'function')
+					if (typeof callback === 'function')
 						callback.call(this);
 				}
 				else {
@@ -242,8 +243,10 @@ $(function() {
 			$(".addplayerbutton").click(addNewPlayer);
 			$(".deleteplayerbutton").click(function() {
 				var player = $(this).parents(".player").data("id");
-				$.post("/deleteplayer", {'player': player}, function(data) {
-					if(data['status'] === "success")
+				$.post("/deleteplayer", {
+					'player': player
+				}, function(data) {
+					if (data['status'] === "success")
 						updatePlayers();
 					else
 						console.log(data);
@@ -269,11 +272,13 @@ $(function() {
 	}
 
 	$("#tournament").tabs({
-		beforeLoad: function( event, ui ) {
+		beforeLoad: function(event, ui) {
 			ui.jqXHR.fail(function() {
 				ui.panel.html(
 					"Couldn't load this tab. We'll try to fix this as soon as possible.");
 			});
+		}
+	});
 
 	var updateUser = function() {
 		var user = $(this).parents(".user").data("id");
@@ -359,9 +364,9 @@ $(function() {
 	});
 	updatePlayers();
 	window.updateTab = function(callback) {
-		var current_index = $("#tournament").tabs("option","active");
+		var current_index = $("#tournament").tabs("option", "active");
 		$("#tournament").tabs('load', current_index);
-		if(typeof callback === 'function')
+		if (typeof callback === 'function')
 			callback();
 	}
 });
