@@ -33,7 +33,7 @@ class ManageUsersHandler(handler.BaseHandler):
         global user_fields
         global valid
         user = self.get_argument("user", None)
-        if user is None or not user.isdigit():
+        if user is None or not (user.isdigit() or user == "-1"):
             return self.write(json.dumps(
                 {'status':"error", 'message':"Please provide a user ID"}))
         info = self.get_argument("info", None)
@@ -43,14 +43,20 @@ class ManageUsersHandler(handler.BaseHandler):
         info = json.loads(info)
         try:
             with db.getCur() as cur:
-                cur.execute("SELECT Id FROM Users WHERE Id = ?", (user,))
-                if cur.fetchone() is None:
-                    return self.write(json.dumps(
-                        {'status':"error", 
-                         'message':"Please provide a valid user ID"}))
+                if user.isdigit():
+                    cur.execute("SELECT Id FROM Users WHERE Id = ?", (user,))
+                    if cur.fetchone() is None:
+                        return self.write(json.dumps(
+                            {'status':"error", 
+                             'message':"Please provide a valid user ID"}))
+                elif user == '-1':
+                    cur.execute("INSERT INTO Users (Email, Password) VALUES"
+                                " (?, ?)", ('newuser', '?'))
+                    user = str(cur.lastrowid)
                 for colname, val in info.items():
                     col = colname.lower()
-                    if not (col in user_fields and
+                    if col != 'del' and not (
+                            col in user_fields and
                             (valid[col].match(val) if col in valid else
                              valid['all'].match(val))):
                         return self.write(json.dumps(
@@ -61,6 +67,8 @@ class ManageUsersHandler(handler.BaseHandler):
                         if val.lower().startswith('y') or val == '1':
                             cur.execute("INSERT INTO Admins (Id) VALUES (?)",
                                         (user,))
+                    elif col == 'del':
+                        cur.execute("DELETE from Users WHERE Id = ?", (user,))
                     else:
                         cur.execute("UPDATE Users SET {0} = ? WHERE Id = ?"
                                     .format(colname),

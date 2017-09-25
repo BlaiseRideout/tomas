@@ -280,14 +280,27 @@ $(function() {
 		}
 	});
 
-	var updateUser = function() {
+	var updateUser = function(usercmd, callback) {
 		var user = $(this).parents(".user").data("id");
 		var colname = $(this).data("colname");
-		var newVal = $(this).val();
+		var newVal = colname && $(this).val();
+		if (usercmd == "new") {
+			user = "-1";
+			colname = "email";
+			newVal = "new@mail.com";
+			console.log('Create new user');
+		}
+		else if (usercmd == "del") {
+			console.log('Delete user ' + user);
+			colname = "del";
+			newVal = user;
+		}
+		else {
+			console.log('User ' + user + ' update');
+		}
 		var info = {};
 		var input = $(this);
 		info[colname] = newVal;
-		console.log('User ' + user + ' update');
 		console.log(info);
 		$.post("/users", {
 				'user': user,
@@ -297,6 +310,8 @@ $(function() {
 				if (data['status'] == "success") {
 					input.removeClass("bad");
 					input.addClass("good");
+					if (typeof callback === 'function')
+						callback.call(this);
 				}
 				else {
 					console.log(data);
@@ -331,23 +346,32 @@ $(function() {
 		}, "json");
 	};
 
-	function updateUsers() {
+	function updateUsers(reload) {
+		if (reload === undefined) {
+			reload = true
+		};
 		renderTemplate("users.mst", "/users", "#users", function() {
-			$(".userfield").change(updateUser).keyup(updateUser);
-			/*		$(".adduserbutton").click(addNewUser); */
-			$(".toggleadmin").click(toggleUserAdminStatus);
-			$("#users .colheader").click(function(ev) {
-				if ($(ev.target).attr('class') == 'colheader') {
-					updateSortKeys("users.mst",
-						$(this).data("fieldname"),
-						$(this).data("type"),
-						"users",
-						function() {
-							updateUsers(false)
-						});
-				}
-			});
-		});
+				$(".userfield").change(updateUser).keyup(updateUser);
+				$(".adduserbutton").click(function() {
+					updateUser.call(this, "new", updateUsers);
+				});
+				$(".deluserbutton").click(function() {
+					updateUser.call(this, "del", updateUsers);
+				});
+				$(".toggleadmin").click(toggleUserAdminStatus);
+				$("#users .colheader").click(function(ev) {
+					if ($(ev.target).attr('class') == 'colheader') {
+						updateSortKeys("users.mst",
+							$(this).data("fieldname"),
+							$(this).data("type"),
+							"users",
+							function() {
+								updateUsers(false)
+							});
+					}
+				});
+			},
+			null, reload);
 	}
 
 	$("#tournament").tabs().find('li').click(function(ev) {
