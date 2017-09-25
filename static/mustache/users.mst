@@ -1,0 +1,35 @@
+<table>
+    <tr>
+	<th class="colheader" data-type="str" data-fieldname="email">
+	    EMail Address</th>
+	<th class="colheader" data-type="str" data-fieldname="admin">
+	    Admin
+	</th>
+	<th class="actioncol">
+	    Actions
+	</th>
+    </tr>
+    {{ #users }}
+    <tr class="user" data-id="{{ id }}"
+	       data-status="{{ #admin }}1{{ /admin }}{{ ^admin }}0{{ /admin }}">
+	<td class="email"><input type="text" data-colname="Email"
+				 class="userfield" value="{{ email }}"/></td>
+	<td class="admin">{{ #admin }}Yes{{ /admin }}{{ ^admin }}No{{ /admin }}
+	</td>
+	<td class="actions">
+	    <input type="button" data-colname="Admin" 
+		   class="actionbutton toggleadmin"
+		   value="{{ #admin }}Drop admin{{ /admin }}{{ ^admin }}Make admin{{ /admin }}"
+	    />
+	    <input type="button" class="actionbutton deleteuser" 
+		   value="Delete" />
+		    </td>
+    </tr>
+    {{ /users }}
+    <tr>
+	<td colspan="3" class="adduser">
+	    <input type="button" class="adduserbutton"
+		   value="Add user..." />
+	</td>
+    </tr>
+</table>

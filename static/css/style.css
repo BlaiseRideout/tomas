@@ -56,7 +56,7 @@ a {
 	cursor:pointer;
 }
 
-button, input:not([type="checkbox"]), select, .clickable  {
+button, input:not(.actionbutton, [type="checkbox"]), select, .clickable  {
 	width:100%;
 	height:2em;
 	margin-bottom:0.5em;
@@ -126,6 +126,10 @@ button.clearplayercomplete {
 	display:block;
 	margin-bottom:0.5em;
 	padding:1em;
+}
+
+.actionbutton {
+    display:inline;
 }
 
 #tables > .table{

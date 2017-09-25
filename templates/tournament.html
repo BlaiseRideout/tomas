@@ -12,12 +12,19 @@
 	<ul>
 		<li data-id="players"><a href="#players">Players</a></li>
 	  {% if is_admin %}
-		<li><a href="settings.html">Settings</a></li>
+		<li data-id="users"><a href="#users">Users</a></li>
+		<li><a href="/settings.html">Settings</a></li>
 	  {% end %}
 		<li><a href="/leaderboard.html">Standings</a></li>
 		<li><a href="/seating.html">Seating</a></li>
 	</ul>
 	<div id="players">
 	</div>
+     {% if is_admin %}
+	<div id="users">
+	</div>
+	<div id="settings">
+	</div>
+     {% end %}
 </div>
 {% end %}

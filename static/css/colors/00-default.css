@@ -35,11 +35,11 @@ table td {
 }
 
 .ui-widget-content, .ui-state-default, #tournament li {
-	background: #444;
+	background: #111;
 	color: #eee;
 	border: 1px solid #555;
 }
-.ui-widget-content, .ui-state-hover, .ui-widget-content .ui-state-active {
+.ui-widget-content, .ui-state-hover, .ui-widget-content, .ui-state-active {
 	background: #eee;
 	color: #444;
 }

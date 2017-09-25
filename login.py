@@ -15,6 +15,7 @@ import handler
 import settings
 import db
 import util
+import admin
 
 log = logging.getLogger("WebServer")
 
@@ -45,7 +46,7 @@ class InviteHandler(handler.BaseHandler):
     @tornado.web.authenticated
     def post(self):
         email = self.get_argument('email', None)
-        if not re.match("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]+$", email, flags = re.IGNORECASE):
+        if not admin.valid['email'].match(email):
             self.render("invite.html", message = "Please enter a valid email address.")
         else:
             with db.getCur() as cur:
@@ -85,7 +86,7 @@ class SetupHandler(handler.BaseHandler):
                 self.render("setup.html")
     def post(self):
         email = self.get_argument('email', None)
-        if not re.match("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]+$", email, flags = re.IGNORECASE):
+        if not admin.valid['email'].match(email):
             self.render("setup.html", message = "Please enter a valid email address.")
         else:
             with db.getCur() as cur:

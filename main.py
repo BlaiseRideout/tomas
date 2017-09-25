@@ -34,6 +34,7 @@ import leaderboard
 import playerstats
 import tournament
 import preferences
+import admin
 
 # import and define tornado-y things
 from tornado.options import define, options
@@ -59,6 +60,7 @@ class Application(tornado.web.Application):
                 (r"/players", tournament.PlayersHandler),
                 (r"/deleteplayer", tournament.DeletePlayerHandler),
                 (r"/players.html", tournament.ShowPlayersHandler),
+                (r"/users", admin.ManageUsersHandler),
                 (r"/addround", tournament.AddRoundHandler),
                 (r"/deleteround", tournament.DeleteRoundHandler),
                 (r"/settings", tournament.SettingsHandler),

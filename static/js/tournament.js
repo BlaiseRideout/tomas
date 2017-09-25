@@ -24,7 +24,14 @@ $(function() {
 				['games_played', -1, 'num'],
 				['score', -1, 'num']
 			]
-		}
+		},
+		'users.mst': {
+			'table': 'users',
+			'keys': [
+				['email', 1, 'str'],
+				['admin', 1, 'num'],
+			]
+		},
 	};
 
 	/* Build a comparison function that compares keys in order specified */
@@ -244,7 +251,7 @@ $(function() {
 			});
 			$(".playerfield[data-colname='Inactive']").click(
 				togglePlayerActiveStatus);
-			$(".colheader").click(function(ev) {
+			$("#players .colheader").click(function(ev) {
 				if ($(ev.target).attr('class') == 'colheader') {
 					updateSortKeys("players.mst",
 						$(this).data("fieldname"),
@@ -267,13 +274,86 @@ $(function() {
 				ui.panel.html(
 					"Couldn't load this tab. We'll try to fix this as soon as possible.");
 			});
-		}
-	}).find('li').click(function(ev) {
+
+	var updateUser = function() {
+		var user = $(this).parents(".user").data("id");
+		var colname = $(this).data("colname");
+		var newVal = $(this).val();
+		var info = {};
+		var input = $(this);
+		info[colname] = newVal;
+		console.log('User ' + user + ' update');
+		console.log(info);
+		$.post("/users", {
+				'user': user,
+				'info': JSON.stringify(info)
+			},
+			function(data) {
+				if (data['status'] == "success") {
+					input.removeClass("bad");
+					input.addClass("good");
+				}
+				else {
+					console.log(data);
+					input.removeClass("good");
+					input.addClass("bad");
+				}
+			}, "json")
+	};
+
+	var toggleUserAdminStatus = function() {
+		var button = $(this),
+			row = button.parents(".user"),
+			user = row.data("id"),
+			admin = row.attr("data-status") == '1',
+			info = {};
+		info['Admin'] = admin ? '0' : '1';
+		$.post("/users", {
+			'user': user,
+			'info': JSON.stringify(info)
+		}, function(data) {
+			if (data['status'] == "success") {
+				button.attr('value',
+					admin ? "Make admin" : "Drop admin");
+				row.attr("data-status", info['Admin']);
+				row.find(".admin").text(admin ? 'No' : 'Yes');
+				console.log('Made user ' + user + ' admin = ' +
+					info['Admin']);
+			}
+			else {
+				console.log(data);
+			}
+		}, "json");
+	};
+
+	function updateUsers() {
+		renderTemplate("users.mst", "/users", "#users", function() {
+			$(".userfield").change(updateUser).keyup(updateUser);
+			/*		$(".adduserbutton").click(addNewUser); */
+			$(".toggleadmin").click(toggleUserAdminStatus);
+			$("#users .colheader").click(function(ev) {
+				if ($(ev.target).attr('class') == 'colheader') {
+					updateSortKeys("users.mst",
+						$(this).data("fieldname"),
+						$(this).data("type"),
+						"users",
+						function() {
+							updateUsers(false)
+						});
+				}
+			});
+		});
+	}
+
+	$("#tournament").tabs().find('li').click(function(ev) {
 		var id = $(ev.target).parents('li').data('id');
 		if (id == 'players') {
 			return updatePlayers()
 		}
-		else {
+		else if (id == 'users') {
+			return updateUsers()
+		}
+		else if (id) {
 			console.log('Unexpected click event for data-id = ' + id)
 		}
 	});
