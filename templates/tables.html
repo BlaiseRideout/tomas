@@ -29,7 +29,7 @@
 							<th colspan="4" class="tabletotal">TOTAL {{ table['total'] }}</th>
 						</tr>
 					</thead>
-					<tbody class="table" data-tableid="{{ table['table'] }}" >
+					<tbody class="table" data-tableid="{{ table['table'] }}" data-roundid="{{ round['round'] }}">
 						{% for player in table['players'] %}
 							<tr class="player" data-playerid="{{ player['player']['id'] }}">
 								{% if round['winds'] %}
