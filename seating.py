@@ -294,7 +294,7 @@ class SeatingHandler(handler.BaseHandler):
                 subs = []
                 for i, row in enumerate(cur.fetchall()):
                     subs += [{
-                                    "Rank":i,
+                                    "Rank":len(players) + i,
                                     "Id":row[0]
                                 }]
 
