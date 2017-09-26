@@ -5,6 +5,8 @@ import re
 
 import handler
 import db
+import util
+import login
 
 user_fields = ["id", "email", "password", "admin"]
 
@@ -55,7 +57,7 @@ class ManageUsersHandler(handler.BaseHandler):
                     user = str(cur.lastrowid)
                 for colname, val in info.items():
                     col = colname.lower()
-                    if col != 'del' and not (
+                    if not col in ('del', 'reset') and not (
                             col in user_fields and
                             (valid[col].match(val) if col in valid else
                              valid['all'].match(val))):
@@ -69,6 +71,15 @@ class ManageUsersHandler(handler.BaseHandler):
                                         (user,))
                     elif col == 'del':
                         cur.execute("DELETE from Users WHERE Id = ?", (user,))
+                    elif col == 'reset':
+                        code = util.randString(32)
+                        cur.execute("INSERT INTO ResetLinks(Id, User, Expires) "
+                                    "VALUES (?, ?, ?)",
+                                    (code, user, 
+                                     login.expiration_date(duration=1).isoformat()))
+                        return self.write(json.dumps(
+                            {'status':"success",
+                             'redirect': "/reset/{0}".format(code)}))
                     else:
                         cur.execute("UPDATE Users SET {0} = ? WHERE Id = ?"
                                     .format(colname),

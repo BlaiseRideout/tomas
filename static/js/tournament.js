@@ -295,6 +295,11 @@ $(function() {
 			colname = "del";
 			newVal = user;
 		}
+		else if (usercmd == "reset") {
+			console.log('Reset user ' + user + ' password');
+			colname = "reset";
+			newVal = user;
+		}
 		else {
 			console.log('User ' + user + ' update');
 		}
@@ -311,7 +316,7 @@ $(function() {
 					input.removeClass("bad");
 					input.addClass("good");
 					if (typeof callback === 'function')
-						callback.call(this);
+						callback.call(this, data);
 				}
 				else {
 					console.log(data);
@@ -355,6 +360,14 @@ $(function() {
 				$(".adduserbutton").click(function() {
 					updateUser.call(this, "new", updateUsers);
 				});
+				$(".resetpwdbutton").click(function() {
+					updateUser.call(this, "reset",
+						function(data) {
+							if (data['status'] == 'success') {
+								open(data['redirect'], '_self')
+							}
+						});
+				});
 				$(".deluserbutton").click(function() {
 					updateUser.call(this, "del", updateUsers);
 				});
@@ -364,10 +377,7 @@ $(function() {
 						updateSortKeys("users.mst",
 							$(this).data("fieldname"),
 							$(this).data("type"),
-							"users",
-							function() {
-								updateUsers(false)
-							});
+							"users", updateUsers);
 					}
 				});
 			},

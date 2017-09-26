@@ -247,7 +247,7 @@ class ResetPasswordLinkHandler(handler.BaseHandler):
                 cur.execute("UPDATE Users SET Password = ? WHERE Id = ?", (passhash, id))
                 cur.execute("DELETE FROM ResetLinks WHERE Id = ?", (q,))
                 self.render("message.html",
-                    message = "Your password has been reset. "
+                    message = "The password has been reset. "
                     "You may now <a href=\"/login\">Login</a>")
 
 class LoginHandler(handler.BaseHandler):

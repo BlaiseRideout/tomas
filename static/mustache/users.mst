@@ -21,9 +21,11 @@
 		   class="actionbutton toggleadmin"
 		   value="{{ #admin }}Drop admin{{ /admin }}{{ ^admin }}Make admin{{ /admin }}"
 	    />
+	    <input type="button" class="actionbutton resetpwdbutton" 
+		   value="Reset Pwd" />
 	    <input type="button" class="actionbutton deluserbutton" 
 		   value="Delete" />
-		    </td>
+	</td>
     </tr>
     {{ /users }}
     <tr>
