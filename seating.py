@@ -184,6 +184,8 @@ def fixTables(players, cur, duplicates, diversity, round):
         if oldScore > newScore:
             improved = 0
             print("Improved from", oldScore, "to", newScore)
+        else:
+            break
         improved += 1
         iterations -= 1
 
