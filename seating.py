@@ -50,7 +50,8 @@ ALGORITHMS = [
 
 ORDERINGS = [
     ("Number", "ORDER BY Players.Number ASC"),
-    ("Ranking", "ORDER BY NetScore DESC")
+    ("Score", "ORDER BY NetScore DESC"),
+    ("Rank", "ORDER BY LastRank ASC")
 ]
 
 class AlgorithmsHandler(handler.BaseHandler):
@@ -263,23 +264,27 @@ class SeatingHandler(handler.BaseHandler):
                         Players.Id,
                         Players.Country,
                         Pool,
-                        COALESCE(SUM(Scores.Score), 0) AS NetScore
+                        COALESCE(SUM(Scores.Score), 0) AS NetScore,
+                        LastScore.Rank AS LastRank
                          FROM Players
                            LEFT OUTER JOIN Scores ON Players.Id = Scores.PlayerId AND Scores.Round < ?
+                           LEFT OUTER JOIN Scores AS LastScore ON Players.Id = LastScore.Id AND LastScore.Round = ? - 1
                          WHERE Players.Inactive = 0
                          GROUP BY Players.Id
                     """
                 query += ORDERINGS[ordering][1]
-                cur.execute(query, (round,))
+                cur.execute(query, (round, round))
                 players = []
                 for i, row in enumerate(cur.fetchall()):
-                    player, country, pool, score = row
-                    players += [{
-                                    "Rank":i,
-                                    "Id": player,
-                                    "Country": country,
-                                    "Pool": pool
-                                }]
+                    player, country, pool, score, lastrank = row
+                    if ordering != 2 or lastrank:
+                        players += [{
+                                        "Rank":i,
+                                        "Id": player,
+                                        "Country": country,
+                                        "Pool": pool,
+                                        "LastRank": lastrank
+                                    }]
                 pools = {"": players}
 
                 query = """
