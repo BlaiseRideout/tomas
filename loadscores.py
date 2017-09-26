@@ -40,7 +40,7 @@ if __name__ == "__main__":
         'scores', nargs='*', type=argparse.FileType(encoding='UTF-8'),
         help="CSV File containing score data")
     parser.add_argument(
-        '-s', '--skip-header-row', default=False, action='store_true',
+        '-s', '--skip-header-row', default=True, action='store_true',
         help="All score files have a header row (which will be skipped).")
     parser.add_argument(
         '-c', '--clear', default=False, action='store_true',

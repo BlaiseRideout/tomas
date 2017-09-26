@@ -157,7 +157,7 @@ class ShowSeatingHandler(handler.BaseHandler):
     def get(self):
         return self.render("tables.html", rounds = getSeating())
 
-def fixTables(players, cur, duplicates, diversity):
+def fixTables(players, cur, duplicates, diversity, round):
     if diversity:
         heuristic = lambda p1, p2: \
                 1 if p1["Country"] == p2["Country"] else 0
@@ -170,12 +170,50 @@ def fixTables(players, cur, duplicates, diversity):
         heuristic = \
                 (lambda playergames: \
                     lambda p1, p2: \
-                        (playergames[(p1["Id"], p2["Id"])] if (p1["Id"], p2["Id"]) in playergames else \
+                        (playergames[(p1["Id"], p2["Id"])] if (p1["Id"], p2["Id"]) in playergames else (\
                             playergames[(p1["Id"], p2["Id"])] if (p1["Id"], p2["Id"]) in playergames else \
-                            0) + oldheuristic(p1, p2)
+                            0)) + oldheuristic(p1, p2)
                 )(playergames)
 
-    return bestArrangement(players, heuristic)
+    improved = 0
+    iterations = 100
+    while improved < 5 and iterations > 0:
+        oldScore = tablesScore(players, heuristic)
+        improvePlayers(players, heuristic)
+        newScore = tablesScore(players, heuristic)
+        if oldScore > newScore:
+            improved = 0
+            print("Improved from", oldScore, "to", newScore)
+        improved += 1
+        iterations -= 1
+
+    return players
+
+def improvePlayers(players, heuristic):
+    t = 0
+    while t < len(players):
+        table = players[t:t+4]
+        for i in range(len(table)):
+            for j in range(i + 1, len(table)):
+                if heuristic(table[i], table[j]) > 0:
+                    if table[i]["Rank"] > table[j]["Rank"]:
+                        toReplace = i
+                    else:
+                        toReplace = j
+                    replacements = players[0:t] + players[t + 4:]
+                    replacements.sort(key=lambda p:abs(table[toReplace]["Rank"] - p["Rank"]))
+                    for replacement in replacements:
+                        repPlayer = replacement["Seat"] % 4
+                        repTable = replacement["Seat"] - repPlayer
+                        repTable = players[repTable:repTable + 4]
+                        curTable = table[:]
+                        oldScore = tableScore(repTable, heuristic) + tableScore(curTable, heuristic)
+                        curTable[toReplace], repTable[repPlayer] = repTable[repPlayer], curTable[toReplace]
+                        newScore = tableScore(repTable, heuristic) + tableScore(curTable, heuristic)
+                        if newScore < oldScore:
+                            players[table[toReplace]["Seat"]], players[replacement["Seat"]] = players[replacement["Seat"]], players[table[toReplace]["Seat"]]
+                            break
+        t += 4
 
 class SeatingHandler(handler.BaseHandler):
     def get(self):
@@ -235,14 +273,13 @@ class SeatingHandler(handler.BaseHandler):
                 for i, row in enumerate(cur.fetchall()):
                     player, country, pool, score = row
                     players += [{
-                                    "Index":i,
+                                    "Rank":i,
                                     "Id": player,
                                     "Country": country,
                                     "Pool": pool,
                                     "Score": score
                                 }]
                 pools = {"": players}
-                print(pools)
 
                 if algorithm is None:
                     algorithm = 0
@@ -275,7 +312,11 @@ class SeatingHandler(handler.BaseHandler):
 
                 players = []
                 for pool in pools.values():
-                    players += fixTables(ALGORITHMS[algorithm].seat(pool), cur, duplicates, diversity)
+                    pool = pool[0:int(len(pool) / 4) * 4]
+                    pool = ALGORITHMS[algorithm].seat(pool)
+                    for i, player in enumerate(pool):
+                        player["Seat"] = i
+                    players += fixTables(pool, cur, duplicates, diversity, round)
 
                 random.seed()
 
@@ -354,19 +395,25 @@ def tableScore(players, heuristic = defaultHeuristic):
             score += heuristic(players[i], players[j])
     return score
 
-def playerGames(players, c):
+def playerGames(players, c, round = None):
     numplayers = len(players)
 
     playergames = dict()
 
+    query = """
+        SELECT COUNT(*) FROM Scores
+        WHERE PlayerId = ? AND GameId IN (
+            SELECT GameId FROM Scores WHERE PlayerId = ?
+          )
+        """
+    gbindings = []
+    if round is not None:
+        query += " AND Round < ?"
+        gbindings += [round]
     for i in range(numplayers):
         for j in range(i + 1, numplayers):
-            games = c.execute("""
-                SELECT COUNT(*) FROM Scores
-                WHERE PlayerId = ? AND GameId IN (
-                    SELECT GameId FROM Scores WHERE PlayerId = ?
-                  )
-                """, (players[i]['Id'], players[j]['Id'])).fetchone()[0]
+            bindings = [players[i]['Id'], players[j]['Id']]
+            games = c.execute(query, bindings + gbindings).fetchone()[0]
             if games != 0:
                 playergames[(players[i]['Id'], players[j]['Id'])] = games
 
