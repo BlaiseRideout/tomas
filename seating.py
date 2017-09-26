@@ -183,7 +183,6 @@ def fixTables(players, cur, duplicates, diversity, round):
         newScore = tablesScore(players, heuristic)
         if oldScore > newScore:
             improved = 0
-            print("Improved from", oldScore, "to", newScore)
         else:
             break
         improved += 1
@@ -223,6 +222,7 @@ class SeatingHandler(handler.BaseHandler):
     def post(self):
         round = self.get_argument('round', None)
         if round is not None:
+            ret = {"status":"error", "message":"Unknown error occurred"}
             with db.getCur() as cur:
                 cur.execute(
                         """SELECT
@@ -278,16 +278,25 @@ class SeatingHandler(handler.BaseHandler):
                                     "Rank":i,
                                     "Id": player,
                                     "Country": country,
-                                    "Pool": pool,
-                                    "Score": score
+                                    "Pool": pool
                                 }]
                 pools = {"": players}
 
-                if algorithm is None:
-                    algorithm = 0
-
-                if seed is not None and len(seed) > 0:
-                    random.seed(seed)
+                query = """
+                        SELECT
+                        Players.Id
+                         FROM Players
+                           LEFT OUTER JOIN Countries ON Players.Country = Countries.Id
+                         WHERE Players.Inactive = 2
+                         GROUP BY Players.Id
+                    """
+                cur.execute(query)
+                subs = []
+                for i, row in enumerate(cur.fetchall()):
+                    subs += [{
+                                    "Rank":i,
+                                    "Id":row[0]
+                                }]
 
                 if usepools:
                     playerpools = pools
@@ -299,10 +308,23 @@ class SeatingHandler(handler.BaseHandler):
                                 pools[playerpool] = []
                             pools[playerpool] += [player]
 
+                for pool in pools.values():
+                    subsNeeded = (4 - len(pool) % 4)
+                    if subsNeeded != 4:
+                        if len(subs) >= subsNeeded:
+                            pool += subs[0:subsNeeded]
+                            subs = subs[subsNeeded:]
+                        else:
+                            ret["status"] = "warn"
+                            ret["message"] = "Not enough substitutes to seat all players"
+                            pool = pool[0:int(len(pool) / 4) * 4]
+
                 if softcut or cut:
                     playerpools = pools
                     pools = {}
                     for pool, players in playerpools.items():
+                        if len(players) <= cutsize:
+                            continue
                         for i in range(0, cutsize if cut else len(players), cutsize):
                             playerpool = pool + str(i)
                             if not playerpool in pools:
@@ -312,9 +334,11 @@ class SeatingHandler(handler.BaseHandler):
                             else:
                                 pools[playerpool] += players[i:cutsize]
 
+                if seed is not None and len(seed) > 0:
+                    random.seed(seed)
+
                 players = []
                 for pool in pools.values():
-                    pool = pool[0:int(len(pool) / 4) * 4]
                     pool = ALGORITHMS[algorithm].seat(pool)
                     for i, player in enumerate(pool):
                         player["Seat"] = i
@@ -334,7 +358,9 @@ class SeatingHandler(handler.BaseHandler):
                     """.format(",".join([playerquery] * len(players))),
                         bindings
                     )
-                self.write(json.dumps({"status":"success"}))
+                    if ret["status"] != "warn":
+                        ret["status"] = "success"
+                self.write(json.dumps(ret))
 
 POPULATION = 32
 IMPROVECOUNT = 10
