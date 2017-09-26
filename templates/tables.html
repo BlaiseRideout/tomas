@@ -45,7 +45,13 @@
 										{{ player['player']['rawscore'] }}
 									{% end %}
 								</td>
-								<td class="chombos">{{ player['player']['chombos'] }}</td>
+								<td class="chombos">
+									{% if current_user %}
+										<input type="number" value="{{ player['player']['chombos'] }}" class="playerchombos" step="1" />
+									{% else %}
+										{{ player['player']['chombos'] }}
+									{% end %}
+								</td>
 								<td class="rank">{{ player['player']['rank'] }}</td>
 								<td class="score">{{ player['player']['score'] }}</td>
 							</tr>
