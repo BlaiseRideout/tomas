@@ -8,7 +8,7 @@
 	{% for round in rounds %}
 		<div class="round" data-round="{{ round['round'] }}" id="round-{{ round['round'] }}">
 		{% if is_admin and not round['has_scores'] %}
-			<button class="genround">Generate</button>
+			<button class="genround">Generate</button><br />
 		{% end %}
 			<a href="/seating.csv?round={{ round['round'] }}">Download as CSV</a>
 			<table class="tables">
