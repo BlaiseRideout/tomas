@@ -110,12 +110,14 @@ def getSeating():
                 if not roundID in rounds:
                     rounds[roundID] = {
                                 'winds':winds,
-                                'tables':{}
+                                'tables':{},
+                                'has_scores': False
                             }
                 if table is not None:
                     if not table in rounds[roundID]['tables']:
                         rounds[roundID]['tables'][table] = {}
                     if wind is not None and name is not None:
+                        rounds[roundID]['has_scores'] |= rawscore > 0
                         rounds[roundID]['tables'][table][wind] = {
                                 "id":playerid,
                                 "name":name,
@@ -129,8 +131,9 @@ def getSeating():
         winds = "東南西北"
         rounds = [
                 {
-                    'round':roundID,
-                    'winds':tables['winds'],
+                    'round':      roundID,
+                    'winds':      tables['winds'],
+                    'has_scores': rounds[roundID]['has_scores'],
                     'tables':
                         [
                             {
