@@ -22,19 +22,22 @@ $(function() {
 		var tabletotal = table.prev("thead").find(".tabletotal");
 		var scores = table.find(".playerscore");
 		var total = 0,
+			partial = false,
 			umas = [15, 5, -5, -15];
 		scores.each(function(i, elem) {
 			var val = parseInt($(elem).val());
 			total += val;
+			partial = partial || (val % 100 != 0);
 		});
 		tabletotal.text("TOTAL " + total);
-		newstate = (total == 100000 || total == 0) ? "good" : "bad";
-		delstate = (total == 100000 || total == 0) ? "bad" : "good";
+		partial = partial || !(total == 100000 || total == 0);
+		newstate = partial ? "bad" : "good";
+		delstate = partial ? "good" : "bad";
 		table.find(".playerscore, .playerchombos").removeClass(delstate);
 		table.find(".playerscore, .playerchombos").addClass(newstate);
 		tabletotal.removeClass(delstate);
 		tabletotal.addClass(newstate);
-		if (total == 100000) {
+		if (total == 100000 && !partial) {
 			var tablescore = [];
 			table.find(".player").each(function() {
 				tablescore = tablescore.concat({
