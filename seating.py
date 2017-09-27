@@ -51,7 +51,7 @@ ALGORITHMS = [
 ORDERINGS = [
     ("Number", "ORDER BY Players.Number ASC"),
     ("Score", "ORDER BY NetScore DESC"),
-    ("Rank", "ORDER BY LastRank ASC")
+    ("Rank", "ORDER BY LastRank ASC, NetScore DESC")
 ]
 
 class AlgorithmsHandler(handler.BaseHandler):
@@ -264,7 +264,7 @@ class SeatingHandler(handler.BaseHandler):
                         LastScore.Rank AS LastRank
                          FROM Players
                            LEFT OUTER JOIN Scores ON Players.Id = Scores.PlayerId AND Scores.Round < ?
-                           LEFT OUTER JOIN Scores AS LastScore ON Players.Id = LastScore.Id AND LastScore.Round = ? - 1
+                           LEFT OUTER JOIN Scores AS LastScore ON Players.Id = LastScore.PlayerId AND LastScore.Round = ? - 1 AND LastScore.Rank != 0
                          WHERE Players.Inactive = 0
                          GROUP BY Players.Id
                     """
