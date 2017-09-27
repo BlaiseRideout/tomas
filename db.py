@@ -44,7 +44,7 @@ schema = collections.OrderedDict({
         "Seed TEXT",
         "Cut TINYINT",
         "SoftCut TINYINT",
-        "Cut2x TINYINT",
+        "CutSize INTEGER DEFAULT NULL",
         "Duplicates TINYINT DEFAULT 1",
         "Diversity TINYINT DEFAULT 1",
         "UsePools TINYINT DEFAULT 1",

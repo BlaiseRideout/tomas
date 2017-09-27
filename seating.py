@@ -233,31 +233,27 @@ class SeatingHandler(handler.BaseHandler):
                             Seed,
                             Cut,
                             SoftCut,
-                            Cut2x,
+                            CutSize,
                             Duplicates,
                             Diversity,
                             UsePools
                              FROM Rounds WHERE Id = ?""",
                         (round,)
                     )
-                round, ordering, algorithm, seed, cut, softcut, cut2x, duplicates, diversity, usepools = cur.fetchone()
+                round, ordering, algorithm, seed, cut, softcut, cutsize, duplicates, diversity, usepools = cur.fetchone()
                 cut = cut == 1
                 softcut = softcut == 1
-                cut2x = cut2x == 1
                 duplicates = duplicates == 1
                 diversity = diversity == 1
                 usepools = usepools == 1
 
-                if cut or softcut:
+                if (cut or softcut) and not cutsize:
                     cur.execute("SELECT Value FROM GlobalPreferences WHERE Preference = 'CutSize'")
                     cutsize = cur.fetchone()
                     if cutsize is None:
-                        cutsize = int(settings.DEFAULTCUTSIZE)
+                        cutsize = settings.DEFAULTCUTSIZE
                     else:
                         cutsize = int(cutsize[0])
-
-                    if cut2x:
-                        cutsize *= 2
 
                 query = """
                         SELECT

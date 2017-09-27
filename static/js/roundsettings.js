@@ -18,11 +18,12 @@ $(function() {
 	var updateSetting = function() {
 		var round = $(this).parent().data("roundid");
 		var settings = {};
-		console.log($(this).val());
+		var colname = $(this).data("colname");
+		var updatefield = $(this).data("updatefield");
 		if ($(this).attr('type') === "checkbox")
-			settings[$(this).data("colname")] = $(this).prop('checked') ? 1 : 0;
+			settings[colname] = $(this).prop('checked') ? ($(this).data("checkvalue") || 1) : 0;
 		else
-			settings[$(this).data("colname")] = $(this).val();
+			settings[colname] = $(this).val();
 		console.log(settings);
 		$.post("/settings", {
 			'round': round,
@@ -30,6 +31,17 @@ $(function() {
 		}, function(data) {
 			if (data['status'] !== "success")
 				console.log(data);
+			else if(updatefield) {
+				var defval = $("#" + updatefield).data("default");
+				if(settings[colname] == 0 && defval) {
+					$("#" + updatefield).val(defval);
+					$("#" + updatefield).attr("disabled", true);
+				}
+				else {
+					$("#" + updatefield).val(settings[colname]);
+					$("#" + updatefield).attr("disabled", false);
+				}
+			}
 		}, "json");
 
 	}

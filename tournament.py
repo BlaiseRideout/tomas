@@ -121,7 +121,7 @@ class DeleteRoundHandler(handler.BaseHandler):
 def getSettings(self):
     editable = self.current_user is not None
     with db.getCur() as cur:
-        cur.execute("SELECT Id, COALESCE(Ordering, 0), COALESCE(Algorithm, 0), Seed, Cut, SoftCut, Cut2x,"
+        cur.execute("SELECT Id, COALESCE(Ordering, 0), COALESCE(Algorithm, 0), Seed, Cut, SoftCut, CutSize,"
                     "Duplicates, Diversity, UsePools, Winds, Games FROM Rounds")
         rounds = [
                 {
@@ -133,22 +133,28 @@ def getSettings(self):
                     "seed": seed or "",
                     "cut": cut,
                     "softcut": softcut,
-                    "cut2x": cut2x,
+                    "cutsize": cutsize,
                     "duplicates": duplicates,
                     "diversity": diversity,
                     "usepools": usepools,
                     "winds": winds,
                     "games": games
                 }
-                for roundid, ordering, algorithm, seed, cut, softcut, cut2x, duplicates, diversity, usepools, winds, games in cur.fetchall()
+                for roundid, ordering, algorithm, seed, cut, softcut, cutsize, duplicates, diversity, usepools, winds, games in cur.fetchall()
             ]
-        return rounds
+        cur.execute("SELECT Value FROM GlobalPreferences WHERE Preference = 'CutSize'")
+        cutsize = cur.fetchone()
+        if cutsize is None:
+            cutsize = settings.DEFAULTCUTSIZE
+        else:
+            cutsize = int(cutsize[0])
+        return {'rounds':rounds, 'cutsize':cutsize}
     return None
 
 class SettingsHandler(handler.BaseHandler):
     @handler.is_admin_ajax
     def get(self):
-        return self.write(json.dumps({'rounds':getSettings(self)}))
+        return self.write(json.dumps(getSettings(self)))
     @handler.is_admin_ajax
     def post(self):
         round = self.get_argument("round", None)
@@ -167,7 +173,8 @@ class SettingsHandler(handler.BaseHandler):
 
 class ShowSettingsHandler(handler.BaseHandler):
     def get(self):
-        return self.render("roundsettings.html", rounds=getSettings(self))
+        roundsettings = getSettings(self)
+        return self.render("roundsettings.html", rounds=roundsettings['rounds'], cutsize=roundsettings['cutsize'])
 
 class CountriesHandler(handler.BaseHandler):
     def get(self):

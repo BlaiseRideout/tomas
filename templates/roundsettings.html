@@ -38,10 +38,6 @@
 
 		<br />
 
-		<input type="checkbox" class="roundsetting" id="round{{ round['id'] }}-cut2x" data-colname="Cut2x"{% if round['cut2x'] %} checked{% end %}/>
-		<label for="round{{ round['id'] }}-cut2x">Double cutsize?</label>
-
-		<br />
 
 		<input type="checkbox" class="roundsetting" id="round{{ round['id'] }}-duplicates" data-colname="Duplicates" {% if round['duplicates'] %} checked{% end %}/>
 		<label for="round{{ round['id'] }}-duplicates">Fix duplicates</label>
@@ -55,6 +51,16 @@
 
 		<input type="checkbox" class="roundsetting" id="round{{ round['id'] }}-winds" data-colname="Winds" {% if round['winds'] %} checked{% end %}/>
 		<label for="round{{ round['id'] }}-winds">Assign winds</label>
+
+		<br />
+
+		<input type="checkbox" class="roundsetting" id="round{{ round['id'] }}-cutbox" data-colname="CutSize"{% if round['cutsize'] %} checked{% end %} data-checkvalue="{{ cutsize }}" data-updatefield="round{{ round['id'] }}-cutsize"/>
+		<label for="round{{ round['id'] }}-cutbox">Override cutsize?</label>
+
+		<br />
+
+		<label for="round{{ round['id'] }}-cutsize">Cutsize</label>
+		<input type="number" step="4" min="4" class="roundsetting" id="round{{ round['id'] }}-cutsize" data-colname="CutSize" {% if round['cutsize'] %}value="{{ round['cutsize'] }}"{% else %}disabled value="{{ cutsize }}"{% end %} data-default="{{ cutsize }}"/>
 
 		<br />
 
