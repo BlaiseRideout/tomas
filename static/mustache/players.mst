@@ -1,5 +1,7 @@
-<button id="uploadplayers">Upload players CSV</button>
-<button id="clearplayers">Clear Players</button>
+{{ #editable }}
+	<button id="uploadplayers">Upload players CSV</button>
+	<button id="clearplayers">Clear Players</button>
+{{ /editable }}
 <table>
     <tr>
 	<th class="colheader" data-type="str" data-fieldname="name">
