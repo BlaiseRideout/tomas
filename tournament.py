@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import json
+import csv
 import re
 
 import tornado.web
@@ -48,34 +49,33 @@ class DeletePlayerHandler(handler.BaseHandler):
     @tornado.web.authenticated
     def post(self):
         player = self.get_argument("player", None)
-        if player is None or not player.isdigit():
-            return self.write(json.dumps(
-                {'status':"error", 'message':"Please provide a player"}))
+        if player is None:
+            return self.write({'status':"error", 'message':"Please provide a player"})
         try:
             with db.getCur() as cur:
-                cur.execute("DELETE FROM Players WHERE Id = ?", (player,))
-                return self.write(json.dumps({'status':"success"}))
+                if player == "all":
+                    cur.execute("DELETE FROM Players")
+                else:
+                    cur.execute("DELETE FROM Players WHERE Id = ?", (player,))
+                return self.write({'status':"success"})
         except:
-            return self.write(json.dumps(
-                {'status':"error",
-                 'message':"Couldn't delete player"}))
+            return self.write({'status':"error",
+                 'message':"Couldn't delete player"})
 
 class PlayersHandler(handler.BaseHandler):
     global player_fields
     def get(self):
-        return self.write(json.dumps(getPlayers(self)))
+        return self.write(getPlayers(self))
     @handler.is_admin_ajax
     def post(self):
         global player_fields
         global valid
         player = self.get_argument("player", None)
         if player is None or not (player.isdigit() or player == '-1'):
-            return self.write(json.dumps(
-                {'status':"error", 'message':"Please provide a player"}))
+            return self.write({'status':"error", 'message':"Please provide a player"})
         info = self.get_argument("info", None)
         if info is None:
-            return self.write(json.dumps(
-                {'status':"error", 'message':"Please provide an info object"}))
+            return self.write({'status':"error", 'message':"Please provide an info object"})
         info = json.loads(info)
         try:
             with db.getCur() as cur:
@@ -84,9 +84,8 @@ class PlayersHandler(handler.BaseHandler):
                     if not (col in player_fields and
                             (valid[col].match(val) if col in valid else
                              valid['all'].match(val))):
-                        return self.write(json.dumps(
-                            {'status':"error",
-                             'message':"Invalid column or value provided"}))
+                        return self.write({'status':"error",
+                             'message':"Invalid column or value provided"})
                     if player == '-1':
                         cur.execute("INSERT INTO Players (Name, Country) VALUES"
                                     " ('\u202Fnewplayer',"
@@ -95,28 +94,57 @@ class PlayersHandler(handler.BaseHandler):
                         cur.execute("UPDATE Players SET {0} = ? WHERE Id = ?"
                                     .format(colname),
                                     (val, player))
-            return self.write(json.dumps({'status':"success"}))
+            return self.write({'status':"success"})
         except:
-            return self.write(json.dumps(
-                {'status':"error",
-                 'message':"Invalid info provided"}))
+            return self.write({'status':"error",
+                 'message':"Invalid info provided"})
+
+class UploadPlayersHandler(handler.BaseHandler):
+    @handler.is_admin_ajax
+    def post(self):
+        global player_fields
+        global valid
+        if 'file' not in self.request.files or len(self.request.files['file']) == 0:
+            return self.write({'status':"error", 'message':"Please provide a players file"})
+        players = self.request.files['file'][0]['body']
+        try:
+            with db.getCur() as cur:
+                reader = csv.reader(players.decode('utf-8').split("\n"))
+                for row in reader:
+                    if len(row) < 4:
+                        continue
+                    name = row[0]
+                    country = row[1]
+                    association = row[3]
+                    cur.execute(
+                        "INSERT INTO Players(Name, Country, Association)"
+                        " VALUES(?,"
+                        "   (SELECT Id FROM Countries"
+                        "      WHERE Name = ? OR Code = ? OR IOC_Code = ?),"
+                        "   ?);",
+                        (name, country, country, country, association))
+            return self.write({'status':"success"})
+        except Exception as e:
+            return self.write({'status':"error",
+                    'message':"Invalid players file provided: " + str(e)})
+
 
 class AddRoundHandler(handler.BaseHandler):
     @handler.is_admin_ajax
     def post(self):
         with db.getCur() as cur:
             cur.execute("INSERT INTO Rounds(Id) VALUES((SELECT COUNT(*) + 1 FROM Rounds))")
-            return self.write(json.dumps({'status':"success"}))
+            return self.write({'status':"success"})
 
 class DeleteRoundHandler(handler.BaseHandler):
     @handler.is_admin_ajax
     def post(self):
         round = self.get_argument("round", None)
         if round is None:
-            return self.write(json.dumps({'status':"error", 'message':"Please provide a round"}))
+            return self.write({'status':"error", 'message':"Please provide a round"})
         with db.getCur() as cur:
             cur.execute("DELETE FROM Rounds WHERE Id = ?", (round,))
-            return self.write(json.dumps({'status':"success"}))
+            return self.write({'status':"success"})
 
 def getSettings(self):
     editable = self.current_user is not None
@@ -154,21 +182,21 @@ def getSettings(self):
 class SettingsHandler(handler.BaseHandler):
     @handler.is_admin_ajax
     def get(self):
-        return self.write(json.dumps(getSettings(self)))
+        return self.write(getSettings(self))
     @handler.is_admin_ajax
     def post(self):
         round = self.get_argument("round", None)
         if round is None:
-            return self.write(json.dumps({'status':"error", 'message':"Please provide a round"}))
+            return self.write({'status':"error", 'message':"Please provide a round"})
         settings = self.get_argument("settings", None)
         if settings is None:
-            return self.write(json.dumps({'status':"error", 'message':"Please provide a settings object"}))
+            return self.write({'status':"error", 'message':"Please provide a settings object"})
         settings = json.loads(settings)
         print(settings)
         with db.getCur() as cur:
             for colname, val in settings.items():
                 cur.execute("UPDATE Rounds SET {0} = ? WHERE Id = ?".format(colname), (val, round)) # TODO: fix SQL injection
-            return self.write(json.dumps({'status':"success"}))
+            return self.write({'status':"success"})
 
 
 class ShowSettingsHandler(handler.BaseHandler):

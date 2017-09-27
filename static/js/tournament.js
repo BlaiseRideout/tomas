@@ -239,8 +239,42 @@ $(function() {
 					});
 				});
 			});
+			$("#uploadplayers").click(function() {
+				var form = document.createElement("form");
+				var picker = document.createElement("input");
+				form.appendChild(picker);
+				picker.type = "file";
+				picker.name = "file";
+				$(picker).click();
+				$(picker).change(function() {
+					var data = new FormData(form);
+					$.ajax({
+						'url':'/uploadplayers',
+						'data':data,
+						'type':'POST',
+						'contentType':false,
+						'processData':false,
+						success:function(data) {
+							if(data["status"] === "success")
+								updatePlayers();
+							else
+								console.log(data);
+						}
+					})
+				});
+			});
 			$(".playerfield").change(updatePlayer).keyup(updatePlayer);
 			$(".addplayerbutton").click(addNewPlayer);
+			$("#clearplayers").click(function() {
+				$.post("/deleteplayer", {
+					'player': "all"
+				}, function(data) {
+					if (data['status'] === "success")
+						updatePlayers();
+					else
+						console.log(data);
+				}, "json");
+			});
 			$(".deleteplayerbutton").click(function() {
 				var player = $(this).parents(".player").data("id");
 				$.post("/deleteplayer", {

@@ -1,3 +1,5 @@
+<button id="uploadplayers">Upload players CSV</button>
+<button id="clearplayers">Clear Players</button>
 <table>
     <tr>
 	<th class="colheader" data-type="str" data-fieldname="name">

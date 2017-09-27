@@ -52,12 +52,13 @@ class MainHandler(handler.BaseHandler):
 
 
 class Application(tornado.web.Application):
-    def __init__(self):
-        db.init()
+    def __init__(self, force=False):
+        db.init(force=force)
 
         handlers = [
                 (r"/", tournament.TournamentHandler),
                 (r"/players", tournament.PlayersHandler),
+                (r"/uploadplayers", tournament.UploadPlayersHandler),
                 (r"/deleteplayer", tournament.DeletePlayerHandler),
                 (r"/players.html", tournament.ShowPlayersHandler),
                 (r"/users", admin.ManageUsersHandler),
@@ -157,7 +158,7 @@ def main():
         qm.init(settings.EMAILSERVER, settings.EMAILUSER, settings.EMAILPASSWORD, settings.EMAILPORT, True)
         qm.start()
 
-    http_server = tornado.httpserver.HTTPServer(Application(), max_buffer_size=24*1024**3)
+    http_server = tornado.httpserver.HTTPServer(Application(force=force), max_buffer_size=24*1024**3)
     if isinstance(socket, int):
         http_server.add_sockets(tornado.netutil.bind_sockets(socket))
     else:
