@@ -35,11 +35,11 @@ $(function() {
 		tabletotal.removeClass(delstate);
 		tabletotal.addClass(newstate);
 		if (total == 100000) {
-			var tablescore = [],
-				gameid = table.data("roundid") * 1000 + table.data("tableid");
+			var tablescore = [];
 			table.find(".player").each(function() {
 				tablescore = tablescore.concat({
-					'gameid': gameid,
+					'gameid': table.data("tableid"),
+					'roundid': table.data("roundid"),
 					'playerid': $(this).data("playerid"),
 					'rawscore': parseInt($(this).find(".playerscore").val()),
 					'chombos': parseInt($(this).find(".playerchombos").val()),
@@ -61,6 +61,22 @@ $(function() {
 				tablescore[j]['score'].text(round(score, 1));
 				tablescore[j]['score'] = score;
 			}
+			$.post("/scores", {
+					'tablescores': JSON.stringify(tablescore)
+				},
+				function(data) {
+					if (data['status'] != 'success') {
+						var msg = '';
+						for (k in data) {
+							if (k != 'status') {
+								msg += k + ': ' + data[k] + '\n';
+							}
+						};
+						alert('Error saving game\n' + msg);
+					}
+					window.currentTab = $("#seating").tabs().tabs("option", "active");
+					window.updateTab();
+				}, "json");
 		}
 	}
 	$(".playerscore, .playerchombos").change(scoreChange).keyup(scoreChange);

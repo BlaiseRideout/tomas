@@ -104,31 +104,31 @@ def getSeating():
             """)
         rounds = {}
         for row in cur.fetchall():
-            round, winds, table, wind, playerid, name, country, flag, rank, rawscore, score, chombos  = row
-            if round is not None:
-                if not round in rounds:
-                    rounds[round] = {
+            roundID, winds, table, wind, playerid, name, country, flag, rank, rawscore, score, chombos  = row
+            if roundID is not None:
+                if not roundID in rounds:
+                    rounds[roundID] = {
                                 'winds':winds,
                                 'tables':{}
                             }
                 if table is not None:
-                    if not table in rounds[round]['tables']:
-                        rounds[round]['tables'][table] = {}
+                    if not table in rounds[roundID]['tables']:
+                        rounds[roundID]['tables'][table] = {}
                     if wind is not None and name is not None:
-                        rounds[round]['tables'][table][wind] = {
+                        rounds[roundID]['tables'][table][wind] = {
                                 "id":playerid,
                                 "name":name,
                                 "country":country,
                                 "flag":flag,
                                 "rank":rank,
                                 "rawscore":rawscore,
-                                "score":score,
+                                "score": round(score, 1) if isinstance(score, float) else score,
                                 "chombos":chombos
                             }
         winds = "東南西北"
         rounds = [
                 {
-                    'round':round,
+                    'round':roundID,
                     'winds':tables['winds'],
                     'tables':
                         [
@@ -146,10 +146,10 @@ def getSeating():
                             for table, players in tables['tables'].items() if len(players) == 4
                         ]
                 }
-                for round, tables in rounds.items()
+                for roundID, tables in rounds.items()
             ]
-        for round in rounds:
-            for table in round['tables']:
+        for a_round in rounds:
+            for table in a_round['tables']:
                 table['total'] = sum([player['player']['rawscore'] for player in table['players']])
         return rounds
 

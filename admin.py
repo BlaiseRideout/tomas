@@ -2,6 +2,7 @@
 
 import json
 import re
+import tornado.web
 
 import handler
 import db
@@ -114,30 +115,10 @@ class DeleteGameHandler(handler.BaseHandler):
                 self.redirect("/history")
 
 class EditGameHandler(handler.BaseHandler):
-    @handler.is_admin
-    def get(self, q):
-        with db.getCur() as cur:
-            cur.execute("SELECT Rank, Players.Name, Scores.RawScore, Scores.Chombos, Scores.Date FROM Scores INNER JOIN Players ON Players.Id = Scores.PlayerId WHERE GameId = ? ORDER BY Rank", (q,))
-            rows = cur.fetchall()
-            if len(rows) == 0:
-                self.render("message.html", message = "Game not found", title = "Edit Game")
-            else:
-                self.render("editgame.html", id=q, scores=json.dumps(rows).replace("'", "\\'").replace("\\\"", "\\\\\""))
-    @handler.is_admin_ajax
-    def post(self, q):
-        scores = self.get_argument('scores', None)
-        gamedate = self.get_argument('gamedate', None)
-
+    @tornado.web.authenticated
+    def post(self):
+        scores = self.get_argument('tablescores', None)
         scores = json.loads(scores)
-
-        with db.getCur() as cur:
-            cur.execute("SELECT GameId FROM Scores WHERE GameId = ?", (q,))
-            row = cur.fetchone()
-            if len(row) == 0:
-                self.write('{"status":1, "error":"Game not found"}')
-                return
-            gameid = row[0]
-
-        self.write(json.dumps(db.addGame(scores, gamedate, gameid)))
+        self.write(json.dumps(db.updateGame(scores)))
 
 
