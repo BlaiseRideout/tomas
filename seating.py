@@ -78,9 +78,9 @@ class OrderingsHandler(handler.BaseHandler):
             ]
         ))
 
-def getSeating():
+def getSeating(roundid = None):
     with db.getCur() as cur:
-        cur.execute("""
+        query = """
                 SELECT Rounds.Id,
                  Rounds.Winds,
                  Seating.TableNum,
@@ -102,7 +102,12 @@ def getSeating():
                    ON Rounds.Id = Scores.Round AND Players.Id = Scores.PlayerId
                  LEFT OUTER JOIN Countries
                    ON Countries.Id = Players.Country
-            """)
+            """
+        bindings = ()
+        if roundid is not None:
+            query += " WHERE Rounds.Id = ?"
+            bindings = (roundid,)
+        cur.execute(query, bindings)
         rounds = {}
         for row in cur.fetchall():
             roundID, winds, table, wind, playerid, name, country, flag, rank, rawscore, score, chombos  = row
@@ -153,6 +158,18 @@ def getSeating():
             for table in a_round['tables']:
                 table['total'] = sum([player['player']['rawscore'] for player in table['players']])
         return rounds
+
+class SeatingCsvHandler(handler.BaseHandler):
+    def get(self):
+        round = self.get_argument("round", 1)
+        rounds = getSeating(round)
+        for r in rounds:
+            if r["round"] == round:
+                return self.render("tables.csv", round = r)
+        return self.render("tables.csv", round = {
+            'winds':False,
+            'tables':[]
+            })
 
 class ShowSeatingHandler(handler.BaseHandler):
     def get(self):
