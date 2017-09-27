@@ -10,6 +10,7 @@
 		{% if is_admin and not round['has_scores'] %}
 			<button class="genround">Generate</button>
 		{% end %}
+			<a href="/seating.csv?round={{ round['round'] }}">Download as CSV</a>
 			<table class="tables">
 				<tr>
 					{% if round['winds'] %}

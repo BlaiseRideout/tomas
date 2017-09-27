@@ -164,8 +164,9 @@ def getSeating(roundid = None):
 
 class SeatingCsvHandler(handler.BaseHandler):
     def get(self):
-        round = self.get_argument("round", 1)
+        round = int(self.get_argument("round", 1))
         rounds = getSeating(round)
+        self.set_header("Content-Type", "application/octet-stream")
         for r in rounds:
             if r["round"] == round:
                 return self.render("tables.csv", round = r)

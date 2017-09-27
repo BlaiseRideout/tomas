@@ -1,0 +1,3 @@
+Table,{% if round['winds'] %}Wind,{% end %}Name,Country,Raw Score,Chombos,Rank,Score
+{% for table in round['tables'] %}{% for player in table['players'] %}{{ table['table'] }},{% if round['winds'] %}{{ player['wind'] }},{% end %}"{{ player['player']['name'] }}",{{ player['player']['country'] }},{{ player['player']['rawscore'] }},{{ player['player']['chombos'] }},{{ player['player']['rank'] }},{{ player['player']['score'] }}
+{% end %}{% end %}

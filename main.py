@@ -70,6 +70,7 @@ class Application(tornado.web.Application):
                 (r"/orderings", seating.OrderingsHandler),
                 (r"/seating", seating.SeatingHandler),
                 (r"/seating.html", seating.ShowSeatingHandler),
+                (r"/seating.csv", seating.SeatingCsvHandler),
                 (r"/leaderboard", leaderboard.LeaderDataHandler),
                 (r"/leaderboard.html", leaderboard.LeaderboardHandler),
                 (r"/playerstats/(.*)", playerstats.PlayerStatsHandler),
