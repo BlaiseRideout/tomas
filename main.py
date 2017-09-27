@@ -74,6 +74,7 @@ class Application(tornado.web.Application):
                 (r"/leaderboard.html", leaderboard.LeaderboardHandler),
                 (r"/playerstats/(.*)", playerstats.PlayerStatsHandler),
                 (r"/playerstatsdata/(.*)", playerstats.PlayerStatsDataHandler),
+                (r"/scores", admin.EditGameHandler),
                 (r"/setup", login.SetupHandler),
                 (r"/login", login.LoginHandler),
                 (r"/logout", login.LogoutHandler),

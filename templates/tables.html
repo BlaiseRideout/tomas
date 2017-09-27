@@ -7,7 +7,9 @@
 	</ul>
 	{% for round in rounds %}
 		<div class="round" data-round="{{ round['round'] }}" id="round-{{ round['round'] }}">
+		{% if is_admin %}
 			<button class="genround">Generate</button>
+		{% end %}
 			<table class="tables">
 				<tr>
 					{% if round['winds'] %}
@@ -27,7 +29,7 @@
 							<th colspan="4" class="tabletotal">TOTAL {{ table['total'] }}</th>
 						</tr>
 					</thead>
-					<tbody class="table" data-tableid="{{ table['table'] }}" >
+					<tbody class="table" data-tableid="{{ table['table'] }}" data-roundid="{{ round['round'] }}">
 						{% for player in table['players'] %}
 							<tr class="player" data-playerid="{{ player['player']['id'] }}">
 								{% if round['winds'] %}
@@ -43,7 +45,13 @@
 										{{ player['player']['rawscore'] }}
 									{% end %}
 								</td>
-								<td class="chombos">{{ player['player']['chombos'] }}</td>
+								<td class="chombos">
+									{% if current_user %}
+										<input type="number" value="{{ player['player']['chombos'] }}" class="playerchombos" step="1" />
+									{% else %}
+										{{ player['player']['chombos'] }}
+									{% end %}
+								</td>
 								<td class="rank">{{ player['player']['rank'] }}</td>
 								<td class="score">{{ player['player']['score'] }}</td>
 							</tr>
