@@ -11,15 +11,15 @@
 	    Association</th>
 	<th class="colheader" data-type="str" data-fieldname="pool">
 	    Pool</th>
-	<th class="colheader" data-type="str" data-fieldname="inactive">
+	<th class="colheader" data-type="str" data-fieldname="type">
 	    <input type="checkbox" class="playerlisting"
-		   id="showinactive" data-colname="Inactive" />
+		   id="showinactive" data-colname="Type" />
 	    Show All
 	</th>
 	</tr>
 	{% for player in players %}
 		<tr class="player" data-id="{{ player['id'] }}"
-		    data-status="{{ player['inactive'] }}">
+		    data-status="{{ player['type'] }}">
 		    <td class="name"><input type="text" data-colname="Name"
 			class="playerfield" value="{{ player['name'] }}"
 			{% if not editable %} disabled {% end %}/></td>
@@ -45,16 +45,24 @@
 		    <td class="pool"><input type="text" data-colname="Pool"
 			class="playerfield" value="{{ player['pool'] }}"
 			{% if not editable %} disabled {% end %}/></td>
-		    <td class="inactive">
-			<input type="button" data-colname="Inactive"
-			  class="playerfield"
-			  {% if not editable %} disabled
-			     value="{% if player['inactive'] %}Inactive{% end %}"
-			  {% end %}
-			  {% if editable %}
-			     value="{% if player['inactive'] %}Reactivate{% end %}{% if not player['inactive'] %}Make inactive{% end %}"
-			  {% end %}
-			/>
+		    <td class="type">
+		      {% if not editable %}
+		      {{ player['type'] }}
+		      {% else %}
+			<select class="playertype" name="type">
+			    <option value="0"
+				    {% if player['type'] == '' %}selected{% end %}>
+			      Regular</option>
+			    <option value="1"
+				    {% if player['type'] == 'Inactive' %}selected{% end %}>
+			      Inactive</option>
+			    <option value="2"
+				    {% if player['type'] == 'Substitute' %}selected{% end %}>
+			      Substitute</option>
+			</select>
+			<input type="button" class="deleteplayerbutton"
+			       value="Delete" />
+			{% end %}
 		    </td>
 		</tr>
 	{% end %}

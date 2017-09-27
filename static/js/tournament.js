@@ -13,7 +13,7 @@ $(function() {
 		'players.mst': {
 			'table': 'players',
 			'keys': [
-				['inactive', 1, 'num'],
+				['type', 1, 'str'],
 				['name', 1, 'str'],
 				['country', 1, 'str']
 			]
@@ -21,7 +21,7 @@ $(function() {
 		'leaderboard.mst': {
 			'table': 'leaderboard',
 			'keys': [
-				['inactive', 1, 'num'],
+				['type', 1, 'str'],
 				['games_played', -1, 'num'],
 				['score', -1, 'num']
 			]
@@ -197,34 +197,11 @@ $(function() {
 	var showHideInactive = function() {
 		showInactive = $('#showinactive').prop('checked');
 		if (showInactive) {
-			$(".player[data-status='1']").show();
+			$(".player").not("[data-status='']").show();
 		}
 		else {
-			$(".player[data-status='1']").hide()
+			$(".player").not("[data-status='']").hide();
 		};
-	};
-	var togglePlayerActiveStatus = function() {
-		var button = $(this),
-			row = button.parents(".player"),
-			player = row.data("id"),
-			colname = button.data("colname"),
-			inactive = row.attr("data-status") == '1',
-			info = {};
-		info[colname] = inactive ? '0' : '1';
-		$.post("/players", {
-			'player': player,
-			'info': JSON.stringify(info)
-		}, function(data) {
-			if (data['status'] == "success") {
-				button.attr('value',
-					inactive ? "Make inactive" : "Reactivate");
-				row.attr("data-status", info[colname]);
-				showHideInactive();
-			}
-			else {
-				console.log(data);
-			}
-		}, "json");
 	};
 
 	function updatePlayers(reload) {
@@ -252,8 +229,6 @@ $(function() {
 						console.log(data);
 				}, "json");
 			});
-			$(".playerfield[data-colname='Inactive']").click(
-				togglePlayerActiveStatus);
 			$("#players .colheader").click(function(ev) {
 				if ($(ev.target).attr('class') == 'colheader') {
 					updateSortKeys("players.mst",
@@ -264,6 +239,16 @@ $(function() {
 							updatePlayers(false)
 						});
 				}
+			});
+			$(".playertype").each(function() {
+				var ptype = $(this).parents(".player").data("status").toLowerCase();
+				$(this).find("option").each(function() {
+					$(this).prop(
+						"selected",
+						$(this).text().toLowerCase() == ptype ||
+						($(this).text().toLowerCase() == 'regular' &&
+							ptype == ''))
+				});
 			});
 			$("#showinactive").click(showHideInactive);
 		}, {

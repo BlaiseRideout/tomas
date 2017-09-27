@@ -10,18 +10,14 @@
 	    Association</th>
 	<th class="colheader" data-type="str" data-fieldname="pool">
 	    Pool</th>
-	<th class="colheader" data-type="str" data-fieldname="inactive">
+	<th class="colheader" data-type="str" data-fieldname="type">
 	    <input type="checkbox" class="playerlisting"
-		   id="showinactive" data-colname="Inactive"{{ #showinactive }} checked{{ /showinactive }}/>
+		   id="showinactive" data-colname="Type"{{ #showinactive }} checked{{ /showinactive }}/>
 	    Show All
-	</th>
-	<th>
-		Delete
 	</th>
 	</tr>
 	{{ #players }}
-		<tr class="player" data-id="{{ id }}"
-		    data-status="{{ inactive }}">
+		<tr class="player" data-id="{{ id }}" data-status="{{ type }}">
 		    <td class="name"><input type="text" data-colname="Name"
 			class="playerfield" value="{{ name }}"
 			{{ ^editable }} disabled {{ /editable }}/></td>
@@ -47,29 +43,26 @@
 		    <td class="pool"><input type="text" data-colname="Pool"
 			class="playerfield" value="{{ pool }}"
 			{{ ^editable }} disabled {{ /editable }}/></td>
-		    <td class="inactive">
-			<input type="button" data-colname="Inactive"
-			  class="playerfield"
-			  {{ ^editable }} disabled
-			     value="{{ #inactive }}Inactive{{ /inactive }}"
-			  {{ /editable }}
-			  {{ #editable }}
-			     value="{{ #inactive }}Reactivate{{ /inactive }}{{ ^inactive }}Make inactive{{ /inactive }}"
-			  {{ /editable }}
-			/>
+		    <td class="type">
+			{{ ^editable }}
+			{{ type }}
+			{{ /editable }}
+			{{ #editable }}
+			<select class="playertype playerfield" name="type"
+				       data-colname="Type">
+			    <option value="0">Regular</option>
+			    <option value="1">Inactive</option>
+			    <option value="2">Substitute</option>
+			</select>
+			<input type="button" class="deleteplayerbutton"
+			       value="Delete" />
+			{{ /editable }}
 		    </td>
-			<td class="delete">
-			<input type="button"
-			  class="deleteplayerbutton"
-				value="Delete"
-			  {{ ^editable }} disabled{{ /editable }}
-			/>
-			</td>
 		</tr>
 	{{ /players }}
 	{{ #editable }}
 	<tr>
-	    <td colspan="8" class="addplayer">
+	    <td colspan="7" class="addplayer">
 		<input type="button" class="addplayerbutton"
 		       value="Add player..." />
 	    </td>

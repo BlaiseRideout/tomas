@@ -286,7 +286,7 @@ class SeatingHandler(handler.BaseHandler):
                          FROM Players
                            LEFT OUTER JOIN Scores ON Players.Id = Scores.PlayerId AND Scores.Round < ?
                            LEFT OUTER JOIN Scores AS LastScore ON Players.Id = LastScore.PlayerId AND LastScore.Round = ? - 1 AND LastScore.Rank != 0
-                         WHERE Players.Inactive = 0
+                         WHERE Players.Type = 0
                          GROUP BY Players.Id
                     """
                 query += ORDERINGS[ordering][1]
@@ -309,7 +309,7 @@ class SeatingHandler(handler.BaseHandler):
                         Players.Id
                          FROM Players
                            LEFT OUTER JOIN Countries ON Players.Country = Countries.Id
-                         WHERE Players.Inactive = 2
+                         WHERE Players.Type = 2
                          GROUP BY Players.Id
                     """
                 cur.execute(query)

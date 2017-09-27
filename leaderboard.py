@@ -7,7 +7,7 @@ import settings
 
 def leaderData():
     query = """SELECT
-         Players.Name, Countries.Code, Flag_Image, Inactive,
+         Players.Name, Countries.Code, Flag_Image, Type,
          COUNT(Scores.Id) AS GamesPlayed,
          COALESCE(
              ROUND(SUM(Scores.Score) * 1.0 / COUNT(Scores.Score) * 100) / 100
@@ -16,8 +16,8 @@ def leaderData():
        LEFT JOIN Scores ON Players.Id = Scores.PlayerId
        LEFT JOIN Countries ON Players.Country = Countries.Id
        GROUP BY Players.Id
-       ORDER BY Inactive ASC, GamesPlayed DESC, AvgScore DESC;"""
-    fields = ['name', 'country', 'flag_image', 'inactive', 'games_played',
+       ORDER BY Type ASC, GamesPlayed DESC, AvgScore DESC;"""
+    fields = ['name', 'country', 'flag_image', 'type', 'games_played',
               'score']
     with db.getCur() as cur:
         leaderboard = []
@@ -25,6 +25,7 @@ def leaderData():
         cur.execute(query)
         for i, row in enumerate(cur.fetchall()):
             rec = dict(zip(fields, row))
+            rec['type'] = db.playertypes[int(rec['type'])]
             if rec['score'] != last_score:
                 place = i+1
             last_score = rec['score']

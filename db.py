@@ -67,7 +67,7 @@ schema = collections.OrderedDict({
         "Country INTEGER",
         "Association TEXT",
         "Pool TEXT",
-        "Inactive TINYINT DEFAULT 0",
+        "Type TINYINT DEFAULT 0",
         "FOREIGN KEY(Country) REFERENCES Countries(Id) ON DELETE CASCADE",
         "UNIQUE(Number)"
     ],
@@ -117,6 +117,8 @@ schema = collections.OrderedDict({
     ],
 })
 
+# Decode table for Players.Type values
+playertypes = ['', 'Inactive', 'Substitute']
 
 def init(force=False):
     warnings.filterwarnings('ignore', r'Table \'[^\']*\' already exists')
