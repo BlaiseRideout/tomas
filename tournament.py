@@ -21,7 +21,7 @@ class TournamentHandler(handler.BaseHandler):
                            tournamentname=settings.TOURNAMENTNAME)
 
 player_fields = ["id", "name", "number", "country", "countryid", "flag_image",
-                 "association", "pool", "inactive"]
+                 "association", "pool", "type"]
 valid = {
     'all': re.compile(r'^[\w\s():,.\'+-\u202F]*$'),
     'name': re.compile(r'^[\w\s():,.\'+-\u202F]+$'),
@@ -33,17 +33,20 @@ def getPlayers(self):
     with db.getCur() as cur:
         cur.execute(
             "SELECT Players.Id, Players.Name, Number, Countries.Code,"
-            " Countries.Id, Flag_Image, Association, Pool, Inactive"
+            " Countries.Id, Flag_Image, Association, Pool, Type"
             " FROM Players LEFT OUTER JOIN Countries"
             "   ON Countries.Id = Players.Country"
             " ORDER BY Players.Name asc")
         rows = [dict(zip(player_fields, row)) for row in cur.fetchall()]
+        for row in rows:
+            row['type'] = db.playertypes[int(row['type'])]
         return {'players':rows, 'editable': editable}
 
 class ShowPlayersHandler(handler.BaseHandler):
     def get(self):
         data = getPlayers(self)
-        return self.render("players.html", editable = data['editable'], players = data['players'])
+        return self.render("players.html", editable = data['editable'],
+                           players = data['players'])
 
 class DeletePlayerHandler(handler.BaseHandler):
     @tornado.web.authenticated

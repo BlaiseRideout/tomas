@@ -34,8 +34,9 @@
 		{% block head %}{% end %}
 	</head>
 	<body>
-	  <img src="{{ static_url("images/favicon.png") }}" class="sitelogo"
-		 alt="Logo">
+	  <a href="https://worldriichi.org/">
+	    <img src="{{ static_url("images/favicon.png") }}" class="sitelogo"
+		 alt="Logo"></a>
 	  <div id="navbar">
 			<a href="/">Home</a>
 			{% if not current_user %}
