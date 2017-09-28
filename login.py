@@ -65,7 +65,7 @@ class InviteHandler(handler.BaseHandler):
                             "VALUES (?, LOWER(?), ?)",
                             (code, email, expiration_date().isoformat()))
 
-            util.sendEmail(email, 
+            util.sendEmail(email,
                            "Your {0} Account".format(settings.TOURNAMENTNAME),
                            format_invite(settings.TOURNAMENTNAME,
                                          self.request.host,
@@ -259,7 +259,7 @@ class LoginHandler(handler.BaseHandler):
             else:
                 return self.redirect(uri)
 
-        self.render("login.html", uri = uri, 
+        self.render("login.html", uri = uri,
                     tournamentname=settings.TOURNAMENTNAME)
     def post(self):
         email = self.get_argument('email', None)
@@ -267,8 +267,8 @@ class LoginHandler(handler.BaseHandler):
         uri = self.get_argument('next', '/')
 
         if not email or not password or email == "" or password == "":
-            self.render("login.html", 
-                        message = "Please enter an email and password", 
+            self.render("login.html",
+                        message = "Please enter an email and password",
                         tournamentname=settings.TOURNAMENTNAME)
             return
 
@@ -302,8 +302,8 @@ class LoginHandler(handler.BaseHandler):
                         self.redirect(uri)
                         return
         log.info("Invalid login attempt for {0}".format(email))
-        self.render("login.html", message = "Incorrect email and password", 
-                    tournamentname=settings.TOURNAMENTNAME)
+        self.render("login.html", message = "Incorrect email and password",
+                    uri = uri, tournamentname=settings.TOURNAMENTNAME)
 
 class LogoutHandler(handler.BaseHandler):
     def get(self):
