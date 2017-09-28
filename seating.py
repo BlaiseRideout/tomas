@@ -202,8 +202,8 @@ def fixTables(players, cur, duplicates, diversity, round):
 
     swaps = 0
     maxswap = 0
-    iterations = 5
-    while iterations > 0:
+    iterations = 0
+    while iterations < 5:
         oldScore = tablesScore(players, heuristic)
         swapsmade, distance = improvePlayers(players, heuristic)
         swaps += swapsmade
@@ -211,9 +211,14 @@ def fixTables(players, cur, duplicates, diversity, round):
         newScore = tablesScore(players, heuristic)
         if oldScore <= newScore:
             break
-        iterations -= 1
+        iterations += 1
 
-    return (players, swaps, maxswap)
+    status = "{0} swaps made (max distance {1}) in {3} phases to score {2}".format(
+                                    str(swaps),
+                                    maxswap,
+                                    newScore,
+                                    iterations)
+    return (players, status)
 
 def improvePlayers(players, heuristic):
     t = 0
@@ -225,34 +230,54 @@ def improvePlayers(players, heuristic):
             j = i + 1
             while j < len(table):
                 if heuristic(table[i], table[j]) > 0:
-                    curPlayer = i
-                    toReplace = table[curPlayer]
-                    replacements = players[0:t] + players[t + 4:]
-                    replacements.sort(key=lambda p:abs(toReplace["Rank"] - p["Rank"]))
-                    for replacement in replacements:
-                        distance = abs(replacement["Rank"] - toReplace["Rank"])
-                        if distance > settings.MAXSWAPDISTANCE:
-                            break
-                        repPlayer = replacement["Seat"] % 4
-                        repTable = replacement["Seat"] - repPlayer
-                        repTable = players[repTable:repTable + 4]
-                        curTable = table[:]
-                        oldScore = tableScore(repTable, heuristic) + tableScore(curTable, heuristic)
-                        curTable[curPlayer], repTable[repPlayer] = repTable[repPlayer], curTable[curPlayer]
-                        newScore = tableScore(repTable, heuristic) + tableScore(curTable, heuristic)
-                        if newScore < oldScore:
-                            seat1 = table[i]["Seat"]
-                            seat2 = replacement["Seat"]
-                            players[seat1], players[seat2] = players[seat2], players[seat1]
-                            players[seat1]["Seat"], players[seat2]["Seat"] = seat1, seat2
-                            table = players[t:t+4]
-                            j = i + 1
-                            maxswap = max(maxswap, distance)
-                            swaps += 1
-                            break
+                    candidatei = bestSwap(players, heuristic, t, i)
+                    candidatej = bestSwap(players, heuristic, t, j)
+
+                    if candidatei[0] < candidatej[0]:
+                        curPlayer = i
+                        seat2 = candidatei[1]
+                    else:
+                        curPlayer = j
+                        seat2 = candidatej[1]
+                    seat1 = table[curPlayer]["Seat"]
+
+                    players[seat1], players[seat2] = players[seat2], players[seat1]
+                    players[seat1]["Seat"], players[seat2]["Seat"] = seat1, seat2
+                    table = players[t:t+4]
+                    distance = abs(players[seat1]["Rank"] - players[seat2]["Rank"])
+                    maxswap = max(maxswap, distance)
+                    swaps += 1
                 j += 1
         t += 4
     return (swaps, maxswap)
+
+def bestSwap(players, heuristic, t, player):
+    table = players[t:t+4]
+    toReplace = table[player]
+
+    replacements = players[0:t] + players[t + 4:]
+    replacements.sort(key=lambda replacement:abs(replacement["Rank"] - toReplace["Rank"]))
+
+    candidates = []
+
+    for replacement in replacements:
+        distance = abs(replacement["Rank"] - toReplace["Rank"])
+        if distance > settings.MAXSWAPDISTANCE:
+            break
+
+        repPlayer = replacement["Seat"] % 4
+        repTable = replacement["Seat"] - repPlayer
+        repTable = players[repTable:repTable + 4]
+
+        curTable = table[:]
+
+        curTable[player], repTable[repPlayer] = repTable[repPlayer], curTable[player]
+        newScore = tableScore(repTable, heuristic) + tableScore(curTable, heuristic)
+
+        candidates += [(newScore + distance / settings.MAXSWAPDISTANCE, replacement["Seat"])]
+    candidates.sort(key=itemgetter(0))
+
+    return candidates[0]
 
 class SeatingHandler(handler.BaseHandler):
     def get(self):
@@ -375,7 +400,7 @@ class SeatingHandler(handler.BaseHandler):
                     pool = ALGORITHMS[algorithm].seat(pool)
                     for i, player in enumerate(pool):
                         player["Seat"] = i
-                    poolplayers, swaps, maxswap = fixTables(pool, cur, duplicates, diversity, round)
+                    poolplayers, status = fixTables(pool, cur, duplicates, diversity, round)
                     players += poolplayers
 
                 random.seed()
@@ -400,32 +425,38 @@ class SeatingHandler(handler.BaseHandler):
                         if duplicates:
                             improvements += ["duplicates"]
                         if len(improvements) > 0:
-                            ret["message"] = "{0} swaps made (max distance {2}) to improve {1}".format(
-                                    str(swaps),
-                                    " and ".join(improvements),
-                                    maxswap)
+                            ret["message"] = status
                         else:
                             ret["message"] = "Players successfully seated"
                 self.write(json.dumps(ret))
 
 POPULATION = 32
 IMPROVECOUNT = 10
+MUTATIONS = 1
 
 defaultHeuristic = lambda p1, p2:0
 
-def bestArrangement(tables, heuristic = defaultHeuristic, population = POPULATION):
+def bestArrangement(tables, heuristic = defaultHeuristic, population = POPULATION, mutations = MUTATIONS, maxswap = settings.MAXSWAPDISTANCE):
     numplayers = len(tables)
 
     tables = tables[:]
-    tabless = [(tablesScore(tables, heuristic), tables)] * POPULATION
+    tabless = [(tablesScore(tables, heuristic), tables, 0)]
 
     improved = 0
 
+    maxdistance = 0
     while tabless[0][0] > 0 and improved < IMPROVECOUNT:
-        for j in range(POPULATION):
-            newTables = mutateTables(tabless[j][1])
-            score = tablesScore(newTables, heuristic)
-            tabless += [(score, newTables)]
+        generated = 0
+        for j in range(len(tabless)):
+            for k in range(mutations):
+                newTables, distance = mutateTables(tabless[j][1])
+                if distance < maxswap:
+                    maxdistance = max(distance, maxdistance)
+                    score = tablesScore(newTables, heuristic)
+                    tabless += [(score, newTables, tabless[j][2] + 1)]
+                    generated += 1
+        if generated > 0:
+            print("modified", generated)
         bestScore = tabless[0][0]
 
         tabless.sort(key=itemgetter(0))
@@ -437,7 +468,7 @@ def bestArrangement(tables, heuristic = defaultHeuristic, population = POPULATIO
             improved += 1
 
 
-    return tabless[0][1]
+    return (tabless[0][1], maxdistance, tabless[0][2])
 
 def mutateTables(tables):
     tables = tables[:]
@@ -447,8 +478,9 @@ def mutateTables(tables):
     otable = random.sample(tableset - set([table]), 1)[0]
     b = otable * 4 + random.randint(0, 3)
     tables[a], tables[b] = tables[b], tables[a]
+    distance = abs(tables[a]["Rank"] - tables[b]["Rank"])
 
-    return tables
+    return (tables, distance)
 
 def tablesScore(players, heuristic = defaultHeuristic):
     numplayers = len(players)
