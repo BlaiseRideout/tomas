@@ -198,20 +198,24 @@ def fixTables(players, cur, duplicates, diversity, round):
                 )(playergames)
 
     swaps = 0
+    maxswap = 0
     iterations = 10
     while iterations > 0:
         oldScore = tablesScore(players, heuristic)
-        swaps += improvePlayers(players, heuristic)
+        swapsmade, distance = improvePlayers(players, heuristic)
+        swaps += swapsmade
+        maxswap = max(maxswap, distance)
         newScore = tablesScore(players, heuristic)
         if oldScore <= newScore:
             break
         iterations -= 1
 
-    return (players, swaps)
+    return (players, swaps, maxswap)
 
 def improvePlayers(players, heuristic):
     t = 0
     swaps = 0
+    maxswap = 0
     while t < len(players):
         table = players[t:t+4]
         for i in range(len(table)):
@@ -233,10 +237,12 @@ def improvePlayers(players, heuristic):
                         newScore = tableScore(repTable, heuristic) + tableScore(curTable, heuristic)
                         if newScore < oldScore:
                             players[table[toReplace]["Seat"]], players[replacement["Seat"]] = players[replacement["Seat"]], players[table[toReplace]["Seat"]]
+                            distance = abs(players[table[toReplace]["Seat"]]["Rank"] - players[replacement["Seat"]]["Rank"])
+                            maxswap = max(maxswap, distance)
                             swaps += 1
                             break
         t += 4
-    return swaps
+    return (swaps, maxswap)
 
 class SeatingHandler(handler.BaseHandler):
     def get(self):
@@ -359,7 +365,7 @@ class SeatingHandler(handler.BaseHandler):
                     pool = ALGORITHMS[algorithm].seat(pool)
                     for i, player in enumerate(pool):
                         player["Seat"] = i
-                    poolplayers, swaps = fixTables(pool, cur, duplicates, diversity, round)
+                    poolplayers, swaps, maxswap = fixTables(pool, cur, duplicates, diversity, round)
                     players += poolplayers
 
                 random.seed()
@@ -384,7 +390,10 @@ class SeatingHandler(handler.BaseHandler):
                         if duplicates:
                             improvements += ["duplicates"]
                         if len(improvements) > 0:
-                            ret["message"] = "{0} swaps made to improve {1}".format(str(swaps), " and ".join(improvements))
+                            ret["message"] = "{0} swaps made (max distance {2}) to improve {1}".format(
+                                    str(swaps),
+                                    " and ".join(improvements),
+                                    maxswap)
                         else:
                             ret["message"] = "Players successfully seated"
                 self.write(json.dumps(ret))
