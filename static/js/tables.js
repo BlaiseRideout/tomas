@@ -77,8 +77,6 @@ $(function() {
 						};
 						alert('Error saving game\n' + msg);
 					}
-					window.currentTab = $("#seating").tabs().tabs("option", "active");
-					window.updateTab();
 				}, "json");
 		}
 	}
