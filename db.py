@@ -302,6 +302,8 @@ def field_spec_matches_pragma(field_spec, pragma_rec):
                 1 if 'PRIMARY' in spec and 'KEY' in spec else 0))
     )
 
+pointsPerPlayer = 30000
+
 def updateGame(scores):
     if scores is None:
         return {"status":1, "error":"Please enter some scores"}
@@ -334,10 +336,10 @@ def updateGame(scores):
                             "error": "Inconsistent round IDs"}
                 roundID = score['roundid']
 
-            if total != len(scores) * 25000:
+            if total != len(scores) * pointsPerPlayer:
                 return {"status":1,
                         "error":"Scores do not add up to {0}".format(
-                            len(scores) * 25000)}
+                            len(scores) * pointsPerPlayer)}
 
             cur.execute("DELETE FROM Scores WHERE GameId = ? and Round = ?",
                         (gameID, roundID))

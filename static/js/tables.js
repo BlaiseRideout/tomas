@@ -8,6 +8,41 @@ $(function() {
 	$("#seating").find('li').click(function() {
 		window.currentTab = $("#seating").tabs().tabs("option", "active");
 	});
+	var totalPoints = 120000;
+
+	function histogram(default_increment) {
+		var hist = {},
+			incr = default_increment || 1,
+			prefix = 'h';
+
+		function increment(val, inc) {
+			var index = prefix + val;
+			if (index in hist) {
+				hist[index] += (inc || incr)
+			}
+			else {
+				hist[index] = (inc || incr)
+			}
+		}
+
+		function get(val) {
+			var index = prefix + val;
+			return hist[index]
+		}
+
+		function keys() {
+			var keys = Object.keys(hist);
+			for (var j = 0; j < keys.length; j++) {
+				keys[j] = keys[j].substring(prefix.length)
+			};
+			return keys;
+		}
+		return {
+			'increment': increment,
+			'get': get,
+			'keys': keys
+		}
+	}
 
 	function round(num, digits) {
 		var d10 = Math.pow(10, digits),
@@ -18,7 +53,30 @@ $(function() {
 			sig.substring(0, n - digits) + '.' + sig.substring(n - digits);
 	};
 
-	function scoreChange() {
+	var valueChangingKeys = {
+		'Backspace': 1,
+		'Delete': 1,
+		'+': 1,
+		'-': 1,
+		'0': 1,
+		'1': 1,
+		'2': 1,
+		'3': 1,
+		'4': 1,
+		'5': 1,
+		'6': 1,
+		'7': 1,
+		'8': 1,
+		'9': 1,
+		'.': 1,
+	};
+
+	function scoreChange(ev) {
+		if (ev && 'type' in ev && ev.type == 'keyup' &&
+			!valueChangingKeys[ev.key]) {
+			console.log('Ignoring ' + ev.type + ' event: ' + ev.key)
+			return;
+		};
 		var score = $(this).val();
 		var player = $(this).parents(".player");
 		var table = player.parents(".table");
@@ -33,14 +91,14 @@ $(function() {
 			partial = partial || (val % 100 != 0);
 		});
 		tabletotal.text("TOTAL " + total);
-		partial = partial || !(total == 100000 || total == 0);
+		partial = partial || !(total == totalPoints || total == 0);
 		newstate = partial ? "bad" : "good";
 		delstate = partial ? "good" : "bad";
 		table.find(".playerscore, .playerchombos").removeClass(delstate);
 		table.find(".playerscore, .playerchombos").addClass(newstate);
 		tabletotal.removeClass(delstate);
 		tabletotal.addClass(newstate);
-		if (total == 100000 && !partial) {
+		if (total == totalPoints && !partial) {
 			var tablescore = [];
 			table.find(".player").each(function() {
 				tablescore = tablescore.concat({
@@ -59,11 +117,26 @@ $(function() {
 					ra['chombos'] - rb['chombos'] :
 					rb['rawscore'] - ra['rawscore'];
 			});
+			var lastscore = NaN,
+				lastrank = 0,
+				rankhist = histogram();
 			for (var j = 0; j < tablescore.length; j++) {
-				tablescore[j]['rank'].text(j + 1);
-				tablescore[j]['rank'] = j + 1;
-				var score = tablescore[j]['rawscore'] / 1000.0 - 25 +
-					tablescore[j]['chombos'] * -8 + umas[j];
+				var rank = tablescore[j]['rawscore'] != lastscore ?
+					j + 1 : lastrank;
+				rankhist.increment(rank);
+				lastscore = tablescore[j]['rawscore'];
+				lastrank = rank;
+				tablescore[j]['rank'].text(rank);
+				tablescore[j]['rank'] = rank;
+			};
+			for (var j = 0; j < tablescore.length; j++) {
+				var rank = tablescore[j]['rank'],
+					raw = tablescore[j]['rawscore'];
+				for (var umasum = 0, i = 0; i < rankhist.get(rank); i++) {
+					umasum += umas[rank - 1 + i];
+				}
+				var score = (raw - totalPoints / 4) / 1000.0 +
+					umasum / rankhist.get(rank);
 				tablescore[j]['score'].text(round(score, 1));
 				tablescore[j]['score'] = score;
 			}
@@ -89,9 +162,9 @@ $(function() {
 	$(".playerscore, .playerchombos").change(scoreChange).keyup(scoreChange);
 	$(".genscores").click(function() {
 		$(this).parent(".round").find(".table").each(function(i, table) {
-			var totalScore = 100000;
+			var totalScore = totalPoints;
 			$(table).find(".player").each(function(j, player) {
-				if(j < 3)
+				if (j < 3)
 					var playerScore = Math.floor(Math.random() * totalScore / 100) * 100;
 				else
 					var playerScore = totalScore;
@@ -105,7 +178,7 @@ $(function() {
 		$.post("/seating", {
 			"round": round
 		}, function(data) {
-			if(data["message"])
+			if (data["message"])
 				$.notify(data["message"], data["status"]);
 			window.updateTab();
 		}, "json");
