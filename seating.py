@@ -192,28 +192,26 @@ def fixTables(players, cur, duplicates, diversity, round):
         heuristic = \
                 (lambda playergames: \
                     lambda p1, p2: \
-                        (playergames[(p1["Id"], p2["Id"])] if (p1["Id"], p2["Id"]) in playergames else (\
-                            playergames[(p1["Id"], p2["Id"])] if (p1["Id"], p2["Id"]) in playergames else \
+                        (playergames[(p1["Id"], p2["Id"])] if (p1["Id"], p2["Id"]) * 3 in playergames else (\
+                            playergames[(p1["Id"], p2["Id"])] if (p1["Id"], p2["Id"]) * 3 in playergames else \
                             0)) + oldheuristic(p1, p2)
                 )(playergames)
 
-    improved = 0
-    iterations = 100
-    while improved < 5 and iterations > 0:
+    swaps = 0
+    iterations = 10
+    while iterations > 0:
         oldScore = tablesScore(players, heuristic)
-        improvePlayers(players, heuristic)
+        swaps += improvePlayers(players, heuristic)
         newScore = tablesScore(players, heuristic)
-        if oldScore > newScore:
-            improved = 0
-        else:
+        if oldScore <= newScore:
             break
-        improved += 1
         iterations -= 1
 
-    return players
+    return (players, swaps)
 
 def improvePlayers(players, heuristic):
     t = 0
+    swaps = 0
     while t < len(players):
         table = players[t:t+4]
         for i in range(len(table)):
@@ -235,8 +233,10 @@ def improvePlayers(players, heuristic):
                         newScore = tableScore(repTable, heuristic) + tableScore(curTable, heuristic)
                         if newScore < oldScore:
                             players[table[toReplace]["Seat"]], players[replacement["Seat"]] = players[replacement["Seat"]], players[table[toReplace]["Seat"]]
+                            swaps += 1
                             break
         t += 4
+    return swaps
 
 class SeatingHandler(handler.BaseHandler):
     def get(self):
@@ -330,17 +330,6 @@ class SeatingHandler(handler.BaseHandler):
                                 pools[playerpool] = []
                             pools[playerpool] += [player]
 
-                for pool in pools.values():
-                    subsNeeded = (4 - len(pool) % 4)
-                    if subsNeeded != 4:
-                        if len(subs) >= subsNeeded:
-                            pool += subs[0:subsNeeded]
-                            subs = subs[subsNeeded:]
-                        else:
-                            ret["status"] = "warn"
-                            ret["message"] = "Not enough substitutes to seat all players"
-                            pool = pool[0:int(len(pool) / 4) * 4]
-
                 if softcut or cut:
                     playerpools = pools
                     pools = {}
@@ -351,10 +340,23 @@ class SeatingHandler(handler.BaseHandler):
                             playerpool = pool + str(i)
                             if not playerpool in pools:
                                 pools[playerpool] = []
-                            if i + cutsize * 2 > len(players) and len(players) - (i + cutsize) < cutsize / 2:
+                            if not cut and (i + cutsize * 2 > len(players) and len(players) - (i + cutsize) < cutsize / 2):
                                 pools[playerpool] += players[i:]
                             else:
                                 pools[playerpool] += players[i:cutsize]
+
+                for pool in pools.values():
+                    print(len(pool))
+                    subsNeeded = (4 - len(pool) % 4)
+                    print(subsNeeded)
+                    if subsNeeded != 4:
+                        if len(subs) >= subsNeeded:
+                            pool += subs[0:subsNeeded]
+                            subs = subs[subsNeeded:]
+                        else:
+                            ret["status"] = "warn"
+                            ret["message"] = "Not enough substitutes to seat all players"
+                            pool = pool[0:int(len(pool) / 4) * 4]
 
                 if seed is not None and len(seed) > 0:
                     random.seed(seed)
@@ -364,7 +366,8 @@ class SeatingHandler(handler.BaseHandler):
                     pool = ALGORITHMS[algorithm].seat(pool)
                     for i, player in enumerate(pool):
                         player["Seat"] = i
-                    players += fixTables(pool, cur, duplicates, diversity, round)
+                    poolplayers, swaps = fixTables(pool, cur, duplicates, diversity, round)
+                    players += poolplayers
 
                 random.seed()
 
@@ -382,6 +385,15 @@ class SeatingHandler(handler.BaseHandler):
                     )
                     if ret["status"] != "warn":
                         ret["status"] = "success"
+                        improvements = []
+                        if diversity:
+                            improvements += ["diversity"]
+                        if duplicates:
+                            improvements += ["duplicates"]
+                        if len(improvements) > 0:
+                            ret["message"] = "{0} swaps made to improve {1}".format(str(swaps), " and ".join(improvements))
+                        else:
+                            ret["message"] = "Players successfully seated"
                 self.write(json.dumps(ret))
 
 POPULATION = 32

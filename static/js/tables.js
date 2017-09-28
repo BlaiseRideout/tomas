@@ -87,6 +87,8 @@ $(function() {
 			"round": round
 		}, function(data) {
 			window.currentTab = $("#seating").tabs().tabs("option", "active");
+			if(data["message"])
+				$.notify(data["message"], data["status"]);
 			window.updateTab();
 		}, "json");
 	});
