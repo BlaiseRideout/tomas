@@ -5,6 +5,9 @@ $(function() {
 		});
 	else
 		$("#seating").tabs();
+	$("#seating").find('li').click(function() {
+		window.currentTab = $("#seating").tabs().tabs("option", "active");
+	});
 
 	function round(num, digits) {
 		var d10 = Math.pow(10, digits),
@@ -100,7 +103,6 @@ $(function() {
 		$.post("/seating", {
 			"round": round
 		}, function(data) {
-			window.currentTab = $("#seating").tabs().tabs("option", "active");
 			if(data["message"])
 				$.notify(data["message"], data["status"]);
 			window.updateTab();
