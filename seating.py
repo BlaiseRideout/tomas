@@ -341,9 +341,7 @@ class SeatingHandler(handler.BaseHandler):
                                 pools[playerpool] += players[i:cutsize]
 
                 for pool in pools.values():
-                    print(len(pool))
                     subsNeeded = (4 - len(pool) % 4)
-                    print(subsNeeded)
                     if subsNeeded != 4:
                         if len(subs) >= subsNeeded:
                             pool += subs[0:subsNeeded]
