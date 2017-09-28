@@ -80,12 +80,14 @@ $(function() {
 						};
 						alert('Error saving game\n' + msg);
 					}
+					else {
+						$(".genround").remove();
+					}
 				}, "json");
 		}
 	}
 	$(".playerscore, .playerchombos").change(scoreChange).keyup(scoreChange);
 	$(".genscores").click(function() {
-		console.log(this);
 		$(this).parent(".round").find(".table").each(function(i, table) {
 			var totalScore = 100000;
 			$(table).find(".player").each(function(j, player) {

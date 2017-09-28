@@ -13,6 +13,12 @@ DBDATEFORMAT = "%Y-%m-%d-%H-%M-%S"
 
 # PREFERENCES
 DEFAULTCUTSIZE = 32
+#   MAXSWAPDISTANCE is the maximum difference in rank that will
+#   be swapped to resolve duplicates and diversity
+MAXSWAPDISTANCE = 10
+#   DUPLICATEIMPORTANCE is the factor by which duplicate resolution
+#   is prioritized over diversity resolution
+DUPLICATEIMPORTANCE = 4
 #   LINKVALIDDAYS is the number of days links for invitations and
 #   password resets should remain valid.  They expire after LINKVALIDDAYS
 #   has passed.

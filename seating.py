@@ -187,19 +187,22 @@ def fixTables(players, cur, duplicates, diversity, round):
         heuristic = lambda p1, p2: 0
 
     if duplicates:
-        playergames = playerGames(players, cur)
+        playergames = \
+            (lambda games:
+                lambda p1, p2:
+                    games[(p1, p2)] if (p1, p2)  in games else (
+                            games[(p1, p2)] if (p1, p2) in games else 0)
+            )(playerGames(players, cur))
         oldheuristic = heuristic
         heuristic = \
-                (lambda playergames: \
-                    lambda p1, p2: \
-                        (playergames[(p1["Id"], p2["Id"])] if (p1["Id"], p2["Id"]) * 3 in playergames else (\
-                            playergames[(p1["Id"], p2["Id"])] if (p1["Id"], p2["Id"]) * 3 in playergames else \
-                            0)) + oldheuristic(p1, p2)
+                (lambda playergames:
+                    lambda p1, p2:
+                         playergames(p1["Id"], p2["Id"]) * settings.DUPLICATEIMPORTANCE + oldheuristic(p1, p2)
                 )(playergames)
 
     swaps = 0
     maxswap = 0
-    iterations = 10
+    iterations = 5
     while iterations > 0:
         oldScore = tablesScore(players, heuristic)
         swapsmade, distance = improvePlayers(players, heuristic)
@@ -219,28 +222,35 @@ def improvePlayers(players, heuristic):
     while t < len(players):
         table = players[t:t+4]
         for i in range(len(table)):
-            for j in range(i + 1, len(table)):
+            j = i + 1
+            while j < len(table):
                 if heuristic(table[i], table[j]) > 0:
-                    if table[i]["Rank"] > table[j]["Rank"]:
-                        toReplace = i
-                    else:
-                        toReplace = j
+                    curPlayer = i
+                    toReplace = table[curPlayer]
                     replacements = players[0:t] + players[t + 4:]
-                    replacements.sort(key=lambda p:abs(table[toReplace]["Rank"] - p["Rank"]))
+                    replacements.sort(key=lambda p:abs(toReplace["Rank"] - p["Rank"]))
                     for replacement in replacements:
+                        distance = abs(replacement["Rank"] - toReplace["Rank"])
+                        if distance > settings.MAXSWAPDISTANCE:
+                            break
                         repPlayer = replacement["Seat"] % 4
                         repTable = replacement["Seat"] - repPlayer
                         repTable = players[repTable:repTable + 4]
                         curTable = table[:]
                         oldScore = tableScore(repTable, heuristic) + tableScore(curTable, heuristic)
-                        curTable[toReplace], repTable[repPlayer] = repTable[repPlayer], curTable[toReplace]
+                        curTable[curPlayer], repTable[repPlayer] = repTable[repPlayer], curTable[curPlayer]
                         newScore = tableScore(repTable, heuristic) + tableScore(curTable, heuristic)
                         if newScore < oldScore:
-                            players[table[toReplace]["Seat"]], players[replacement["Seat"]] = players[replacement["Seat"]], players[table[toReplace]["Seat"]]
-                            distance = abs(players[table[toReplace]["Seat"]]["Rank"] - players[replacement["Seat"]]["Rank"])
+                            seat1 = table[i]["Seat"]
+                            seat2 = replacement["Seat"]
+                            players[seat1], players[seat2] = players[seat2], players[seat1]
+                            players[seat1]["Seat"], players[seat2]["Seat"] = seat1, seat2
+                            table = players[t:t+4]
+                            j = i + 1
                             maxswap = max(maxswap, distance)
                             swaps += 1
                             break
+                j += 1
         t += 4
     return (swaps, maxswap)
 
