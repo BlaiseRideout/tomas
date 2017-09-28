@@ -8,6 +8,7 @@ $(function() {
 	$("#seating").find('li').click(function() {
 		window.currentTab = $("#seating").tabs().tabs("option", "active");
 	});
+	var totalPoints = 120000;
 
 	function histogram(default_increment) {
 		var hist = {},
@@ -52,13 +53,35 @@ $(function() {
 			sig.substring(0, n - digits) + '.' + sig.substring(n - digits);
 	};
 
-	function scoreChange() {
+	var valueChangingKeys = {
+		'Backspace': 1,
+		'Delete': 1,
+		'+': 1,
+		'-': 1,
+		'0': 1,
+		'1': 1,
+		'2': 1,
+		'3': 1,
+		'4': 1,
+		'5': 1,
+		'6': 1,
+		'7': 1,
+		'8': 1,
+		'9': 1,
+		'.': 1,
+	};
+
+	function scoreChange(ev) {
+		if (ev && 'type' in ev && ev.type == 'keyup' &&
+			!valueChangingKeys[ev.key]) {
+			console.log('Ignoring ' + ev.type + ' event: ' + ev.key)
+			return;
+		};
 		var score = $(this).val();
 		var player = $(this).parents(".player");
 		var table = player.parents(".table");
 		var tabletotal = table.prev("thead").find(".tabletotal");
 		var scores = table.find(".playerscore");
-		var totalpoints = 120000;
 		var total = 0,
 			partial = false,
 			umas = [15, 5, -5, -15];
@@ -68,14 +91,14 @@ $(function() {
 			partial = partial || (val % 100 != 0);
 		});
 		tabletotal.text("TOTAL " + total);
-		partial = partial || !(total == totalpoints || total == 0);
+		partial = partial || !(total == totalPoints || total == 0);
 		newstate = partial ? "bad" : "good";
 		delstate = partial ? "good" : "bad";
 		table.find(".playerscore, .playerchombos").removeClass(delstate);
 		table.find(".playerscore, .playerchombos").addClass(newstate);
 		tabletotal.removeClass(delstate);
 		tabletotal.addClass(newstate);
-		if (total == totalpoints && !partial) {
+		if (total == totalPoints && !partial) {
 			var tablescore = [];
 			table.find(".player").each(function() {
 				tablescore = tablescore.concat({
@@ -112,7 +135,7 @@ $(function() {
 				for (var umasum = 0, i = 0; i < rankhist.get(rank); i++) {
 					umasum += umas[rank - 1 + i];
 				}
-				var score = (raw - totalpoints / 4) / 1000.0 +
+				var score = (raw - totalPoints / 4) / 1000.0 +
 					umasum / rankhist.get(rank);
 				tablescore[j]['score'].text(round(score, 1));
 				tablescore[j]['score'] = score;
@@ -139,9 +162,9 @@ $(function() {
 	$(".playerscore, .playerchombos").change(scoreChange).keyup(scoreChange);
 	$(".genscores").click(function() {
 		$(this).parent(".round").find(".table").each(function(i, table) {
-			var totalScore = 100000;
+			var totalScore = totalPoints;
 			$(table).find(".player").each(function(j, player) {
-				if(j < 3)
+				if (j < 3)
 					var playerScore = Math.floor(Math.random() * totalScore / 100) * 100;
 				else
 					var playerScore = totalScore;
@@ -155,7 +178,7 @@ $(function() {
 		$.post("/seating", {
 			"round": round
 		}, function(data) {
-			if(data["message"])
+			if (data["message"])
 				$.notify(data["message"], data["status"]);
 			window.updateTab();
 		}, "json");
