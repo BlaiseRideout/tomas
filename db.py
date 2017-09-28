@@ -19,6 +19,7 @@ class getCur():
     def __enter__(self):
         self.con = sqlite3.connect(settings.DBFILE)
         self.cur = self.con.cursor()
+        self.cur.execute("PRAGMA foreign_keys = 1;")
         return self.cur
     def __exit__(self, type, value, traceback):
         if self.cur and self.con and not value:
