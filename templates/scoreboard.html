@@ -1,0 +1,43 @@
+<table>
+	<tr class="leaderbd_col_header">
+		<th colspan="4"></th>
+		{% for round in rounds %}
+			<th colspan="3">ROUND {{ round }}</th>
+		{% end %}
+	</tr>
+	<tr class="leaderbd_col_header">
+		<th>NAME</th>
+		<th colspan="2" >COUNTRY</th>
+		<th>STATUS</th>
+		{% for round in rounds %}
+			<th>RANK</th>
+			<th>SCORE</th>
+			<th>CHOMBOS</th>
+		{% end %}
+	</tr>
+	{% for row in scoreboard %}
+		<tr class="leaderbd_row" data-status="{{ row['type'] }}">
+			<td><a href="/playerstats/{{ row['name'] }}">{{ row['name'] }}</a></td>
+			<td>{{ row['country'] }}</td>
+			<td>{% raw row['flag_image'] %}</td>
+			<td>{{ row['type'] }}</td>
+			{% for round in rounds %}
+				<td>
+					{% if round in row['scores'] %}
+						{{ row['scores'][round]['rank'] }}
+					{% end %}
+				</td>
+				<td>
+					{% if round in row['scores'] %}
+						{{ row['scores'][round]['score'] }}
+					{% end %}
+				</td>
+				<td>
+					{% if round in row['scores'] %}
+						{{ row['scores'][round]['chombos'] }}
+					{% end %}
+				</td>
+			{% end %}
+		</tr>
+	{% end %}
+</table>
