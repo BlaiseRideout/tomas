@@ -367,7 +367,7 @@ class SeatingHandler(handler.BaseHandler):
                 if len(players) > 0:
                     bindings = []
                     for i, player in enumerate(players):
-                        bindings += [round, player["Id"], int(i / 4), i % 4]
+                        bindings += [round, player["Id"], int(i / 4) + 1, i % 4]
                     cur.execute("DELETE FROM Seating WHERE Round = ?", (round,))
                     playerquery = "(?, ?, ?, ?)"
                     cur.execute("""
