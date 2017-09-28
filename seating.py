@@ -179,6 +179,161 @@ class ShowSeatingHandler(handler.BaseHandler):
     def get(self):
         return self.render("tables.html", rounds = getSeating())
 
+class SeatingHandler(handler.BaseHandler):
+    def get(self):
+        return self.write(json.dumps({'rounds':getSeating()}))
+    def post(self):
+        round = self.get_argument('round', None)
+        if round is not None:
+            ret = {"status":"error", "message":"Unknown error occurred"}
+            with db.getCur() as cur:
+                # Get round settings
+                cur.execute(
+                        """SELECT
+                            Id,
+                            COALESCE(Ordering, 0),
+                            COALESCE(Algorithm, 0),
+                            Seed,
+                            Cut,
+                            SoftCut,
+                            CutSize,
+                            Duplicates,
+                            Diversity,
+                            UsePools
+                             FROM Rounds WHERE Id = ?""",
+                        (round,)
+                    )
+                round, ordering, algorithm, seed, cut, softcut, cutsize, duplicates, diversity, usepools = cur.fetchone()
+                cut = cut == 1
+                softcut = softcut == 1
+                duplicates = duplicates == 1
+                diversity = diversity == 1
+                usepools = usepools == 1
+
+                if (cut or softcut) and not cutsize:
+                    cutsize = settings.DEFAULTCUTSIZE
+
+                # Fetch players to be seated
+                query = """
+                        SELECT
+                        Players.Id,
+                        Players.Country,
+                        Pool,
+                        COALESCE(SUM(Scores.Score), 0) AS NetScore,
+                        LastScore.Rank AS LastRank
+                         FROM Players
+                           LEFT OUTER JOIN Scores ON Players.Id = Scores.PlayerId AND Scores.Round < ?
+                           LEFT OUTER JOIN Scores AS LastScore ON Players.Id = LastScore.PlayerId AND LastScore.Round = ? - 1 AND LastScore.Rank != 0
+                         WHERE Players.Type = 0
+                         GROUP BY Players.Id
+                    """
+                query += ORDERINGS[ordering][1]
+                cur.execute(query, (round, round))
+                players = []
+                for i, row in enumerate(cur.fetchall()):
+                    player, country, pool, score, lastrank = row
+                    if ordering != 2 or lastrank:
+                        players += [{
+                                        "Rank":i,
+                                        "Id": player,
+                                        "Country": country,
+                                        "Pool": pool,
+                                        "LastRank": lastrank
+                                    }]
+                pools = {"": players}
+
+                # Fetch substitutes
+                query = """
+                        SELECT
+                        Players.Id
+                         FROM Players
+                           LEFT OUTER JOIN Countries ON Players.Country = Countries.Id
+                         WHERE Players.Type = 2
+                         GROUP BY Players.Id
+                    """
+                cur.execute(query)
+                subs = []
+                for i, row in enumerate(cur.fetchall()):
+                    subs += [{
+                                    "Rank":len(players) + i,
+                                    "Id":row[0]
+                                }]
+
+                # Organize players into pools if enabled
+                if usepools:
+                    playerpools = pools
+                    pools = {}
+                    for pool, players in playerpools.items():
+                        for player in players:
+                            playerpool = pool + (player["Pool"] or "")
+                            if not playerpool in pools:
+                                pools[playerpool] = []
+                            pools[playerpool] += [player]
+
+                # Add substitutes to make pool sizes divisible by 4
+                for pool in pools.values():
+                    subsNeeded = (4 - len(pool) % 4)
+                    if subsNeeded != 4:
+                        if len(subs) >= subsNeeded:
+                            pool += subs[0:subsNeeded]
+                            subs = subs[subsNeeded:]
+                        else:
+                            ret["status"] = "warn"
+                            ret["message"] = "Not enough substitutes to seat all players"
+                            pool = pool[0:int(len(pool) / 4) * 4]
+
+                # Cut seats only the top players, softcut groups players by ordering
+                if softcut or cut:
+                    playerpools = pools
+                    pools = {}
+                    for pool, players in playerpools.items():
+                        if len(players) <= cutsize:
+                            continue
+                        for i in range(0, cutsize if cut else len(players), cutsize):
+                            playerpool = pool + str(i)
+                            if not playerpool in pools:
+                                pools[playerpool] = []
+                            if not cut and (i + cutsize * 2 > len(players) and len(players) - (i + cutsize) < cutsize / 2):
+                                pools[playerpool] += players[i:]
+                            else:
+                                pools[playerpool] += players[i:cutsize]
+
+                if seed is not None and len(seed) > 0:
+                    random.seed(seed)
+
+                players = []
+                for pool in pools.values():
+                    pool = ALGORITHMS[algorithm].seat(pool)
+                    poolplayers, status = fixTables(pool, cur, duplicates, diversity, round)
+                    players += poolplayers
+
+                random.seed()
+
+                if len(players) > 0:
+                    bindings = []
+                    for i, player in enumerate(players):
+                        bindings += [round, player["Id"], int(i / 4) + 1, i % 4]
+                    cur.execute("DELETE FROM Seating WHERE Round = ?", (round,))
+                    playerquery = "(?, ?, ?, ?)"
+                    cur.execute("""
+                        INSERT INTO Seating (Round, Player, TableNum, Wind)
+                        VALUES {0}
+                    """.format(",".join([playerquery] * len(players))),
+                        bindings
+                    )
+                    if ret["status"] != "warn":
+                        ret["status"] = "success"
+                        improvements = []
+                        if diversity:
+                            improvements += ["diversity"]
+                        if duplicates:
+                            improvements += ["duplicates"]
+                        if len(improvements) > 0:
+                            ret["message"] = status
+                        else:
+                            ret["message"] = "Players successfully seated"
+                self.write(json.dumps(ret))
+
 def fixTables(players, cur, duplicates, diversity, round):
     if diversity:
         heuristic = lambda p1, p2: \
@@ -192,13 +347,16 @@ def fixTables(players, cur, duplicates, diversity, round):
                 lambda p1, p2:
                     games[(p1, p2)] if (p1, p2)  in games else (
                             games[(p1, p2)] if (p1, p2) in games else 0)
-            )(playerGames(players, cur))
+            )(playerGames(players, cur, round))
         oldheuristic = heuristic
         heuristic = \
                 (lambda playergames:
                     lambda p1, p2:
                          playergames(p1["Id"], p2["Id"]) * settings.DUPLICATEIMPORTANCE + oldheuristic(p1, p2)
                 )(playergames)
+
+    for i, player in enumerate(players):
+        player["Seat"] = i
 
     swaps = 0
     maxswap = 0
@@ -279,210 +437,7 @@ def bestSwap(players, heuristic, t, player):
 
     return candidates[0]
 
-class SeatingHandler(handler.BaseHandler):
-    def get(self):
-        return self.write(json.dumps({'rounds':getSeating()}))
-    def post(self):
-        round = self.get_argument('round', None)
-        if round is not None:
-            ret = {"status":"error", "message":"Unknown error occurred"}
-            with db.getCur() as cur:
-                cur.execute(
-                        """SELECT
-                            Id,
-                            COALESCE(Ordering, 0),
-                            COALESCE(Algorithm, 0),
-                            Seed,
-                            Cut,
-                            SoftCut,
-                            CutSize,
-                            Duplicates,
-                            Diversity,
-                            UsePools
-                             FROM Rounds WHERE Id = ?""",
-                        (round,)
-                    )
-                round, ordering, algorithm, seed, cut, softcut, cutsize, duplicates, diversity, usepools = cur.fetchone()
-                cut = cut == 1
-                softcut = softcut == 1
-                duplicates = duplicates == 1
-                diversity = diversity == 1
-                usepools = usepools == 1
-
-                if (cut or softcut) and not cutsize:
-                    cutsize = settings.DEFAULTCUTSIZE
-
-                query = """
-                        SELECT
-                        Players.Id,
-                        Players.Country,
-                        Pool,
-                        COALESCE(SUM(Scores.Score), 0) AS NetScore,
-                        LastScore.Rank AS LastRank
-                         FROM Players
-                           LEFT OUTER JOIN Scores ON Players.Id = Scores.PlayerId AND Scores.Round < ?
-                           LEFT OUTER JOIN Scores AS LastScore ON Players.Id = LastScore.PlayerId AND LastScore.Round = ? - 1 AND LastScore.Rank != 0
-                         WHERE Players.Type = 0
-                         GROUP BY Players.Id
-                    """
-                query += ORDERINGS[ordering][1]
-                cur.execute(query, (round, round))
-                players = []
-                for i, row in enumerate(cur.fetchall()):
-                    player, country, pool, score, lastrank = row
-                    if ordering != 2 or lastrank:
-                        players += [{
-                                        "Rank":i,
-                                        "Id": player,
-                                        "Country": country,
-                                        "Pool": pool,
-                                        "LastRank": lastrank
-                                    }]
-                pools = {"": players}
-
-                query = """
-                        SELECT
-                        Players.Id
-                         FROM Players
-                           LEFT OUTER JOIN Countries ON Players.Country = Countries.Id
-                         WHERE Players.Type = 2
-                         GROUP BY Players.Id
-                    """
-                cur.execute(query)
-                subs = []
-                for i, row in enumerate(cur.fetchall()):
-                    subs += [{
-                                    "Rank":len(players) + i,
-                                    "Id":row[0]
-                                }]
-
-                if usepools:
-                    playerpools = pools
-                    pools = {}
-                    for pool, players in playerpools.items():
-                        for player in players:
-                            playerpool = pool + (player["Pool"] or "")
-                            if not playerpool in pools:
-                                pools[playerpool] = []
-                            pools[playerpool] += [player]
-
-                if softcut or cut:
-                    playerpools = pools
-                    pools = {}
-                    for pool, players in playerpools.items():
-                        if len(players) <= cutsize:
-                            continue
-                        for i in range(0, cutsize if cut else len(players), cutsize):
-                            playerpool = pool + str(i)
-                            if not playerpool in pools:
-                                pools[playerpool] = []
-                            if not cut and (i + cutsize * 2 > len(players) and len(players) - (i + cutsize) < cutsize / 2):
-                                pools[playerpool] += players[i:]
-                            else:
-                                pools[playerpool] += players[i:cutsize]
-
-                for pool in pools.values():
-                    subsNeeded = (4 - len(pool) % 4)
-                    if subsNeeded != 4:
-                        if len(subs) >= subsNeeded:
-                            pool += subs[0:subsNeeded]
-                            subs = subs[subsNeeded:]
-                        else:
-                            ret["status"] = "warn"
-                            ret["message"] = "Not enough substitutes to seat all players"
-                            pool = pool[0:int(len(pool) / 4) * 4]
-
-                if seed is not None and len(seed) > 0:
-                    random.seed(seed)
-
-                players = []
-                for pool in pools.values():
-                    pool = ALGORITHMS[algorithm].seat(pool)
-                    for i, player in enumerate(pool):
-                        player["Seat"] = i
-                    poolplayers, status = fixTables(pool, cur, duplicates, diversity, round)
-                    players += poolplayers
-
-                random.seed()
-
-                if len(players) > 0:
-                    bindings = []
-                    for i, player in enumerate(players):
-                        bindings += [round, player["Id"], int(i / 4) + 1, i % 4]
-                    cur.execute("DELETE FROM Seating WHERE Round = ?", (round,))
-                    playerquery = "(?, ?, ?, ?)"
-                    cur.execute("""
-                        INSERT INTO Seating (Round, Player, TableNum, Wind)
-                        VALUES {0}
-                    """.format(",".join([playerquery] * len(players))),
-                        bindings
-                    )
-                    if ret["status"] != "warn":
-                        ret["status"] = "success"
-                        improvements = []
-                        if diversity:
-                            improvements += ["diversity"]
-                        if duplicates:
-                            improvements += ["duplicates"]
-                        if len(improvements) > 0:
-                            ret["message"] = status
-                        else:
-                            ret["message"] = "Players successfully seated"
-                self.write(json.dumps(ret))
-
-POPULATION = 32
-IMPROVECOUNT = 10
-MUTATIONS = 1
-
-defaultHeuristic = lambda p1, p2:0
-
-def bestArrangement(tables, heuristic = defaultHeuristic, population = POPULATION, mutations = MUTATIONS, maxswap = settings.MAXSWAPDISTANCE):
-    numplayers = len(tables)
-
-    tables = tables[:]
-    tabless = [(tablesScore(tables, heuristic), tables, 0)]
-
-    improved = 0
-
-    maxdistance = 0
-    while tabless[0][0] > 0 and improved < IMPROVECOUNT:
-        generated = 0
-        for j in range(len(tabless)):
-            for k in range(mutations):
-                newTables, distance = mutateTables(tabless[j][1])
-                if distance < maxswap:
-                    maxdistance = max(distance, maxdistance)
-                    score = tablesScore(newTables, heuristic)
-                    tabless += [(score, newTables, tabless[j][2] + 1)]
-                    generated += 1
-        if generated > 0:
-            print("modified", generated)
-        bestScore = tabless[0][0]
-
-        tabless.sort(key=itemgetter(0))
-        tabless = tabless[0:POPULATION]
-
-        if bestScore != tabless[0][0]:
-            improved = 0
-        else:
-            improved += 1
-
-
-    return (tabless[0][1], maxdistance, tabless[0][2])
-
-def mutateTables(tables):
-    tables = tables[:]
-    a = random.randint(0, len(tables) - 1)
-    tableset = set(range(0, int(len(tables) / 4)))
-    table = int(a / 4)
-    otable = random.sample(tableset - set([table]), 1)[0]
-    b = otable * 4 + random.randint(0, 3)
-    tables[a], tables[b] = tables[b], tables[a]
-    distance = abs(tables[a]["Rank"] - tables[b]["Rank"])
-
-    return (tables, distance)
-
-def tablesScore(players, heuristic = defaultHeuristic):
+def tablesScore(players, heuristic):
     numplayers = len(players)
     score = 0
 
@@ -492,7 +447,7 @@ def tablesScore(players, heuristic = defaultHeuristic):
 
     return score
 
-def tableScore(players, heuristic = defaultHeuristic):
+def tableScore(players, heuristic):
     numplayers = len(players)
 
     score = 0
