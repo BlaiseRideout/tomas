@@ -154,7 +154,7 @@ $(function() {
 						alert('Error saving game\n' + msg);
 					}
 					else {
-						$(".genround").remove();
+						$(table).parents(".round").find(".genround").remove();
 					}
 				}, "json");
 		}
