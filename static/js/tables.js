@@ -81,6 +81,20 @@ $(function() {
 		}
 	}
 	$(".playerscore, .playerchombos").change(scoreChange).keyup(scoreChange);
+	$(".genscores").click(function() {
+		console.log(this);
+		$(this).parent(".round").find(".table").each(function(i, table) {
+			var totalScore = 100000;
+			$(table).find(".player").each(function(j, player) {
+				if(j < 3)
+					var playerScore = Math.floor(Math.random() * totalScore / 100) * 100;
+				else
+					var playerScore = totalScore;
+				totalScore -= playerScore;
+				$(player).find(".playerscore").val(playerScore).change();
+			});
+		});
+	});
 	$(".genround").click(function() {
 		var round = $(this).parents(".round").data("round");
 		$.post("/seating", {
