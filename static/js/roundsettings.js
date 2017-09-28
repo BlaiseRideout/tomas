@@ -3,6 +3,8 @@ $(function() {
 		$.post("/addround", function(data) {
 			if (data['status'] === "success")
 				updateTab();
+			if(data["message"])
+				$.notify(data["message"], data["status"]);
 		}, "json");
 	});
 	$(".deleteround").click(function() {
@@ -11,8 +13,11 @@ $(function() {
 		}, function(data) {
 			if (data['status'] === "success")
 				updateTab();
-			else
+			else {
 				console.log(data);
+			}
+			if(data["message"])
+				$.notify(data["message"], data["status"]);
 		}, "json");
 	});
 	var updateSetting = function() {
@@ -29,8 +34,11 @@ $(function() {
 			'round': round,
 			'settings': JSON.stringify(settings)
 		}, function(data) {
-			if (data['status'] !== "success")
+			if(data["message"])
+				$.notify(data["message"], data["status"]);
+			if (data['status'] !== "success") {
 				console.log(data);
+			}
 			else if(updatefield) {
 				var defval = $("#" + updatefield).data("default");
 				if(settings[colname] == 0 && defval) {

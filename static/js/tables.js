@@ -144,18 +144,10 @@ $(function() {
 					'tablescores': JSON.stringify(tablescore)
 				},
 				function(data) {
-					if (data['status'] != 'success') {
-						var msg = '';
-						for (k in data) {
-							if (k != 'status') {
-								msg += k + ': ' + data[k] + '\n';
-							}
-						};
-						alert('Error saving game\n' + msg);
-					}
-					else {
+					if(data["message"])
+						$.notify(data["message"], data["status"]);
+					if (data['status'] === 'success')
 						$(table).parents(".round").find(".genround").remove();
-					}
 				}, "json");
 		}
 	}

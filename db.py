@@ -306,10 +306,10 @@ pointsPerPlayer = 30000
 
 def updateGame(scores):
     if scores is None:
-        return {"status":1, "error":"Please enter some scores"}
+        return {"status":"error", "message":"Please enter some scores"}
 
     if len(scores) != 4 and len(scores) != 5:
-        return {"status":1, "error":"Please enter 4 or 5 scores"}
+        return {"status":"error", "message":"Please enter 4 or 5 scores"}
 
     try:
         with getCur() as cur:
@@ -328,17 +328,17 @@ def updateGame(scores):
                                 "error":"ID {0} not in {1}".format(
                                     score[id], table)}
                 if gameID is not None and gameID != score['gameid']:
-                    return {"status":1,
-                            "error": "Inconsistent game IDs"}
+                    return {"status":"error",
+                            "message": "Inconsistent game IDs"}
                 gameID = score['gameid']
                 if roundID is not None and roundID != score['roundid']:
-                    return {"status":1,
-                            "error": "Inconsistent round IDs"}
+                    return {"status":"error",
+                            "message": "Inconsistent round IDs"}
                 roundID = score['roundid']
 
             if total != len(scores) * pointsPerPlayer:
-                return {"status":1,
-                        "error":"Scores do not add up to {0}".format(
+                return {"status":"error",
+                        "message":"Scores do not add up to {0}".format(
                             len(scores) * pointsPerPlayer)}
 
             cur.execute("DELETE FROM Scores WHERE GameId = ? and Round = ?",
@@ -351,7 +351,7 @@ def updateGame(scores):
                 " VALUES (?, ?, ?, ?, ?, ?, ?)",
                 map(lambda score: [score[f] for f in fields], scores))
     except Exception as e:
-        return {"status":1,
-                "error": "Error during database update of scores, {0}".format(e)}
+        return {"status":"error",
+                "message": "Error during database update of scores, {0}".format(e)}
 
     return {"status": "success"}

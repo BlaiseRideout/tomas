@@ -174,6 +174,8 @@ $(function() {
 					input.removeClass("good");
 					input.addClass("bad");
 				}
+				if(data["message"])
+					$.notify(data["message"], data["status"]);
 			}.bind(this), "json")
 	};
 	var addNewPlayer = function() {
@@ -192,6 +194,8 @@ $(function() {
 				else {
 					console.log(data);
 				}
+				if(data["message"])
+					$.notify(data["message"], data["status"]);
 			}, "json");
 	};
 	var showHideInactive = function() {
@@ -250,6 +254,8 @@ $(function() {
 						updatePlayers();
 					else
 						console.log(data);
+					if(data["message"])
+						$.notify(data["message"], data["status"]);
 				}, "json");
 			});
 			$(".deleteplayerbutton").click(function() {
@@ -261,6 +267,8 @@ $(function() {
 						updatePlayers();
 					else
 						console.log(data);
+					if(data["message"])
+						$.notify(data["message"], data["status"]);
 				}, "json");
 			});
 			$("#players .colheader").click(function(ev) {
@@ -342,6 +350,8 @@ $(function() {
 					input.removeClass("good");
 					input.addClass("bad");
 				}
+				if(data["message"])
+					$.notify(data["message"], data["status"]);
 			}, "json")
 	};
 
@@ -367,6 +377,8 @@ $(function() {
 			else {
 				console.log(data);
 			}
+			if(data["message"])
+				$.notify(data["message"], data["status"]);
 		}, "json");
 	};
 
