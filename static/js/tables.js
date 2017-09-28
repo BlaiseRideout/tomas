@@ -9,6 +9,40 @@ $(function() {
 		window.currentTab = $("#seating").tabs().tabs("option", "active");
 	});
 
+	function histogram(default_increment) {
+		var hist = {},
+			incr = default_increment || 1,
+			prefix = 'h';
+
+		function increment(val, inc) {
+			var index = prefix + val;
+			if (index in hist) {
+				hist[index] += (inc || incr)
+			}
+			else {
+				hist[index] = (inc || incr)
+			}
+		}
+
+		function get(val) {
+			var index = prefix + val;
+			return hist[index]
+		}
+
+		function keys() {
+			var keys = Object.keys(hist);
+			for (var j = 0; j < keys.length; j++) {
+				keys[j] = keys[j].substring(prefix.length)
+			};
+			return keys;
+		}
+		return {
+			'increment': increment,
+			'get': get,
+			'keys': keys
+		}
+	}
+
 	function round(num, digits) {
 		var d10 = Math.pow(10, digits),
 			shift = Math.round(num * d10),
@@ -24,6 +58,7 @@ $(function() {
 		var table = player.parents(".table");
 		var tabletotal = table.prev("thead").find(".tabletotal");
 		var scores = table.find(".playerscore");
+		var totalpoints = 120000;
 		var total = 0,
 			partial = false,
 			umas = [15, 5, -5, -15];
@@ -33,14 +68,14 @@ $(function() {
 			partial = partial || (val % 100 != 0);
 		});
 		tabletotal.text("TOTAL " + total);
-		partial = partial || !(total == 100000 || total == 0);
+		partial = partial || !(total == totalpoints || total == 0);
 		newstate = partial ? "bad" : "good";
 		delstate = partial ? "good" : "bad";
 		table.find(".playerscore, .playerchombos").removeClass(delstate);
 		table.find(".playerscore, .playerchombos").addClass(newstate);
 		tabletotal.removeClass(delstate);
 		tabletotal.addClass(newstate);
-		if (total == 100000 && !partial) {
+		if (total == totalpoints && !partial) {
 			var tablescore = [];
 			table.find(".player").each(function() {
 				tablescore = tablescore.concat({
@@ -59,11 +94,26 @@ $(function() {
 					ra['chombos'] - rb['chombos'] :
 					rb['rawscore'] - ra['rawscore'];
 			});
+			var lastscore = NaN,
+				lastrank = 0,
+				rankhist = histogram();
 			for (var j = 0; j < tablescore.length; j++) {
-				tablescore[j]['rank'].text(j + 1);
-				tablescore[j]['rank'] = j + 1;
-				var score = tablescore[j]['rawscore'] / 1000.0 - 25 +
-					tablescore[j]['chombos'] * -8 + umas[j];
+				var rank = tablescore[j]['rawscore'] != lastscore ?
+					j + 1 : lastrank;
+				rankhist.increment(rank);
+				lastscore = tablescore[j]['rawscore'];
+				lastrank = rank;
+				tablescore[j]['rank'].text(rank);
+				tablescore[j]['rank'] = rank;
+			};
+			for (var j = 0; j < tablescore.length; j++) {
+				var rank = tablescore[j]['rank'],
+					raw = tablescore[j]['rawscore'];
+				for (var umasum = 0, i = 0; i < rankhist.get(rank); i++) {
+					umasum += umas[rank - 1 + i];
+				}
+				var score = (raw - totalpoints / 4) / 1000.0 +
+					umasum / rankhist.get(rank);
 				tablescore[j]['score'].text(round(score, 1));
 				tablescore[j]['score'] = score;
 			}
