@@ -182,7 +182,7 @@ class ShowSeatingHandler(handler.BaseHandler):
 def fixTables(players, cur, duplicates, diversity, round):
     if diversity:
         heuristic = lambda p1, p2: \
-                1 if p1["Country"] == p2["Country"] else 0
+                1 if "Country" in p1 and "Country" in p2 and p1["Country"] == p2["Country"] else 0
     else:
         heuristic = lambda p1, p2: 0
 
@@ -269,12 +269,7 @@ class SeatingHandler(handler.BaseHandler):
                 usepools = usepools == 1
 
                 if (cut or softcut) and not cutsize:
-                    cur.execute("SELECT Value FROM GlobalPreferences WHERE Preference = 'CutSize'")
-                    cutsize = cur.fetchone()
-                    if cutsize is None:
-                        cutsize = settings.DEFAULTCUTSIZE
-                    else:
-                        cutsize = int(cutsize[0])
+                    cutsize = settings.DEFAULTCUTSIZE
 
                 query = """
                         SELECT

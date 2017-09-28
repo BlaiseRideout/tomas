@@ -17,7 +17,6 @@ class PreferencesHandler(handler.BaseHandler):
     def get(self):
         stylesheets = sorted(os.listdir("static/css/colors"))
         stylesheet = stylesheets[0]
-        cutsize = None
         with db.getCur() as cur:
             cur.execute("SELECT Email FROM Users WHERE Id = ?",
                         self.current_user)
@@ -32,22 +31,14 @@ class PreferencesHandler(handler.BaseHandler):
                 pref = cur.fetchone()
                 if pref is not None:
                     stylesheet = pref[0]
-            if self.get_is_admin():
-                cur.execute("SELECT Value FROM GlobalPreferences WHERE Preference = 'CutSize'")
-                cutsize = cur.fetchone()
-                if cutsize is None:
-                    cutsize = settings.DEFAULTCUTSIZE
-                else:
-                    cutsize = cutsize[0]
         return self.render("preferences.html", email=email,
-                           stylesheets=stylesheets, cutsize=cutsize)
+                           stylesheets=stylesheets)
 
     @tornado.web.authenticated
     def post(self):
         global email_pattern
         stylesheet = self.get_argument('stylesheet', None)
         email = self.get_argument('email', None)
-        cutsize = self.get_argument('cutsize', None)
         if (stylesheet is None or email is None or
             email_pattern.match(email) is None):
             self.render("message.html",
@@ -68,11 +59,8 @@ class PreferencesHandler(handler.BaseHandler):
                     "UPDATE Users SET Email = LOWER(?)"
                     " WHERE Id = ? AND Email != LOWER(?)",
                     (email, self.current_user, email))
-                if self.get_is_admin() and cutsize is not None:
-                    cur.execute("REPLACE INTO GlobalPreferences(Preference, Value) VALUES('CutSize', ?)", (cutsize,))
             self.set_secure_cookie("stylesheet", stylesheet)
             self.render("message.html",
                         message="",
                         title="Preferences Updated",
                         next="Preferences", next_url="/preferences")
-

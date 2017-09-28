@@ -105,10 +105,6 @@ schema = collections.OrderedDict({
         'Email TEXT NOT NULL',
         'Expires DATETIME'
     ],
-    'GlobalPreferences': [
-        'Preference TEXT PRIMARY KEY',
-        'Value SETTING NOT NULL'
-    ],
     'Preferences': [
         'UserId INTEGER',
         'Preference TEXT NOT NULL',
@@ -320,7 +316,7 @@ def updateGame(scores):
             for score in scores:
                 total += score['rawscore']
 
-                for table, id in [('Players', 'playerid'), 
+                for table, id in [('Players', 'playerid'),
                                   ('Rounds', 'roundid')]:
                     cur.execute("SELECT Id from {0} WHERE Id = ?".format(table),
                                 (score[id],))
@@ -344,7 +340,7 @@ def updateGame(scores):
 
             cur.execute("DELETE FROM Scores WHERE GameId = ? and Round = ?",
                         (gameID, roundID))
-            fields = ['roundid', 'gameid', 'playerid', 'rank', 'rawscore', 
+            fields = ['roundid', 'gameid', 'playerid', 'rank', 'rawscore',
                       'score', 'chombos']
             cur.executemany(
                 "INSERT INTO Scores"
