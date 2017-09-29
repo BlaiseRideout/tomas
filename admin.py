@@ -16,7 +16,7 @@ valid = {
     'email': re.compile(r'^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]+$', re.IGNORECASE),
     'admin': re.compile(r'^(0|1|Y|N|YES|NO)$')
 }
-               
+
 class ManageUsersHandler(handler.BaseHandler):
     @handler.is_admin
     def get(self):
@@ -50,7 +50,7 @@ class ManageUsersHandler(handler.BaseHandler):
                     cur.execute("SELECT Id FROM Users WHERE Id = ?", (user,))
                     if cur.fetchone() is None:
                         return self.write(json.dumps(
-                            {'status':"error", 
+                            {'status':"error",
                              'message':"Please provide a valid user ID"}))
                 elif user == '-1':
                     cur.execute("INSERT INTO Users (Email, Password) VALUES"
@@ -76,8 +76,8 @@ class ManageUsersHandler(handler.BaseHandler):
                         code = util.randString(32)
                         cur.execute("INSERT INTO ResetLinks(Id, User, Expires) "
                                     "VALUES (?, ?, ?)",
-                                    (code, user, 
-                                     login.expiration_date(duration=2).isoformat()))
+                                    (code, user,
+                                     login.expiration_date(duration=1).isoformat()))
                         return self.write(json.dumps(
                             {'status':"success",
                              'redirect': "/reset/{0}".format(code)}))

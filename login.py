@@ -208,7 +208,7 @@ class ResetPasswordLinkHandler(handler.BaseHandler):
             cur.execute(
                 "SELECT Email FROM Users JOIN ResetLinks ON "
                 "ResetLinks.User = Users.Id WHERE ResetLinks.Id = ? AND "
-                "ResetLinks.Expires > datetime('now')", (q,))
+                "ResetLinks.Expires > datetime('now', 'localtime')", (q,))
             row = cur.fetchone()
             if row is None:
                 self.render("message.html",
