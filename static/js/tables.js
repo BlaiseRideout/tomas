@@ -146,12 +146,31 @@ $(function() {
 				function(data) {
 					if(data["message"])
 						$.notify(data["message"], data["status"]);
-					if (data['status'] === 'success')
+					if (data['status'] === 'success') {
 						$(table).parents(".round").find(".genround").remove();
+						$(table).parents(".round").find(".swapper").remove();
+					}
 				}, "json");
 		}
 	}
 	$(".playerscore, .playerchombos").change(scoreChange).keyup(scoreChange);
+	$("input.swapper").change(function() {
+		var round = $(this).parents(".round");
+		var roundid = $(round).data("round");
+		var left = round.find("input.swapper[name=round" + roundid + "-left]:checked").val();
+		var right = round.find("input.swapper[name=round" + roundid + "-right]:checked").val();
+		if(left && right)
+			$.post("/swapseating", {
+				"round":roundid,
+				"left":left,
+				"right":right
+			}, function(data) {
+				if(data["message"])
+					$.notify(data["message"], data["status"]);
+				if(data["status"] === "success")
+					window.updateTab();
+			}, "json");
+	});
 	$(".genscores").click(function() {
 		$(this).parent(".round").find(".table").each(function(i, table) {
 			var totalScore = totalPoints;

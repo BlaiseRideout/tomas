@@ -179,9 +179,32 @@ class ShowSeatingHandler(handler.BaseHandler):
     def get(self):
         return self.render("tables.html", rounds = getSeating())
 
+class SwapSeatingHandler(handler.BaseHandler):
+    @handler.is_admin_ajax
+    def post(self):
+        round = self.get_argument('round', None)
+        left = self.get_argument('left', None)
+        right = self.get_argument('right', None)
+        ret = {"status":"error", "message":"Unknown error occurred"}
+        if left == right:
+            ret["message"] = "Can't swap a player with themself"
+            return self.write(ret)
+        with db.getCur() as cur:
+            cur.execute("SELECT Id, Player FROM Seating WHERE Round = ? AND (Player = ? OR Player = ?)", (round, left, right))
+            rows = cur.fetchall()
+            if len(rows) != 2:
+                ret["message"] = "Can't find those two players in that round"
+            else:
+                cur.execute("UPDATE Seating SET Player = ? WHERE Id = ?", (rows[0][1], rows[1][0]))
+                cur.execute("UPDATE Seating SET Player = ? WHERE Id = ?", (rows[1][1], rows[0][0]))
+                ret["status"] = "success"
+                ret["message"] = "Swapped players"
+        return self.write(ret)
+
 class SeatingHandler(handler.BaseHandler):
     def get(self):
         return self.write(json.dumps({'rounds':getSeating()}))
+    @handler.is_admin
     def post(self):
         round = self.get_argument('round', None)
         if round is not None:

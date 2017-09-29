@@ -13,22 +13,30 @@
 			<button class="genscores">Randomize Scores</button><br />
 			<a href="/seating.csv?round={{ round['round'] }}">Download as CSV</a>
 			<table class="tables">
-				<tr>
-					{% if round['winds'] %}
-						<th>Wind</th>
-					{% end %}
-					<th>Name</th>
-					<th colspan="2">Country</th>
-					<th>Raw Score</th>
-					<th>Chombos</th>
-					<th>Rank</th>
-					<th>Score</th>
-				</tr>
+				<thead>
+					<tr>
+						{% if round['winds'] %}
+							<th>Wind</th>
+						{% end %}
+						<th>Name</th>
+						<th colspan="2">Country</th>
+						<th>Raw Score</th>
+						<th>Chombos</th>
+						<th>Rank</th>
+						<th>Score</th>
+						{% if is_admin and not round['has_scores'] %}
+							<th colspan="2" class="swapper">Swap</th>
+						{% end %}
+					</tr>
+				</thead>
 				{% for table in round['tables'] %}
 					<thead>
 						<tr>
 							<th colspan="4">TABLE {{ table['table'] }}</h3>
 							<th colspan="4" class="tabletotal">TOTAL {{ table['total'] }}</th>
+							{% if is_admin and not round['has_scores'] %}
+								<th colspan="2" class="swapper"></th>
+							{% end %}
 						</tr>
 					</thead>
 					<tbody class="table" data-tableid="{{ table['table'] }}" data-roundid="{{ round['round'] }}">
@@ -56,6 +64,14 @@
 								</td>
 								<td class="rank">{{ player['player']['rank'] }}</td>
 								<td class="score">{{ player['player']['score'] }}</td>
+								{% if is_admin and not round['has_scores'] %}
+									<td class="swapper">
+										<input type="radio" name="round{{ round['round'] }}-left" class="swapper" value="{{ player['player']['id'] }}"/>
+									</td>
+									<td class="swapper">
+										<input type="radio" name="round{{ round['round'] }}-right" class="swapper" value="{{ player['player']['id'] }}"/>
+									</td>
+								{% end %}
 							</tr>
 						{% end %}
 					</tbody>
