@@ -77,7 +77,7 @@ class ManageUsersHandler(handler.BaseHandler):
                         cur.execute("INSERT INTO ResetLinks(Id, User, Expires) "
                                     "VALUES (?, ?, ?)",
                                     (code, user, 
-                                     login.expiration_date(duration=1).isoformat()))
+                                     login.expiration_date(duration=2).isoformat()))
                         return self.write(json.dumps(
                             {'status':"success",
                              'redirect': "/reset/{0}".format(code)}))
