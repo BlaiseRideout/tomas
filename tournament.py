@@ -187,12 +187,7 @@ def getSettings(self):
                 }
                 for roundid, ordering, algorithm, seed, cut, softcut, cutsize, duplicates, diversity, usepools, winds, games in cur.fetchall()
             ]
-        cur.execute("SELECT Value FROM GlobalPreferences WHERE Preference = 'CutSize'")
-        cutsize = cur.fetchone()
-        if cutsize is None:
-            cutsize = settings.DEFAULTCUTSIZE
-        else:
-            cutsize = int(cutsize[0])
+        cutsize = settings.DEFAULTCUTSIZE
         return {'rounds':rounds, 'cutsize':cutsize}
     return None
 

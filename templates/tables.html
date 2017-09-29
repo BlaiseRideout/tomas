@@ -12,6 +12,10 @@
 		{% end %}
 			<button class="genscores">Randomize Scores</button><br />
 			<a href="/seating.csv?round={{ round['round'] }}">Download as CSV</a>
+			<div class="roundstatus">
+				Duplicates: {{ round['duplicates'] }}<br />
+				Same country: {{ round['diversity'] }}
+			</div>
 			<table class="tables">
 				<thead>
 					<tr>
