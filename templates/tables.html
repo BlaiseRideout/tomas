@@ -13,8 +13,8 @@
 			<button class="genscores">Randomize Scores</button><br />
 			<a href="/seating.csv?round={{ round['round'] }}">Download as CSV</a>
 			<div class="roundstatus">
-				Duplicates: {{ round['duplicates'] }}<br />
-				Same country: {{ round['diversity'] }}
+				Players sitting with players they've played before: {{ round['duplicates'] }}<br />
+				Players sitting with players of the same country: {{ round['diversity'] }}
 			</div>
 			<table class="tables">
 				<thead>
@@ -45,7 +45,7 @@
 					</thead>
 					<tbody class="table" data-tableid="{{ table['table'] }}" data-roundid="{{ round['round'] }}">
 						{% for player in table['players'] %}
-							<tr class="player" data-playerid="{{ player['player']['id'] }}">
+						<tr class="player{% if player['player']['id'] in round['diversityplayers'] or player['player']['id'] in round['duplicateplayers'] %} bad{% end %}" data-playerid="{{ player['player']['id'] }}">
 								{% if round['winds'] %}
 									<td class="windicator">{{ player['wind'] }}</td>
 								{% end %}
