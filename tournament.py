@@ -112,20 +112,34 @@ class UploadPlayersHandler(handler.BaseHandler):
         players = self.request.files['file'][0]['body']
         try:
             with db.getCur() as cur:
-                reader = csv.reader(players.decode('utf-8').split("\n"))
+                reader = csv.reader(players.decode('utf-8').splitlines())
                 for row in reader:
-                    if len(row) < 4:
+                    if len(row) < 3:
                         continue
                     name = row[0]
-                    country = row[1]
-                    association = row[3]
+                    number = row[1]
+                    country = row[2]
+                    if len(row) >= 4:
+                        association = row[3]
+                    else:
+                        association = ""
+                    if len(row) >= 5:
+                        pool = row[4]
+                    else:
+                        pool = ""
+                    if len(row) >= 6:
+                        status = row[5]
+                        if status in db.playertypes:
+                            status = db.playertypes.index(status)
+                    else:
+                        status = 0
                     cur.execute(
-                        "INSERT INTO Players(Name, Country, Association)"
-                        " VALUES(?,"
+                        "INSERT INTO Players(Name, Number, Country, Association, Pool, Type)"
+                        " VALUES(?, ?,"
                         "   (SELECT Id FROM Countries"
                         "      WHERE Name = ? OR Code = ? OR IOC_Code = ?),"
-                        "   ?);",
-                        (name, country, country, country, association))
+                        "   ?, ?, ?);",
+                        (name, number, country, country, country, association, pool, status))
             return self.write({'status':"success"})
         except Exception as e:
             return self.write({'status':"error",
