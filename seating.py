@@ -361,7 +361,7 @@ class SeatingHandler(handler.BaseHandler):
                             if not cut and (i + cutsize * 2 > len(players) and len(players) - (i + cutsize) < cutsize / 2):
                                 pools[playerpool] += players[i:]
                             else:
-                                pools[playerpool] += players[i:cutsize]
+                                pools[playerpool] += players[i:i + cutsize]
 
                 if seed is not None and len(seed) > 0:
                     random.seed(seed)
