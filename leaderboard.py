@@ -27,7 +27,7 @@ def leaderData():
         cur.execute(query)
         for i, row in enumerate(cur.fetchall()):
             rec = dict(zip(fields, row))
-            rec['type'] = db.playertypes[int(rec['type'])]
+            rec['type'] = db.playertypes[int(rec['type'] or 0)]
             if rec['score'] != last_score:
                 place = i+1
             last_score = rec['score']

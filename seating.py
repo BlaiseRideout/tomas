@@ -37,6 +37,8 @@ class Snake(SeatingAlg):
 class StraightAcross(SeatingAlg):
     name = "Straight Across"
     def seat(self, players):
+        if len(players) <= 4:
+            return players
         rowlen = int(len(players) / 4)
         numplayers = rowlen * 4
         players = [players[i:i + rowlen] for i in range(0, numplayers, rowlen)]
