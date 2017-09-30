@@ -236,7 +236,9 @@ $(function() {
 						'contentType':false,
 						'processData':false,
 						success:function(data) {
-							if(data["status"] === "success")
+						    if(data["status"] === "success")
+							alert(data['good'] + ' player(s) loaded.  ' +
+							      data['bad'] + ' record(s) skipped.');
 								updatePlayers();
 							else
 								console.log(data);

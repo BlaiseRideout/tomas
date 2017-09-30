@@ -39,7 +39,7 @@ def getPlayers(self):
             " ORDER BY Players.Name asc")
         rows = [dict(zip(player_fields, row)) for row in cur.fetchall()]
         for row in rows:
-            row['type'] = db.playertypes[int(row['type'])]
+            row['type'] = db.playertypes[int(row['type'] or 0)]
         return {'players':rows, 'editable': editable}
 
 class ShowPlayersHandler(handler.BaseHandler):
@@ -113,12 +113,26 @@ class UploadPlayersHandler(handler.BaseHandler):
         try:
             with db.getCur() as cur:
                 reader = csv.reader(players.decode('utf-8').splitlines())
+                good = 0
+                bad = 0
                 for row in reader:
                     if len(row) < 3:
+                        bad += 1;
                         continue
+                    somefilled = False
+                    for i in range(len(row)):
+                        if row[i] == '':
+                            row[i] = None
+                        else:
+                            somefilled = True
                     name = row[0]
                     number = row[1]
                     country = row[2]
+                    if (not somefilled or (name.lower() == 'name' and
+                                           number.lower() == 'number')):
+                        if not somefilled:
+                            bad += 1
+                        continue
                     if len(row) >= 4:
                         association = row[3]
                     else:
@@ -128,7 +142,7 @@ class UploadPlayersHandler(handler.BaseHandler):
                     else:
                         pool = ""
                     if len(row) >= 6:
-                        status = row[5]
+                        status = row[5] or 0
                         if status in db.playertypes:
                             status = db.playertypes.index(status)
                     else:
@@ -140,7 +154,8 @@ class UploadPlayersHandler(handler.BaseHandler):
                         "      WHERE Name = ? OR Code = ? OR IOC_Code = ?),"
                         "   ?, ?, ?);",
                         (name, number, country, country, country, association, pool, status))
-            return self.write({'status':"success"})
+                    good += 1
+            return self.write({'status':"success", 'good': good, 'bad': bad})
         except Exception as e:
             return self.write({'status':"error",
                     'message':"Invalid players file provided: " + str(e)})
