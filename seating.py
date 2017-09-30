@@ -198,10 +198,8 @@ def getSeating(roundid = None):
                     "Id": player['player']['id'],
                     "Country": player['player']['countryid']
                 } for player in table['players']]
-            a_round['diversityplayers'] = tablesScore(players, countriesHeuristic())
-            a_round['diversity'] = len(a_round['diversityplayers'])
-            a_round['duplicateplayers'] = tablesScore(players, duplicateCountHeuristic(players = players, round = a_round['round']))
-            a_round['duplicates'] = len(a_round['duplicateplayers'])
+            a_round['diversityplayers'], a_round['diversity'] = tablesScore(players, countriesHeuristic())
+            a_round['duplicateplayers'], a_round['duplicates'] = tablesScore(players, duplicateCountHeuristic(players = players, round = a_round['round']))
         return rounds
 
 class SeatingCsvHandler(handler.BaseHandler):
@@ -422,7 +420,7 @@ def fixTables(players, cur, duplicates, diversity, round):
         if swapsmade == 0:
             break
 
-    score = len(tablesScore(players, heuristic))
+    score = tablesScore(players, heuristic)[1]
 
     status = "{0} swaps made (max distance {1}) in {3} phases to score {2}".format(
                                     str(swaps),
@@ -439,7 +437,7 @@ def improvePlayers(players, heuristic):
     swaps = 0
     maxswap = 0
 
-    violations = tablesScore(players, heuristic, "Seat")
+    violations = tablesScore(players, heuristic, "Seat")[0]
 
     while violations:
         seat1 = violations.pop()
@@ -478,9 +476,9 @@ def bestSwap(players, heuristic, player):
 
         curTable = table[:]
 
-        oldScore = len(tableScore(repTable, heuristic).union(tableScore(curTable, heuristic)))
+        oldScore = tableScore(repTable, heuristic)[1] + tableScore(curTable, heuristic)[1]
         curTable[player], repTable[repPlayer] = repTable[repPlayer], curTable[player]
-        newScore = len(tableScore(repTable, heuristic).union(tableScore(curTable, heuristic)))
+        newScore = tableScore(repTable, heuristic)[1] + tableScore(curTable, heuristic)[1]
 
         candidates += [((newScore - oldScore) + distance / settings.MAXSWAPDISTANCE, replacement["Seat"])]
     candidates.sort(key=itemgetter(0))
@@ -491,25 +489,29 @@ def tablesScore(players, heuristic, viokey = "Id"):
     numplayers = len(players)
 
     violations = set()
+    score = 0
     for i in range(0, numplayers, 4):
         table = players[i:i+4]
-        violation = tableScore(table, heuristic, viokey)
+        violation, s = tableScore(table, heuristic, viokey)
+        score += s
         violations = violations.union(violation)
 
-    return violations
+    return (violations, score)
 
 def tableScore(players, heuristic, viokey = "Id"):
     numplayers = len(players)
 
     violations = set()
+    score = 0
     for i in range(numplayers):
         for j in range(i + 1, numplayers):
             violation = heuristic(players[i], players[j])
+            score += violation
             if violation:
                 violations.add(players[i][viokey])
                 violations.add(players[j][viokey])
 
-    return violations
+    return (violations, score)
 
 def playerGames(players, round = None):
     numplayers = len(players)
