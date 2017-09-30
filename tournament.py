@@ -155,7 +155,11 @@ class UploadPlayersHandler(handler.BaseHandler):
                         "   ?, ?, ?);",
                         (name, number, country, country, country, association, pool, status))
                     good += 1
-            return self.write({'status':"success", 'good': good, 'bad': bad})
+            return self.write({'status':"success", 
+                               'message':
+                               ("{0} player record(s) loaded, "
+                                "{1} player record(s) skipped").format(
+                                    good, bad)})
         except Exception as e:
             return self.write({'status':"error",
                     'message':"Invalid players file provided: " + str(e)})
