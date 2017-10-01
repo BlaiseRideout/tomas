@@ -522,13 +522,14 @@ def playerGames(players, round = None):
 
     query = """
         SELECT COUNT(*) FROM Scores
-        WHERE PlayerId = ? AND GameId IN (
-            SELECT GameId FROM Scores WHERE PlayerId = ?
-          )
+        INNER JOIN Scores AS Scores2 ON
+        Scores.GameId = Scores2.GameId AND
+        Scores.Round = Scores2.Round
+        WHERE Scores.PlayerId = ? AND Scores2.PlayerId = ?
         """
     gbindings = []
     if round is not None:
-        query += " AND Round < ?"
+        query += " AND Scores.Round < ?"
         gbindings += [round]
     with db.getCur() as c:
         for i in range(numplayers):
