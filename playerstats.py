@@ -119,6 +119,7 @@ class PlayerStatsDataHandler(handler.BaseHandler):
 
 class PlayerStatsHandler(handler.BaseHandler):
     def get(self, player):
+        HISTORY_COOKIE = "stats_history"
         with db.getCur() as cur:
             name = player
             cur.execute("SELECT Id,Name FROM Players WHERE Id = ? OR Name = ?", (player, player))
@@ -126,24 +127,21 @@ class PlayerStatsHandler(handler.BaseHandler):
             if player is None or len(player) == 0:
                 return self.render("playerstats.html", name=name,
                                    error = "Couldn't find player")
+            history = stringify(self.get_secure_cookie(HISTORY_COOKIE))
+            if history is None:
+                history = []
+            else:
+                history = json.loads(history)
+            if player[1] in history:
+                history.remove(player[1])
+            history.insert(0, player[1])
+
+            history = history[0:settings.STATSHISTORYSIZE]
+            self.set_secure_cookie(HISTORY_COOKIE, json.dumps(history))
 
             player, name = player
             self.render("playerstats.html",
                         error = None,
-                        name = name
+                        name = name,
+                        history = history
                 )
-
-    def post(self, player):
-        name = self.get_argument("name", player)
-        if name != player:
-            args = []
-            cols = []
-            if name != player:
-                cols += ["Name = ?"]
-                args += [name]
-            if len(args) > 0:
-                query = "UPDATE Players SET " + ",".join(cols) + " WHERE Id = ? OR Name = ?"
-                args += [player, player]
-                with db.getCur() as cur:
-                    cur.execute(query, args)
-            self.redirect("/playerstats/" + name)

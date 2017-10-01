@@ -35,4 +35,13 @@ def prompt(msg, default=None):
     return (resp.lower().startswith('y') if len(resp) > 0 or default == None
             else default.lower().startswith('y'))
 
+def stringify(x):
+    if x is None or isinstance(x, str):
+        return x
+    elif isinstance(x, bytes):
+        return x.decode()
+    else:
+        return str(x)
+
+
 winds = "東南西北"

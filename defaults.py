@@ -23,6 +23,9 @@ DUPLICATEIMPORTANCE = 4
 #   password resets should remain valid.  They expire after LINKVALIDDAYS
 #   has passed.
 LINKVALIDDAYS = 7
+#   STATSHISTORYSIZE is the number of players who will be displayed
+#   in the "Recently Viewed" section of the player stats page
+STATSHISTORYSIZE = 10
 
 # EMAIL
 #   These settings are for the outbound email server that sends invites

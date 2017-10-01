@@ -1,13 +1,6 @@
 #!/usr/bin/env python3
 import tornado.web
-
-def stringify(x):
-    if x is None or isinstance(x, str):
-        return x
-    elif isinstance(x, bytes):
-        return x.decode()
-    else:
-        return str(x)
+from util import stringify
 
 class BaseHandler(tornado.web.RequestHandler):
     def get_current_user(self):
@@ -15,6 +8,7 @@ class BaseHandler(tornado.web.RequestHandler):
         return stringify(self.get_secure_cookie("user"))
 
     def get_is_admin(self):
+#        return True
         return stringify(self.get_secure_cookie("admin")) == "1"
 
     def get_stylesheet(self):
@@ -32,7 +26,7 @@ class BaseHandler(tornado.web.RequestHandler):
 def is_admin(func):
     def func_wrapper(self, *args, **kwargs):
         if not self.get_is_admin():
-            self.render("message.html", 
+            self.render("message.html",
                         message = "You must be admin to do that")
         else:
             func(self, *args, **kwargs)
