@@ -5,7 +5,11 @@
 
 #tournament > .ui-tabs-panel {
 	width:100%;
-	overflow-x: scroll;
+	overflow-x: auto;
+}
+
+#tournament > .ui-tabs-panel > * {
+	margin: 0 auto;
 }
 
 @media (max-width:600px) {
