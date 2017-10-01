@@ -27,9 +27,9 @@
 						<th>Name</th>
 						<th colspan="2">Country</th>
 						<th>Raw Score</th>
-						<th>Chombos</th>
 						<th>Rank</th>
 						<th>Score</th>
+						<th>Penalty</th>
 						{% if is_admin and not round['has_scores'] %}
 							<th colspan="2" class="swapper">Swap</th>
 						{% end %}
@@ -61,15 +61,12 @@
 										{{ player['player']['rawscore'] }}
 									{% end %}
 								</td>
-								<td class="chombos">
-									{% if current_user %}
-										<input type="number" value="{{ player['player']['chombos'] }}" class="playerchombos" step="1" />
-									{% else %}
-										{{ player['player']['chombos'] }}
-									{% end %}
-								</td>
 								<td class="rank">{{ player['player']['rank'] }}</td>
 								<td class="score">{{ player['player']['score'] }}</td>
+								<td class="penalty">
+								   <img class="sectionControl" src="/static/images/closed-section-pointer.png">
+								   <span class="playerpenalty">{{ player['player']['penalty'] }}</span>
+								</td>
 								{% if is_admin and not round['has_scores'] %}
 									<td class="swapper">
 										<input type="radio" name="round{{ round['round'] }}-left" class="swapper" value="{{ player['player']['id'] }}"/>
@@ -78,7 +75,25 @@
 										<input type="radio" name="round{{ round['round'] }}-right" class="swapper" value="{{ player['player']['id'] }}"/>
 									</td>
 								{% end %}
+						</tr>
+						<tr class="penaltyEditorHidden" data-scoreid="{{ player['player']['scoreid'] }}">
+						  <td></td>
+						  <td colspan="7">
+						    <table class="penaltyEditor">
+						      <thead>
+							<th>Penalty</th>
+							<th>Description</th>
+							<th>Referee</th>
+							<th>Action</th>
+						      </thead>
+						      <tbody class="penaltyEditorBody">
+							<tr>
+							  <td colspan="4"><input type="button" class="addPenalty" value="Add penalty" /></td>
 							</tr>
+						      </tbody>
+						    </table>
+						  </td>
+						</tr>
 						{% end %}
 					</tbody>
 				{% end %}

@@ -2,7 +2,7 @@
 	<tr class="leaderbd_col_header">
 		<th colspan="4"></th>
 		{% for round in rounds %}
-			<th colspan="3">ROUND {{ round }}</th>
+			<th colspan="4">ROUND {{ round }}</th>
 		{% end %}
 	</tr>
 	<tr class="leaderbd_col_header">
@@ -12,12 +12,13 @@
 		{% for round in rounds %}
 			<th>RANK</th>
 			<th>SCORE</th>
-			<th>CHOMBOS</th>
+			<th>PENALTY</th>
+			<th>TOTAL</th>
 		{% end %}
 	</tr>
 	{% for row in scoreboard %}
 		<tr class="leaderbd_row" data-status="{{ row['type'] }}">
-			<td><a href="/playerstats/{{ row['name'] }}">{{ row['name'] }}</a></td>
+			<td>{{ row['name'] }}</td>
 			<td>{{ row['country'] }}</td>
 			<td>{% raw row['flag_image'] %}</td>
 			<td>{{ row['type'] }}</td>
@@ -34,7 +35,12 @@
 				</td>
 				<td>
 					{% if round in row['scores'] %}
-						{{ row['scores'][round]['chombos'] }}
+						{{ row['scores'][round]['penalty'] }}
+					{% end %}
+				</td>
+				<td>
+					{% if round in row['scores'] %}
+						{{ row['scores'][round]['total'] }}
 					{% end %}
 				</td>
 			{% end %}

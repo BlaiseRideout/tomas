@@ -80,10 +80,17 @@ schema = collections.OrderedDict({
         "Rank TINYINT",
         "RawScore INTEGER",
         "Score REAL",
-        "Chombos INTEGER",
         "FOREIGN KEY(Round) REFERENCES Rounds(Id) ON DELETE CASCADE",
         "FOREIGN KEY(PlayerId) REFERENCES Players(Id) ON DELETE CASCADE",
         "CONSTRAINT OneScorePerPlayerPerGame UNIQUE (Round, GameId, PlayerId)"
+    ],
+    'Penalties': [
+        "Id INTEGER PRIMARY KEY AUTOINCREMENT",
+        "ScoreId INTEGER",
+        "Penalty INTEGER",
+        "Description TEXT NOT NULL",
+        "Referee TEXT",
+        "FOREIGN KEY(ScoreId) REFERENCES Scores(Id) ON DELETE CASCADE",
     ],
     'Users': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
@@ -344,14 +351,45 @@ def updateGame(scores):
             cur.execute("DELETE FROM Scores WHERE GameId = ? and Round = ?",
                         (gameID, roundID))
             fields = ['roundid', 'gameid', 'playerid', 'rank', 'rawscore',
-                      'score', 'chombos']
+                      'score']
             cur.executemany(
                 "INSERT INTO Scores"
-                " (Round, GameId, PlayerId, Rank, RawScore, Score, Chombos)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?)",
+                " (Round, GameId, PlayerId, Rank, RawScore, Score)"
+                " VALUES (?, ?, ?, ?, ?, ?)",
                 map(lambda score: [score[f] for f in fields], scores))
     except Exception as e:
         return {"status":"error",
                 "message": "Error during database update of scores, {0}".format(e)}
+
+    return {"status": "success"}
+
+
+def updatePenalties(scoreID, penalties):
+    if penalties is None:
+        return {"status":"error", "message":"Please enter a list of penalties"}
+
+    try:
+        with getCur() as cur:
+            cur.execute("SELECT Id from Scores WHERE Id = ?", (scoreID,))
+            if cur.fetchone() is None:
+                return {"status":1,
+                        "error":"Score ID {0} not in Scores".format(scoreID)}
+            for penalty in penalties:
+                if penalty['scoreid'] != scoreID:
+                    return {"status":"error",
+                            "message": "All penalties must be for a single player score record"}
+                if penalty['penalty'] > 0:
+                    return {"status":"error",
+                            "message": "All penalties must be negative integers"}
+            cur.execute("DELETE FROM Penalties WHERE ScoreId = ?", (scoreID,))
+            fields = ['scoreid', 'penalty', 'description', 'refereee']
+            cur.executemany(
+                "INSERT INTO Penalties"
+                " (ScoreId, Penalty, Description, Referee)"
+                " VALUES (?, ?, ?, ?)",
+                map(lambda penalty: [penalty[f] for f in fields], penalties))
+    except Exception as e:
+        return {"status":"error",
+                "message": "Error during database update of penalties, {0}".format(e)}
 
     return {"status": "success"}

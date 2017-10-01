@@ -132,6 +132,16 @@ button.clearplayercomplete {
     display:inline;
 }
 
+.penaltyEditorHidden {
+    display: none;
+}
+
+.sectionControl {
+    height: 1em;
+    vertical-align: middle;
+    margin-bottom: 0.2em;
+}
+
 #tables > .table{
 	display:inline-block;
 	padding:0.5em;

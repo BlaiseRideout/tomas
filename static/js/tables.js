@@ -94,8 +94,8 @@ $(function() {
 		partial = partial || !(total == totalPoints || total == 0);
 		newstate = partial ? "bad" : "good";
 		delstate = partial ? "good" : "bad";
-		table.find(".playerscore, .playerchombos").removeClass(delstate);
-		table.find(".playerscore, .playerchombos").addClass(newstate);
+		table.find(".playerscore, .playerpenalty").removeClass(delstate);
+		table.find(".playerscore, .playerpenalty").addClass(newstate);
 		tabletotal.removeClass(delstate);
 		tabletotal.addClass(newstate);
 		if (total == totalPoints && !partial) {
@@ -106,16 +106,14 @@ $(function() {
 					'roundid': table.data("roundid"),
 					'playerid': $(this).data("playerid"),
 					'rawscore': parseInt($(this).find(".playerscore").val()),
-					'chombos': parseInt($(this).find(".playerchombos").val()),
+					'penalty': parseInt($(this).find(".playerpenalty").text()),
 					'rank': $(this).find(".rank"),
 					'score': $(this).find(".score")
 				});
 			});
 			tablescore.sort(function(ra, rb) {
-				/* Sort by raw score descending, and chombos ascending */
-				return rb['rawscore'] == ra['rawscore'] ?
-					ra['chombos'] - rb['chombos'] :
-					rb['rawscore'] - ra['rawscore'];
+				/* Sort by raw score; ignore penalties for rank */
+				return rb['rawscore'] - ra['rawscore'];
 			});
 			var lastscore = NaN,
 				lastrank = 0,
@@ -144,7 +142,7 @@ $(function() {
 					'tablescores': JSON.stringify(tablescore)
 				},
 				function(data) {
-					if(data["message"])
+					if (data["message"])
 						$.notify(data["message"], data["status"]);
 					if (data['status'] === 'success') {
 						$(table).parents(".round").find(".genround").remove();
@@ -153,21 +151,21 @@ $(function() {
 				}, "json");
 		}
 	}
-	$(".playerscore, .playerchombos").change(scoreChange).keyup(scoreChange);
+	$(".playerscore").change(scoreChange).keyup(scoreChange);
 	$("input.swapper").change(function() {
 		var round = $(this).parents(".round");
 		var roundid = $(round).data("round");
 		var left = round.find("input.swapper[name=round" + roundid + "-left]:checked").val();
 		var right = round.find("input.swapper[name=round" + roundid + "-right]:checked").val();
-		if(left && right)
+		if (left && right)
 			$.post("/swapseating", {
-				"round":roundid,
-				"left":left,
-				"right":right
+				"round": roundid,
+				"left": left,
+				"right": right
 			}, function(data) {
-				if(data["message"])
+				if (data["message"])
 					$.notify(data["message"], data["status"]);
-				if(data["status"] === "success")
+				if (data["status"] === "success")
 					window.updateTab();
 			}, "json");
 	});

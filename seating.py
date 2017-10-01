@@ -124,10 +124,11 @@ def getSeating(roundid = None):
                  Countries.Code,
                  Countries.Flag_Image,
                  Players.Country,
+                 Scores.Id,
                  COALESCE(Scores.Rank, 0),
                  COALESCE(Scores.RawScore, 0),
                  COALESCE(Scores.Score, 0),
-                 COALESCE(Scores.Chombos, 0)
+                 COALESCE(PenaltyPoints.sum, 0)
                  FROM Rounds
                  LEFT OUTER JOIN Seating
                    ON Rounds.Id = Seating.Round
@@ -135,6 +136,16 @@ def getSeating(roundid = None):
                    ON Players.Id = Seating.Player
                  LEFT OUTER JOIN Scores
                    ON Rounds.Id = Scores.Round AND Players.Id = Scores.PlayerId
+                 LEFT OUTER JOIN 
+                   (SELECT Players.Id, Round, GameId, 
+                           COALESCE(SUM(Penalty), 0) as sum
+                      FROM Players
+                        LEFT OUTER JOIN Scores ON Players.Id = Scores.PlayerId
+                        LEFT OUTER JOIN Penalties ON Scores.Id = Penalties.ScoreId
+                        GROUP BY Players.Id, Round, GameId) AS PenaltyPoints
+                   ON Players.Id = PenaltyPoints.Id AND
+                      Scores.Round = PenaltyPoints.Round AND 
+                      Scores.GameId = PenaltyPoints.GameId
                  LEFT OUTER JOIN Countries
                    ON Countries.Id = Players.Country
             """
@@ -145,7 +156,8 @@ def getSeating(roundid = None):
         cur.execute(query, bindings)
         rounds = {}
         for row in cur.fetchall():
-            roundID, winds, table, wind, playerid, name, country, flag, countryid, rank, rawscore, score, chombos  = row
+            (roundID, winds, table, wind, playerid, name, country, flag, countryid,
+             scoreid, rank, rawscore, score, penalty)  = row
             if roundID is not None:
                 if not roundID in rounds:
                     rounds[roundID] = {
@@ -164,10 +176,11 @@ def getSeating(roundid = None):
                                 "country":country,
                                 "countryid":countryid,
                                 "flag":flag,
+                                "scoreid":scoreid,
                                 "rank":rank,
                                 "rawscore":rawscore,
                                 "score": round(score, 1) if isinstance(score, float) else score,
-                                "chombos":chombos
+                                "penalty":penalty
                             }
         rounds = [
                 {
