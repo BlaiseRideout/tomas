@@ -94,6 +94,19 @@ class PlayersHandler(handler.BaseHandler):
                                     " ('\u202Fnewplayer',"
                                     "  (select Id from Countries limit 1))")
                     else:
+                        if colname == "Type":
+                            if val == "2":
+                                cur.execute(
+                                        "UPDATE Players SET Country = (SELECT Id FROM Countries"
+                                        "  WHERE Name = 'Substitute' OR 'Code' = 'SUB' OR IOC_Code = 'SUB')"
+                                        " WHERE Id = ?",
+                                        (player,))
+                            else:
+                                cur.execute(
+                                        "UPDATE Players SET Country = (SELECT Id FROM Countries"
+                                        "  WHERE NOT (Name = 'Substitute' OR 'Code' = 'SUB' OR IOC_Code = 'SUB'))"
+                                        " WHERE Id = ?",
+                                        (player,))
                         cur.execute("UPDATE Players SET {0} = ? WHERE Id = ?"
                                     .format(colname),
                                     (val, player))
@@ -155,7 +168,7 @@ class UploadPlayersHandler(handler.BaseHandler):
                         "   ?, ?, ?);",
                         (name, number, country, country, country, association, pool, status))
                     good += 1
-            return self.write({'status':"success", 
+            return self.write({'status':"success",
                                'message':
                                ("{0} player record(s) loaded, "
                                 "{1} player record(s) skipped").format(
