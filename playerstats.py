@@ -57,18 +57,8 @@ class PlayerStatsDataHandler(handler.BaseHandler):
                 return self.render("playerstats.html", name=name,
                                    error = "Couldn't find any scores for")
 
-            for round in range(int(p['minround']), int(p['maxround']) + 1):
-                periods.append(
-                    {'name': 'Round {0} Stats'.format(round),
-                     'subquery': "FROM Scores WHERE PlayerId = ? AND Round = ?",
-                     'params': (playerID, round)
-                     })
-            for p in periods[1:]:
-                self.populate_queries(cur, p)
-                p['showstats'] = False
-
             cur.execute(
-                    "SELECT Scores2.Round, Scores2.Rank, Scores2.Score, Players.Name FROM Scores"
+                    "SELECT Scores2.Round, Scores2.Rank, ROUND(Scores2.Score * 100) / 100, Players.Name FROM Scores"
                     " JOIN Scores AS Scores2"
                     "  ON Scores.GameId = Scores2.GameId AND Scores.Round = Scores2.Round"
                     " JOIN Players"
