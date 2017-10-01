@@ -1,0 +1,12 @@
+.game {
+	display:inline-block;
+	width:49%;
+}
+.game > table {
+	width:100%;
+}
+@media(max-width:600px) {
+	.game {
+		width:100%;
+	}
+}

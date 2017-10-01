@@ -26,33 +26,37 @@
   </div>
 {{ /playerstats }}
 {{ #playergames }}
-	<h2>Round {{ round }} Scores</h2>
-	<table>
-		<tr><th>Rank</th><th>Name</th><th colspan="2">Country</th><th>Score</th></tr>
-		{{ #scores }}
-			<tr>
-				<td>{{ rank }}</td>
-				<td>{{ name }}</td>
-				<td>{{ country }}</td>
-				<td>{{{ flag }}}</td>
-				<td>{{ score }}</td>
-			</tr>
-		{{ /scores}}
+	<div class="game">
+		<h2>Round {{ round }} Scores</h2>
+		<table>
+			<tr><th>Rank</th><th>Name</th><th colspan="2">Country</th><th>Score</th></tr>
+			{{ #scores }}
+				<tr>
+					<td>{{ rank }}</td>
+					<td>{{ name }}</td>
+					<td>{{ country }}</td>
+					<td>{{{ flag }}}</td>
+					<td>{{ score }}</td>
+				</tr>
+			{{ /scores}}
 	</table>
+	</div>
 {{ /playergames }}
 {{ #futuregames }}
-	<h2>Round {{ round }} Seating</h2>
-	<table>
-		<tr>
-			<th {{ #showwinds }}colspan="4"{{ /showwinds }}{{ ^showwinds }}colspan="3"{{ /showwinds }}>Table {{ table }}</th>
-		</tr>
-		{{ #seating }}
+	<div class="game">
+		<h2>Round {{ round }} Seating</h2>
+		<table>
 			<tr>
-				{{ #showwinds }}<td>{{ wind }}</td>{{ /showwinds }}
-				<td>{{ name }}</td>
-				<td>{{ country }}</td>
-				<td>{{{ flag }}}</td>
+				<th {{ #showwinds }}colspan="4"{{ /showwinds }}{{ ^showwinds }}colspan="3"{{ /showwinds }}>Table {{ table }}</th>
 			</tr>
-		{{ /seating }}
-	</table>
+			{{ #seating }}
+				<tr>
+					{{ #showwinds }}<td>{{ wind }}</td>{{ /showwinds }}
+					<td>{{ name }}</td>
+					<td>{{ country }}</td>
+					<td>{{{ flag }}}</td>
+				</tr>
+			{{ /seating }}
+		</table>
+	</div>
 {{ /futuregames }}

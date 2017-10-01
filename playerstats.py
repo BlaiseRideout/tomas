@@ -67,7 +67,7 @@ class PlayerStatsDataHandler(handler.BaseHandler):
                     " JOIN Countries"
                     "  ON Players.Country = Countries.Id"
                     " WHERE Scores.PlayerId = ?"
-                    " ORDER BY Scores2.Round",
+                    " ORDER BY Scores2.Round, Scores2.Rank",
                     (playerID,)
                 )
             cols = ['rank', 'score', 'name', 'country', 'flag']
