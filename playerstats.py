@@ -45,7 +45,7 @@ class PlayerStatsDataHandler(handler.BaseHandler):
             playerID, name = player
 
             periods = [
-                {'name': 'All Time Stats',
+                {'name': 'All Rounds Stats',
                  'subquery': "FROM Scores WHERE PlayerId = ?",
                  'params': (playerID,)
                 },
@@ -67,8 +67,42 @@ class PlayerStatsDataHandler(handler.BaseHandler):
                 self.populate_queries(cur, p)
                 p['showstats'] = False
 
-            self.write(json.dumps({'playerstats': periods}))
+            cur.execute(
+                    "SELECT Scores2.Round, Scores2.Rank, Scores2.Score, Players.Name FROM Scores"
+                    " JOIN Scores AS Scores2"
+                    "  ON Scores.GameId = Scores2.GameId AND Scores.Round = Scores2.Round"
+                    " JOIN Players"
+                    "  ON Players.Id = Scores2.PlayerId"
+                    " WHERE Scores.PlayerId = ?"
+                    " ORDER BY Scores2.Round",
+                    (playerID,)
+                )
+            playergames = []
+            for roundnum, rank, score, name in cur.fetchall():
+                if len(playergames) == 0 or playergames[-1]['round'] != roundnum:
+                    playergames += [{
+                        'round': roundnum,
+                        'scores': [
+                            {
+                                'rank':rank,
+                                'name':name,
+                                'score':score
+                            }
+                        ]
+                    }]
+                else:
+                    playergames[-1]['scores'] += [
+                        {
+                            'rank':rank,
+                            'name':name,
+                            'score':score
+                        }
+                    ]
 
+            self.write({
+                'playerstats': periods,
+                'playergames': playergames
+            })
 
 class PlayerStatsHandler(handler.BaseHandler):
     def get(self, player):

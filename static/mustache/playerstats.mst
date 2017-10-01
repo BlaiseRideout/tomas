@@ -1,4 +1,4 @@
-{{#playerstats}}
+{{ #playerstats }}
   <br />
   <div class="playerstatperiod">
       <h2>{{ name }}</h2>
@@ -24,4 +24,13 @@
 		{{ /showstats }}
       </table>
   </div>
-{{/playerstats}}
+{{ /playerstats }}
+{{ #playergames }}
+	<h2>Round {{ round }} Scores</h2>
+	<table>
+		<tr><th>Rank</th><th>Name</th><th>Score</th></tr>
+		{{ #scores }}
+			<tr><td>{{ rank }}</td><td>{{ name }}</td><td>{{ score }}</td>
+		{{ /scores}}
+	</table>
+{{ /playergames }}
