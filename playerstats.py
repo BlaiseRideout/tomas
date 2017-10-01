@@ -58,40 +58,63 @@ class PlayerStatsDataHandler(handler.BaseHandler):
                                    error = "Couldn't find any scores for")
 
             cur.execute(
-                    "SELECT Scores2.Round, Scores2.Rank, ROUND(Scores2.Score * 100) / 100, Players.Name FROM Scores"
+                    "SELECT Scores2.Round, Scores2.Rank, ROUND(Scores2.Score * 100) / 100, Players.Name,"
+                    " Countries.Code, Countries.Flag_Image FROM Scores"
                     " JOIN Scores AS Scores2"
                     "  ON Scores.GameId = Scores2.GameId AND Scores.Round = Scores2.Round"
                     " JOIN Players"
                     "  ON Players.Id = Scores2.PlayerId"
+                    " JOIN Countries"
+                    "  ON Players.Country = Countries.Id"
                     " WHERE Scores.PlayerId = ?"
                     " ORDER BY Scores2.Round",
                     (playerID,)
                 )
+            cols = ['rank', 'score', 'name', 'country', 'flag']
             playergames = []
-            for roundnum, rank, score, name in cur.fetchall():
-                if len(playergames) == 0 or playergames[-1]['round'] != roundnum:
+            for row in cur.fetchall():
+                score = dict(zip(cols, row[1:]))
+                if len(playergames) == 0 or playergames[-1]['round'] != row[0]:
                     playergames += [{
-                        'round': roundnum,
-                        'scores': [
-                            {
-                                'rank':rank,
-                                'name':name,
-                                'score':score
-                            }
-                        ]
+                        'round': row[0],
+                        'scores': []
                     }]
-                else:
-                    playergames[-1]['scores'] += [
-                        {
-                            'rank':rank,
-                            'name':name,
-                            'score':score
-                        }
-                    ]
+                playergames[-1]['scores'] += [score]
+
+            cur.execute(
+                    "SELECT Seating.Round, Rounds.Winds, Seating2.TableNum,"
+                    " Seating2.Wind, Players.Name,"
+                    " Countries.Code, Countries.Flag_Image FROM Seating"
+                    " JOIN Seating AS Seating2"
+                    "  ON Seating.TableNum = Seating2.TableNum AND Seating.Round = Seating2.Round"
+                    " JOIN Players"
+                    "  ON Players.Id = Seating2.Player"
+                    " JOIN Countries"
+                    "  ON Players.Country = Countries.Id"
+                    " JOIN Rounds"
+                    "  ON Seating.Round = Rounds.Id"
+                    " WHERE Seating.Player = ?"
+                    " AND Seating.Round NOT IN (SELECT Round FROM Scores WHERE PlayerId = ?)"
+                    " ORDER BY Seating2.Round, Seating2.TableNum, Seating2.Wind",
+                    (playerID, playerID)
+                )
+
+            tablecols = ['round','showwinds', 'table']
+            cols = ['wind', 'name', 'country', 'flag']
+            futuregames = []
+            for row in cur.fetchall():
+                table = dict(zip(tablecols, row[0:len(tablecols)]))
+                seat = dict(zip(cols, row[len(tablecols):]))
+                seat['wind'] = winds[seat['wind']]
+                if len(futuregames) == 0 or futuregames[-1]['round'] != table['round']:
+                    table['seating'] = []
+                    futuregames += [table]
+                futuregames[-1]['seating'] += [seat]
 
             self.write({
                 'playerstats': periods,
-                'playergames': playergames
+                'playergames': playergames,
+                'futuregames': futuregames
             })
 
 class PlayerStatsHandler(handler.BaseHandler):

@@ -10,6 +10,7 @@ from operator import itemgetter
 
 import handler
 import settings
+import util
 
 class SeatingAlg():
     name = None
@@ -168,7 +169,6 @@ def getSeating(roundid = None):
                                 "score": round(score, 1) if isinstance(score, float) else score,
                                 "chombos":chombos
                             }
-        winds = "東南西北"
         rounds = [
                 {
                     'round':      roundID,
@@ -182,7 +182,7 @@ def getSeating(roundid = None):
                                     [
                                         {
                                             'player': name,
-                                            'wind':winds[wind]
+                                            'wind':util.winds[wind]
                                         }
                                         for wind, name in players.items()
                                     ]
