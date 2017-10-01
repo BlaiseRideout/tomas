@@ -10,11 +10,11 @@ class PlayerStatsDataHandler(handler.BaseHandler):
        SELECT Max(Score),MIN(Score),COUNT(*),
          ROUND(SUM(Score) * 1.0/COUNT(*) * 100) / 100,
          ROUND(SUM(Rank) * 1.0/COUNT(*) * 100) / 100,
-         MIN(Rank), MAX(Rank), MIN(Date), MAX(Date),
-         MIN(Quarter), MAX(Quarter) {subquery} """
+         MIN(Rank), MAX(Rank),
+         MIN(Round), MAX(Round) {subquery} """
     _statqfields = ['maxscore', 'minscore', 'numgames', 'avgscore',
-                    'avgrank', 'maxrank', 'minrank', 'mindate', 'maxdate',
-                    'minquarter', 'maxquarter']
+                    'avgrank', 'maxrank', 'minrank',
+                    'minround', 'maxround']
     _rankhistogramquery = """
         SELECT Rank, COUNT(*) {subquery} GROUP BY Rank ORDER BY Rank"""
     _rankhfields = ['rank', 'rankcount']
@@ -36,15 +36,14 @@ class PlayerStatsDataHandler(handler.BaseHandler):
     def get(self, player):
         with db.getCur() as cur:
             name = player
-            cur.execute("SELECT Id,Name,MeetupName FROM Players WHERE Id = ? OR Name = ?", (player, player))
+            cur.execute("SELECT Id,Name FROM Players WHERE Id = ? OR Name = ?", (player, player))
             player = cur.fetchone()
             if player is None or len(player) == 0:
                 self.write(json.dumps({'status': 1,
                                        'error': "Couldn't find player"}))
                 return
-            playerID, name, meetupName = player
+            playerID, name = player
 
-            N = 5
             periods = [
                 {'name': 'All Time Stats',
                  'subquery': "FROM Scores WHERE PlayerId = ?",
@@ -53,31 +52,20 @@ class PlayerStatsDataHandler(handler.BaseHandler):
             ]
             p = periods[0]
             self.populate_queries(cur, p)
+            p['showstats'] = True
             if p['numgames'] == 0:
                 return self.render("playerstats.html", name=name,
                                    error = "Couldn't find any scores for")
 
-            # Add optional periods if warranted
-            if p['numgames'] > N:
+            for round in range(int(p['minround']), int(p['maxround']) + 1):
                 periods.append(
-                    {'name': 'Last {0} Game Stats'.format(N),
-                     'subquery': "FROM (SELECT * FROM Scores WHERE PlayerId = ? ORDER BY Date DESC LIMIT ?)",
-                     'params': (playerID, N)
-                     })
-            if p['minquarter'] < p['maxquarter']:
-                periods.append(
-                    {'name': 'Quarter {0} Stats'.format(p['maxquarter']),
-                     'subquery': "FROM Scores WHERE PlayerId = ? AND Quarter = ?",
-                     'params': (playerID, p['maxquarter'])
-                     })
-                prevQtr = formatQuarter(prevQuarter(parseQuarter(p['maxquarter'])))
-                periods.append(
-                    {'name': 'Quarter {0} Stats'.format(prevQtr),
-                     'subquery': "FROM Scores WHERE PlayerId = ? AND Quarter = ?",
-                     'params': (playerID, prevQtr)
+                    {'name': 'Round {0} Stats'.format(round),
+                     'subquery': "FROM Scores WHERE PlayerId = ? AND Round = ?",
+                     'params': (playerID, round)
                      })
             for p in periods[1:]:
                 self.populate_queries(cur, p)
+                p['showstats'] = False
 
             self.write(json.dumps({'playerstats': periods}))
 
@@ -86,54 +74,29 @@ class PlayerStatsHandler(handler.BaseHandler):
     def get(self, player):
         with db.getCur() as cur:
             name = player
-            cur.execute("SELECT Id,Name,MeetupName FROM Players WHERE Id = ? OR Name = ?", (player, player))
+            cur.execute("SELECT Id,Name FROM Players WHERE Id = ? OR Name = ?", (player, player))
             player = cur.fetchone()
             if player is None or len(player) == 0:
                 return self.render("playerstats.html", name=name,
                                    error = "Couldn't find player")
 
-            player, name, meetupname = player
+            player, name = player
             self.render("playerstats.html",
                         error = None,
-                        name = name,
-                        meetupname = meetupname,
+                        name = name
                 )
 
     def post(self, player):
         name = self.get_argument("name", player)
-        meetupname = self.get_argument("meetupname", None)
-        if name != player or meetupname is not None:
+        if name != player:
             args = []
             cols = []
             if name != player:
                 cols += ["Name = ?"]
                 args += [name]
-            if meetupname is not None:
-                cols += ["MeetupName = ?"]
-                args += [meetupname]
             if len(args) > 0:
                 query = "UPDATE Players SET " + ",".join(cols) + " WHERE Id = ? OR Name = ?"
                 args += [player, player]
                 with db.getCur() as cur:
                     cur.execute(query, args)
             self.redirect("/playerstats/" + name)
-
-
-quarterSuffixes = {'1': 'st', '2': 'nd', '3': 'rd', '4': 'th'}
-
-def parseQuarter(qstring):
-    if not isinstance(qstring, str) or len(qstring) != 8:
-        return None
-    if not qstring[0:4].isdigit() or not qstring[5] in quarterSuffixes:
-        return None
-    return (int(qstring[0:4]), int(qstring[5]))
-
-def formatQuarter(qtuple):
-    return "{0} {1}{2}".format(qtuple[0], qtuple[1],
-                               quarterSuffixes[str(qtuple[1])])
-
-def nextQuarter(qtuple):
-    return (qtuple[0] + 1, 1) if qtuple[1] == 4 else (qtuple[0], qtuple[1] + 1)
-
-def prevQuarter(qtuple):
-    return (qtuple[0] - 1, 4) if qtuple[1] == 1 else (qtuple[0], qtuple[1] - 1)
