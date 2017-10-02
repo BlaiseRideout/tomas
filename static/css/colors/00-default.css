@@ -61,6 +61,10 @@ table td {
 	border:3px solid #555;
 }
 
+.sectionControl {
+    color: #cce;
+}
+
 input[type="checkbox"].priority + label {
 	border: 5px solid #555;
 }

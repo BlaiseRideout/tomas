@@ -136,6 +136,7 @@ button.clearplayercomplete {
     height: 1em;
     vertical-align: middle;
     margin-bottom: 0.2em;
+    cursor: pointer;
 }
 
 #tables > .table{

@@ -65,7 +65,7 @@
 								<td class="score">{{ player['player']['score'] }}</td>
 								<td class="penalty">
 								  {% if current_user or player['player']['penalty'] != 0 %}
-								  <img class="sectionControl" src="/static/images/closed-section-pointer.png" data-scoreid="{{ player['player']['scoreid'] }}">
+								  <span class="sectionControl" data-scoreid="{{ player['player']['scoreid'] }}">&#9654;</span>
 								  {% end %}
 								   <span class="playerpenalty">{{ player['player']['penalty'] }}</span>
 								</td>

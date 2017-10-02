@@ -163,8 +163,6 @@ $(function() {
 			console.log('Ignoring ' + ev.type + ' event: ' + ev.key)
 			return;
 		};
-		console.log('Penalty ' + penaltyid + ' for score ' + scoreID +
-			' update of ' + colname + ' to ' + $(this).val());
 		updatePenaltyRecords(null, scoreID, false);
 	};
 
@@ -233,9 +231,6 @@ $(function() {
 
 	function populatePenaltyEditor(penaltyeditor, scoreID) {
 		$.get('/penalties/' + scoreID, function(data) {
-			console.log('After fetching /penalties/' + scoreID +
-				' the returned data is:');
-			console.log(data);
 			/* Create a row below the player row if one is not supplied */
 			if (penaltyeditor.length == 0) {
 				var attribute = "[data-scoreid='" + scoreID + "']";
@@ -258,22 +253,25 @@ $(function() {
 	}
 
 	function togglePenaltyEditor() {
-		var images = ['/static/images/closed-section-pointer.png',
-			'/static/images/open-section-pointer.png'
-		]
+		var glyphs = ['▶', '▼', '&#9654;', '&#9660;']
 		var player = $(this).parents(".player"),
 			scoreid = $(this).data('scoreid'),
 			penaltyeditor = $(".penaltyEditor[data-scoreid='" +
 				scoreid + "']"),
-			img = player.find(".sectionControl"),
-			image = img.attr('src');
-		if (image == images[0]) {
+			control = player.find(".sectionControl"),
+			glyph = control.html(),
+			index = $.inArray(glyph, glyphs);
+		if (index < 0) {
+			$.notify("Unexpected character in section control",
+				"Internal Error");
+		}
+		else if (index % 2 == 0) {
 			populatePenaltyEditor(penaltyeditor, scoreid);
-			img.attr('src', images[1]);
+			control.html(glyphs[1]);
 			penaltyeditor.show();
 		}
 		else {
-			img.attr('src', images[0]);
+			control.html(glyphs[0]);
 			penaltyeditor.hide();
 		}
 	};
