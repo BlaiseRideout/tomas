@@ -22,13 +22,9 @@ class TournamentHandler(handler.BaseHandler):
 
 player_fields = ["id", "name", "number", "country", "countryid", "flag_image",
                  "association", "pool", "type"]
-valid = {
-    'all': re.compile(r'^[\w\s():,.\'+-\u202F]*$'),
-    'name': re.compile(r'^[\w\s():,.\'+-\u202F]+$'),
-    'number': re.compile(r'^\d*$')
-}
 
 def getPlayers(self):
+    global player_fields
     editable = self.current_user is not None
     with db.getCur() as cur:
         cur.execute(
@@ -66,13 +62,11 @@ class DeletePlayerHandler(handler.BaseHandler):
                  'message':"Couldn't delete player"})
 
 class PlayersHandler(handler.BaseHandler):
-    global player_fields
     def get(self):
         return self.write(getPlayers(self))
     @handler.is_admin_ajax
     def post(self):
         global player_fields
-        global valid
         player = self.get_argument("player", None)
         if player is None or not (player.isdigit() or player == '-1'):
             return self.write({'status':"error", 'message':"Please provide a player"})
@@ -85,8 +79,8 @@ class PlayersHandler(handler.BaseHandler):
                 for colname, val in info.items():
                     col = colname.lower()
                     if not (col in player_fields and
-                            (valid[col].match(val) if col in valid else
-                             valid['all'].match(val))):
+                            (db.valid[col if col in db.valid else 'all'].match(
+                                val))):
                         return self.write({'status':"error",
                              'message':"Invalid column or value provided"})
                     if player == '-1':
@@ -118,8 +112,6 @@ class PlayersHandler(handler.BaseHandler):
 class UploadPlayersHandler(handler.BaseHandler):
     @handler.is_admin_ajax
     def post(self):
-        global player_fields
-        global valid
         if 'file' not in self.request.files or len(self.request.files['file']) == 0:
             return self.write({'status':"error", 'message':"Please provide a players file"})
         players = self.request.files['file'][0]['body']

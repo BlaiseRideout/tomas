@@ -80,6 +80,7 @@ class Application(tornado.web.Application):
                 (r"/playerstatsdata/(.*)", playerstats.PlayerStatsDataHandler),
                 (r"/scores", admin.EditGameHandler),
                 (r"/penalties", admin.EditPenaltiesHandler),
+                (r"/penalties/(\d+)", admin.EditPenaltiesHandler),
                 (r"/setup", login.SetupHandler),
                 (r"/login", login.LoginHandler),
                 (r"/logout", login.LogoutHandler),
