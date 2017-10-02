@@ -1,34 +1,53 @@
-{% for penalty in penalties %}
-<tr class="penaltyrecord" data-penaltyid="{{ penalty['id'] }}">
-  <td class="penaltyamount">
-    {% if current_user %}
-    <input type="number" class="penaltyfield"  step="1" max="0"
-	   value="{{ penalty['penalty'] }}" data-colname="penalty"/>
-    {% else %}
-    {{ penalty['penalty'] }}
-    {% end %}
-  </td>
-  <td class="penaltydescription">
-    {% if current_user %}
-    <input type="text" class="penaltyfield" placeholder="Description"
-	   value="{{ penalty['description'] }}" data-colname="description"/>
-    {% else %}
-    {{ penalty['description'] }}
-    {% end %}
-  </td>
-  <td class="penaltyreferee">
-    {% if current_user %}
-    <input type="text" class="penaltyfield" placeholder="Referee"
-	   value="{{ penalty['referee'] }}" data-colname="referee"/>
-    {% else %}
-    {{ penalty['referee'] }}
-    {% end %}
-  </td>
-  <td>
-    {% if current_user %}
-    <input type="button" class="actionbutton deletepenalty" 
-	   value="Delete" data-penaltyid="{{ penalty['id'] }}"/>
-    {% end %}
+<tr class="penaltyEditor" data-scoreid="{{ scoreid }}">
+  <td></td>
+  <td colspan="7">
+    <table class="penaltyEditor">
+      <thead>
+	<th>Penalty</th>
+	<th>Description</th>
+	<th>Referee</th>
+	<th>Action</th>
+      </thead>
+      <tbody class="penaltyEditorBody">
+	{% for penalty in penalties %}
+	<tr class="penaltyrecord" data-penaltyid="{{ penalty['id'] }}">
+	  <td class="penaltyamount">
+	    {% if current_user %}
+	    <input type="number" class="penaltyfield"  step="1" max="0"
+		   value="{{ penalty['penalty'] }}" data-colname="penalty"/>
+	    {% else %}
+	    {{ penalty['penalty'] }}
+	    {% end %}
+	  </td>
+	  <td class="penaltydescription">
+	    {% if current_user %}
+	    <input type="text" class="penaltyfield" placeholder="Description"
+		   value="{{ penalty['description'] }}" data-colname="description"/>
+	    {% else %}
+	    {{ penalty['description'] }}
+	    {% end %}
+	  </td>
+	  <td class="penaltyreferee">
+	    {% if current_user %}
+	    <input type="text" class="penaltyfield" placeholder="Referee"
+		   value="{{ penalty['referee'] }}" data-colname="referee"/>
+	    {% else %}
+	    {{ penalty['referee'] }}
+	    {% end %}
+	  </td>
+	  <td>
+	    {% if current_user %}
+	    <input type="button" class="actionbutton deletepenalty" 
+		   value="Delete" data-penaltyid="{{ penalty['id'] }}"/>
+	    {% end %}
+	  </td>
+	</tr>
+	{% end %}
+	<tr>
+	  <td colspan="4"><input type="button" class="addPenalty"
+				 value="Add penalty" /></td>
+	</tr>
+      </tbody>
+    </table>
   </td>
 </tr>
-{% end %}

@@ -47,7 +47,7 @@
 					</thead>
 					<tbody class="table" data-tableid="{{ table['table'] }}" data-roundid="{{ round['round'] }}">
 						{% for player in table['players'] %}
-						<tr class="player{% if player['player']['id'] in round['diversityplayers'] or player['player']['id'] in round['duplicateplayers'] %} bad{% end %}" data-playerid="{{ player['player']['id'] }}">
+						<tr class="player{% if player['player']['id'] in round['diversityplayers'] or player['player']['id'] in round['duplicateplayers'] %} bad{% end %}" data-playerid="{{ player['player']['id'] }}" data-scoreid="{{ player['player']['scoreid'] }}">
 								{% if round['winds'] %}
 									<td class="windicator">{{ player['wind'] }}</td>
 								{% end %}
@@ -64,7 +64,7 @@
 								<td class="rank">{{ player['player']['rank'] }}</td>
 								<td class="score">{{ player['player']['score'] }}</td>
 								<td class="penalty">
-								   <img class="sectionControl" src="/static/images/closed-section-pointer.png">
+								   <img class="sectionControl" src="/static/images/closed-section-pointer.png" data-scoreid="{{ player['player']['scoreid'] }}">
 								   <span class="playerpenalty">{{ player['player']['penalty'] }}</span>
 								</td>
 								{% if is_admin and not round['has_scores'] %}
@@ -75,24 +75,6 @@
 										<input type="radio" name="round{{ round['round'] }}-right" class="swapper" value="{{ player['player']['id'] }}"/>
 									</td>
 								{% end %}
-						</tr>
-						<tr class="penaltyEditorHidden" data-scoreid="{{ player['player']['scoreid'] }}">
-						  <td></td>
-						  <td colspan="7">
-						    <table class="penaltyEditor">
-						      <thead>
-							<th>Penalty</th>
-							<th>Description</th>
-							<th>Referee</th>
-							<th>Action</th>
-						      </thead>
-						      <tbody class="penaltyEditorBody">
-							<tr>
-							  <td colspan="4"><input type="button" class="addPenalty" value="Add penalty" /></td>
-							</tr>
-						      </tbody>
-						    </table>
-						  </td>
 						</tr>
 						{% end %}
 					</tbody>

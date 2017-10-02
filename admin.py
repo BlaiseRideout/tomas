@@ -107,7 +107,8 @@ class EditPenaltiesHandler(handler.BaseHandler):
                         (scoreid,));
             penalties = [dict(zip(fields, row)) for row in cur.fetchall()]
         
-        rows = self.render_string("penalties.html", penalties=penalties)
+        rows = self.render_string("penalties.html", penalties=penalties,
+                                  scoreid=scoreid)
         self.write(rows)
 
     @tornado.web.authenticated

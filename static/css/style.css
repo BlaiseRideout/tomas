@@ -132,10 +132,6 @@ button.clearplayercomplete {
     display:inline;
 }
 
-.penaltyEditorHidden {
-    display: none;
-}
-
 .sectionControl {
     height: 1em;
     vertical-align: middle;

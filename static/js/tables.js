@@ -209,7 +209,7 @@ $(function() {
 					console.log(message);
 				}
 				if (data['status'] === 'success') {
-					populatePenaltyEditor.call(penaltyeditor.get());
+					populatePenaltyEditor(penaltyeditor, scoreID);
 					penaltyeditor.find(".penaltyinput").removeClass('bad');
 					penaltyeditor.find(".penaltyinput").addClass('good');
 					player.find(".playerpenalty").text(totalpenalty);
@@ -222,19 +222,20 @@ $(function() {
 			"json");
 	};
 
-	function populatePenaltyEditor() {
-		var penaltyeditor = $(this),
-			scoreid = penaltyeditor.data('scoreid');
+	function populatePenaltyEditor(penaltyeditor, scoreid) {
 		$.get('/penalties/' + scoreid, function(data) {
 			console.log('After fetching /penalties/' + scoreid +
 				' the returned data is:');
 			console.log(data);
-			if (penaltyeditor.find(".penaltyrecord").length > 0) {
-				penaltyeditor.find(".penaltyrecord").replaceWith(data);
+			/* Create a row below the player row if one is not supplied */
+			if (penaltyeditor.length == 0) {
+				var attribute = "[data-scoreid='" + scoreid + "']";
+				penaltyeditor = $(".player" + attribute).after(
+					"<div id='NPE451' data-scoreid='" + scoreid + "'></div>");
+				penaltyeditor = $("#NPE451" + attribute);
 			}
-			else {
-				penaltyeditor.find(".penaltyEditorBody").prepend(data);
-			}
+			penaltyeditor.replaceWith(data);
+
 			penaltyeditor.find(".deletepenalty").click(function() {
 				updatePenaltyRecords($(this).data('penaltyid'));
 			});
@@ -251,12 +252,13 @@ $(function() {
 			'/static/images/open-section-pointer.png'
 		]
 		var player = $(this).parents(".player"),
-			penaltyeditor = player.next(),
-			scoreid = penaltyeditor.data('scoreid'),
+			scoreid = $(this).data('scoreid'),
+			penaltyeditor = $(".penaltyEditor[data-scoreid='" +
+				scoreid + "']"),
 			img = player.find(".sectionControl"),
 			image = img.attr('src');
 		if (image == images[0]) {
-			populatePenaltyEditor.call(penaltyeditor.get());
+			populatePenaltyEditor(penaltyeditor, scoreid);
 			img.attr('src', images[1]);
 			penaltyeditor.show();
 		}
