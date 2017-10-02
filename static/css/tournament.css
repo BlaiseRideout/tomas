@@ -2,3 +2,18 @@
     height: 100%;
     border: 1px solid black;
 }
+
+#tournament > .ui-tabs-panel {
+	width:100%;
+	overflow-x: auto;
+}
+
+#tournament > .ui-tabs-panel > * {
+	margin: 0 auto;
+}
+
+@media (max-width:600px) {
+	.ui-tabs .ui-tabs-panel {
+		padding:0;
+	}
+}

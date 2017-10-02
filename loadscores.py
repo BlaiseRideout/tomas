@@ -9,7 +9,7 @@ import db
 import csv
 import sys
 
-fields = ["GameId", "Round", "PlayerId", "Rank", "RawScore", "Score", "Chombos"]
+fields = ["GameId", "Round", "PlayerId", "Rank", "RawScore", "Score"]
 
 def load_scores(scorefile, headers=False):
     with db.getCur() as cur:

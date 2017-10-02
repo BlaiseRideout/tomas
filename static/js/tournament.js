@@ -240,6 +240,8 @@ $(function() {
 								updatePlayers();
 							else
 								console.log(data);
+							if(data["message"])
+								$.notify(data["message"], data["status"]);
 						}
 					})
 				});

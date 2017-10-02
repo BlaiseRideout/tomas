@@ -15,19 +15,16 @@
     <h1 id="message">{{ error }} {{ name }}</h1>
   {% else %}
     <h1 id="message">{{ name }}</h1>
-    {% if meetupname %}Meetup Name: {{ meetupname }}<br />{% end %}
     <div id="playerstats">
     </div>
     <br />
-    <a class="button" href="/playerhistory/{{ name }}">Game History</a>
-    {% if is_admin %}
-      <form method="post" action="/playerstats/{{ name }}">
-	<input type="text" name="name" value="{{ name }}" />
-	<input type="text" name="meetupname"
-  	       {% if meetupname %}value="{{ meetupname }}"{% end %}
-  	       placeholder="Meetup Name (optional)" />
-	<input type="submit" value="Update Names" />
-      </form>
-    {% end %}
+		{% if history and len(history) > 0 %}
+			<div id="statshistory">
+				<h2>Recently Viewed</h2>
+				{% for item in history %}
+					<a href="/playerstats/{{ item }}">{{ item }}</a><br />
+				{% end %}
+			</div>
+		{% end %}
   {% end %}
 {% end %}

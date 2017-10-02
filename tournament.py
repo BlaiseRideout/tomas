@@ -39,7 +39,7 @@ def getPlayers(self):
             " ORDER BY Players.Name asc")
         rows = [dict(zip(player_fields, row)) for row in cur.fetchall()]
         for row in rows:
-            row['type'] = db.playertypes[int(row['type'])]
+            row['type'] = db.playertypes[int(row['type'] or 0)]
         return {'players':rows, 'editable': editable}
 
 class ShowPlayersHandler(handler.BaseHandler):
@@ -94,6 +94,19 @@ class PlayersHandler(handler.BaseHandler):
                                     " ('\u202Fnewplayer',"
                                     "  (select Id from Countries limit 1))")
                     else:
+                        if colname == "Type":
+                            if val == "2":
+                                cur.execute(
+                                        "UPDATE Players SET Country = (SELECT Id FROM Countries"
+                                        "  WHERE Name = 'Substitute' OR 'Code' = 'SUB' OR IOC_Code = 'SUB')"
+                                        " WHERE Id = ?",
+                                        (player,))
+                            else:
+                                cur.execute(
+                                        "UPDATE Players SET Country = (SELECT Id FROM Countries"
+                                        "  WHERE NOT (Name = 'Substitute' OR 'Code' = 'SUB' OR IOC_Code = 'SUB'))"
+                                        " WHERE Id = ?",
+                                        (player,))
                         cur.execute("UPDATE Players SET {0} = ? WHERE Id = ?"
                                     .format(colname),
                                     (val, player))
@@ -112,21 +125,54 @@ class UploadPlayersHandler(handler.BaseHandler):
         players = self.request.files['file'][0]['body']
         try:
             with db.getCur() as cur:
-                reader = csv.reader(players.decode('utf-8').split("\n"))
+                reader = csv.reader(players.decode('utf-8').splitlines())
+                good = 0
+                bad = 0
                 for row in reader:
-                    if len(row) < 4:
+                    if len(row) < 3:
+                        bad += 1;
                         continue
+                    somefilled = False
+                    for i in range(len(row)):
+                        if row[i] == '':
+                            row[i] = None
+                        else:
+                            somefilled = True
                     name = row[0]
-                    country = row[1]
-                    association = row[3]
+                    number = row[1]
+                    country = row[2]
+                    if (not somefilled or (name.lower() == 'name' and
+                                           number.lower() == 'number')):
+                        if not somefilled:
+                            bad += 1
+                        continue
+                    if len(row) >= 4:
+                        association = row[3]
+                    else:
+                        association = ""
+                    if len(row) >= 5:
+                        pool = row[4]
+                    else:
+                        pool = ""
+                    if len(row) >= 6:
+                        status = row[5] or 0
+                        if status in db.playertypes:
+                            status = db.playertypes.index(status)
+                    else:
+                        status = 0
                     cur.execute(
-                        "INSERT INTO Players(Name, Country, Association)"
-                        " VALUES(?,"
+                        "INSERT INTO Players(Name, Number, Country, Association, Pool, Type)"
+                        " VALUES(?, ?,"
                         "   (SELECT Id FROM Countries"
                         "      WHERE Name = ? OR Code = ? OR IOC_Code = ?),"
-                        "   ?);",
-                        (name, country, country, country, association))
-            return self.write({'status':"success"})
+                        "   ?, ?, ?);",
+                        (name, number, country, country, country, association, pool, status))
+                    good += 1
+            return self.write({'status':"success",
+                               'message':
+                               ("{0} player record(s) loaded, "
+                                "{1} player record(s) skipped").format(
+                                    good, bad)})
         except Exception as e:
             return self.write({'status':"error",
                     'message':"Invalid players file provided: " + str(e)})
@@ -173,12 +219,7 @@ def getSettings(self):
                 }
                 for roundid, ordering, algorithm, seed, cut, softcut, cutsize, duplicates, diversity, usepools, winds, games in cur.fetchall()
             ]
-        cur.execute("SELECT Value FROM GlobalPreferences WHERE Preference = 'CutSize'")
-        cutsize = cur.fetchone()
-        if cutsize is None:
-            cutsize = settings.DEFAULTCUTSIZE
-        else:
-            cutsize = int(cutsize[0])
+        cutsize = settings.DEFAULTCUTSIZE
         return {'rounds':rounds, 'cutsize':cutsize}
     return None
 

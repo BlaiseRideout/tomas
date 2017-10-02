@@ -10,6 +10,7 @@ from operator import itemgetter
 
 import handler
 import settings
+import util
 
 class SeatingAlg():
     name = None
@@ -37,6 +38,8 @@ class Snake(SeatingAlg):
 class StraightAcross(SeatingAlg):
     name = "Straight Across"
     def seat(self, players):
+        if len(players) <= 4:
+            return players
         rowlen = int(len(players) / 4)
         numplayers = rowlen * 4
         players = [players[i:i + rowlen] for i in range(0, numplayers, rowlen)]
@@ -78,6 +81,37 @@ class OrderingsHandler(handler.BaseHandler):
             ]
         ))
 
+def countriesHeuristic(oldheuristic = None, factor = 1):
+    return lambda p1, p2: \
+            (factor if "Country" in p1 and "Country" in p2 and p1["Country"] == p2["Country"] else 0) + (oldheuristic(p1, p2) if oldheuristic is not None else 0)
+
+def duplicatesHeuristic(oldheuristic = None, factor = 1, players = [], round = None):
+    playergames = \
+        (lambda games:
+            lambda p1, p2:
+                games[(p1, p2)] if (p1, p2)  in games else (
+                        games[(p2, p1)] if (p2, p1) in games else 0)
+        )(playerGames(players, round))
+    return (lambda playergames:
+                lambda p1, p2:
+                     (playergames(p1["Id"], p2["Id"]) * factor + (oldheuristic(p1, p2) if oldheuristic is not None else 0))
+            )(playergames)
+
+def duplicateCountHeuristic(oldheuristic = None, factor = 1, players = [], round = None):
+    playergames = \
+        (lambda games:
+            lambda p1, p2:
+                1 if (p1, p2)  in games else (
+                        1 if (p2, p1) in games else 0)
+        )(playerGames(players, round))
+    return (lambda playergames:
+                lambda p1, p2:
+                     (playergames(p1["Id"], p2["Id"]) * factor + (oldheuristic(p1, p2) if oldheuristic is not None else 0))
+            )(playergames)
+
+def noHeuristic():
+    return lambda p1, p2: 0
+
 def getSeating(roundid = None):
     with db.getCur() as cur:
         query = """
@@ -89,10 +123,12 @@ def getSeating(roundid = None):
                  Players.Name,
                  Countries.Code,
                  Countries.Flag_Image,
+                 Players.Country,
+                 Scores.Id,
                  COALESCE(Scores.Rank, 0),
                  COALESCE(Scores.RawScore, 0),
                  COALESCE(Scores.Score, 0),
-                 COALESCE(Scores.Chombos, 0)
+                 COALESCE(PenaltyPoints.sum, 0)
                  FROM Rounds
                  LEFT OUTER JOIN Seating
                    ON Rounds.Id = Seating.Round
@@ -100,6 +136,16 @@ def getSeating(roundid = None):
                    ON Players.Id = Seating.Player
                  LEFT OUTER JOIN Scores
                    ON Rounds.Id = Scores.Round AND Players.Id = Scores.PlayerId
+                 LEFT OUTER JOIN
+                   (SELECT Players.Id, Round, GameId,
+                           COALESCE(SUM(Penalty), 0) as sum
+                      FROM Players
+                        LEFT OUTER JOIN Scores ON Players.Id = Scores.PlayerId
+                        LEFT OUTER JOIN Penalties ON Scores.Id = Penalties.ScoreId
+                        GROUP BY Players.Id, Round, GameId) AS PenaltyPoints
+                   ON Players.Id = PenaltyPoints.Id AND
+                      Scores.Round = PenaltyPoints.Round AND
+                      Scores.GameId = PenaltyPoints.GameId
                  LEFT OUTER JOIN Countries
                    ON Countries.Id = Players.Country
             """
@@ -110,7 +156,8 @@ def getSeating(roundid = None):
         cur.execute(query, bindings)
         rounds = {}
         for row in cur.fetchall():
-            roundID, winds, table, wind, playerid, name, country, flag, rank, rawscore, score, chombos  = row
+            (roundID, winds, table, wind, playerid, name, country, flag, countryid,
+             scoreid, rank, rawscore, score, penalty)  = row
             if roundID is not None:
                 if not roundID in rounds:
                     rounds[roundID] = {
@@ -127,13 +174,14 @@ def getSeating(roundid = None):
                                 "id":playerid,
                                 "name":name,
                                 "country":country,
+                                "countryid":countryid,
                                 "flag":flag,
+                                "scoreid":scoreid,
                                 "rank":rank,
                                 "rawscore":rawscore,
                                 "score": round(score, 1) if isinstance(score, float) else score,
-                                "chombos":chombos
+                                "penalty":penalty
                             }
-        winds = "東南西北"
         rounds = [
                 {
                     'round':      roundID,
@@ -147,7 +195,7 @@ def getSeating(roundid = None):
                                     [
                                         {
                                             'player': name,
-                                            'wind':winds[wind]
+                                            'wind':util.winds[wind]
                                         }
                                         for wind, name in players.items()
                                     ]
@@ -158,8 +206,15 @@ def getSeating(roundid = None):
                 for roundID, tables in rounds.items()
             ]
         for a_round in rounds:
+            players = []
             for table in a_round['tables']:
                 table['total'] = sum([player['player']['rawscore'] for player in table['players']])
+                players += [{
+                    "Id": player['player']['id'],
+                    "Country": player['player']['countryid']
+                } for player in table['players']]
+            a_round['diversityplayers'], a_round['diversity'] = tablesScore(players, countriesHeuristic())
+            a_round['duplicateplayers'], a_round['duplicates'] = tablesScore(players, duplicateCountHeuristic(players = players, round = a_round['round']))
         return rounds
 
 class SeatingCsvHandler(handler.BaseHandler):
@@ -313,19 +368,21 @@ class SeatingHandler(handler.BaseHandler):
                         if len(players) <= cutsize:
                             continue
                         for i in range(0, cutsize if cut else len(players), cutsize):
-                            playerpool = pool + str(i)
+                            playerpool = pool + format(i, '04')
                             if not playerpool in pools:
                                 pools[playerpool] = []
                             if not cut and (i + cutsize * 2 > len(players) and len(players) - (i + cutsize) < cutsize / 2):
                                 pools[playerpool] += players[i:]
                             else:
-                                pools[playerpool] += players[i:cutsize]
+                                pools[playerpool] += players[i:i + cutsize]
 
                 if seed is not None and len(seed) > 0:
                     random.seed(seed)
 
                 players = []
-                for pool in pools.values():
+                pools = list(pools.items())
+                pools.sort(key=itemgetter(0))
+                for pool in map(itemgetter(1), pools):
                     pool = ALGORITHMS[algorithm].seat(pool)
                     poolplayers, status = fixTables(pool, cur, duplicates, diversity, round)
                     players += poolplayers
@@ -358,88 +415,72 @@ class SeatingHandler(handler.BaseHandler):
                 self.write(json.dumps(ret))
 
 def fixTables(players, cur, duplicates, diversity, round):
+    if not diversity and not duplicates:
+        return (players, "")
+
     if diversity:
-        heuristic = lambda p1, p2: \
-                1 if "Country" in p1 and "Country" in p2 and p1["Country"] == p2["Country"] else 0
+        heuristic = countriesHeuristic()
     else:
-        heuristic = lambda p1, p2: 0
+        heuristic = None
 
     if duplicates:
-        playergames = \
-            (lambda games:
-                lambda p1, p2:
-                    games[(p1, p2)] if (p1, p2)  in games else (
-                            games[(p1, p2)] if (p1, p2) in games else 0)
-            )(playerGames(players, cur, round))
-        oldheuristic = heuristic
-        heuristic = \
-                (lambda playergames:
-                    lambda p1, p2:
-                         playergames(p1["Id"], p2["Id"]) * settings.DUPLICATEIMPORTANCE + oldheuristic(p1, p2)
-                )(playergames)
-
-    for i, player in enumerate(players):
-        player["Seat"] = i
+        heuristic = duplicatesHeuristic(heuristic, settings.DUPLICATEIMPORTANCE, players, round)
 
     swaps = 0
     maxswap = 0
     iterations = 0
     while iterations < 5:
-        oldScore = tablesScore(players, heuristic)
         swapsmade, distance = improvePlayers(players, heuristic)
         swaps += swapsmade
         maxswap = max(maxswap, distance)
-        newScore = tablesScore(players, heuristic)
-        if oldScore <= newScore:
-            break
         iterations += 1
+        if swapsmade == 0:
+            break
+
+    score = tablesScore(players, heuristic)[1]
 
     status = "{0} swaps made (max distance {1}) in {3} phases to score {2}".format(
                                     str(swaps),
                                     maxswap,
-                                    newScore,
+                                    score,
                                     iterations)
     return (players, status)
 
 def improvePlayers(players, heuristic):
+    for i, player in enumerate(players):
+        player["Seat"] = i
+
     t = 0
     swaps = 0
     maxswap = 0
-    while t < len(players):
-        table = players[t:t+4]
-        for i in range(len(table)):
-            j = i + 1
-            while j < len(table):
-                if heuristic(table[i], table[j]) > 0:
-                    candidatei = bestSwap(players, heuristic, t, i)
-                    candidatej = bestSwap(players, heuristic, t, j)
 
-                    if candidatei[0] < candidatej[0]:
-                        curPlayer = i
-                        seat2 = candidatei[1]
-                    else:
-                        curPlayer = j
-                        seat2 = candidatej[1]
-                    seat1 = table[curPlayer]["Seat"]
+    violations = tablesScore(players, heuristic, "Seat")[0]
 
-                    players[seat1], players[seat2] = players[seat2], players[seat1]
-                    players[seat1]["Seat"], players[seat2]["Seat"] = seat1, seat2
-                    table = players[t:t+4]
-                    distance = abs(players[seat1]["Rank"] - players[seat2]["Rank"])
-                    maxswap = max(maxswap, distance)
-                    swaps += 1
-                j += 1
-        t += 4
+    while violations:
+        seat1 = violations.pop()
+        seat2 = bestSwap(players, heuristic, seat1)
+        if seat2 is not None:
+            if seat2 in violations:
+                violations.remove(seat2)
+            players[seat1], players[seat2] = players[seat2], players[seat1]
+            distance = abs(players[seat1]["Rank"] - players[seat2]["Rank"])
+            maxswap = max(maxswap, distance)
+            swaps += 1
     return (swaps, maxswap)
 
-def bestSwap(players, heuristic, t, player):
+def bestSwap(players, heuristic, player):
+    toReplace = players[player]
+    oldplayer = player
+
+    t = int(player / 4) * 4
+    player = player - t
+
     table = players[t:t+4]
-    toReplace = table[player]
 
     replacements = players[0:t] + players[t + 4:]
     replacements.sort(key=lambda replacement:abs(replacement["Rank"] - toReplace["Rank"]))
 
-    candidates = []
+    candidates = [(0, None)]
 
     for replacement in replacements:
         distance = abs(replacement["Rank"] - toReplace["Rank"])
@@ -452,53 +493,65 @@ def bestSwap(players, heuristic, t, player):
 
         curTable = table[:]
 
+        oldScore = tableScore(repTable, heuristic)[1] + tableScore(curTable, heuristic)[1]
         curTable[player], repTable[repPlayer] = repTable[repPlayer], curTable[player]
-        newScore = tableScore(repTable, heuristic) + tableScore(curTable, heuristic)
+        newScore = tableScore(repTable, heuristic)[1] + tableScore(curTable, heuristic)[1]
 
-        candidates += [(newScore + distance / settings.MAXSWAPDISTANCE, replacement["Seat"])]
+        candidates += [((newScore - oldScore) + distance / settings.MAXSWAPDISTANCE, replacement["Seat"])]
     candidates.sort(key=itemgetter(0))
 
-    return candidates[0]
+    return candidates[0][1]
 
-def tablesScore(players, heuristic):
+def tablesScore(players, heuristic, viokey = "Id"):
     numplayers = len(players)
-    score = 0
 
+    violations = set()
+    score = 0
     for i in range(0, numplayers, 4):
         table = players[i:i+4]
-        score += tableScore(table, heuristic)
+        violation, s = tableScore(table, heuristic, viokey)
+        score += s
+        violations = violations.union(violation)
 
-    return score
+    return (violations, score)
 
-def tableScore(players, heuristic):
+def tableScore(players, heuristic, viokey = "Id"):
     numplayers = len(players)
 
+    violations = set()
     score = 0
     for i in range(numplayers):
         for j in range(i + 1, numplayers):
-            score += heuristic(players[i], players[j])
-    return score
+            violation = heuristic(players[i], players[j])
+            score += violation
+            if violation:
+                violations.add(players[i][viokey])
+                violations.add(players[j][viokey])
 
-def playerGames(players, c, round = None):
+    return (violations, score)
+
+def playerGames(players, round = None):
     numplayers = len(players)
 
     playergames = dict()
 
     query = """
         SELECT COUNT(*) FROM Scores
-        WHERE PlayerId = ? AND GameId IN (
-            SELECT GameId FROM Scores WHERE PlayerId = ?
-          )
+        INNER JOIN Scores AS Scores2 ON
+        Scores.GameId = Scores2.GameId AND
+        Scores.Round = Scores2.Round
+        WHERE Scores.PlayerId = ? AND Scores2.PlayerId = ?
         """
     gbindings = []
     if round is not None:
-        query += " AND Round < ?"
+        query += " AND Scores.Round < ?"
         gbindings += [round]
-    for i in range(numplayers):
-        for j in range(i + 1, numplayers):
-            bindings = [players[i]['Id'], players[j]['Id']]
-            games = c.execute(query, bindings + gbindings).fetchone()[0]
-            if games != 0:
-                playergames[(players[i]['Id'], players[j]['Id'])] = games
+    with db.getCur() as c:
+        for i in range(numplayers):
+            for j in range(i + 1, numplayers):
+                bindings = [players[i]['Id'], players[j]['Id']]
+                games = c.execute(query, bindings + gbindings).fetchone()[0]
+                if games != 0:
+                    playergames[(players[i]['Id'], players[j]['Id'])] = games
 
     return playergames

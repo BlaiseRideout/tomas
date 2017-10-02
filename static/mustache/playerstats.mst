@@ -1,0 +1,62 @@
+{{ #playerstats }}
+  <br />
+  <div class="playerstatperiod">
+      <h2>{{ name }}</h2>
+      <table>
+	  <tr><th></th>      <th>Min</th>            <th>Max</th></tr>
+		{{ #showstats }}
+			<tr><td>Games</td>      <td colspan="2">{{ numgames }}</td></tr>
+		{{ /showstats }}
+	  <tr><td>Score</td> <td>{{ minscore }}</td> <td>{{ maxscore }}</td></tr>
+	  <tr><td>Avg Score</td>     <td colspan="2">{{ avgscore }}</td></tr>
+	  <tr><td>Rank</td>  <td>{{ minrank }}</td> <td>{{ maxrank }}</td></tr>
+	  <tr><td>Avg Rank</td>      <td colspan="2">{{ avgrank }}</td></tr>
+		{{ #showstats }}
+			<tr><td><div class="pielegendbox">
+					<table class="rankpielegend">
+					</table></div>
+			</td>
+			<td colspan="2"><div class="piechartbox">
+					<svg class=""rankpiechart"> Browser does not support inline SVG
+					</svg></div>
+			</td>
+			</tr>
+		{{ /showstats }}
+      </table>
+  </div>
+{{ /playerstats }}
+{{ #playergames }}
+	<div class="game">
+		<h2>Round {{ round }} Scores</h2>
+		<table>
+			<tr><th>Rank</th><th>Name</th><th colspan="2">Country</th><th>Score</th></tr>
+			{{ #scores }}
+				<tr>
+					<td>{{ rank }}</td>
+					<td><a href="/playerstats/{{ name }}">{{ name }}</a></td>
+					<td>{{ country }}</td>
+					<td>{{{ flag }}}</td>
+					<td>{{ score }}</td>
+				</tr>
+			{{ /scores}}
+	</table>
+	</div>
+{{ /playergames }}
+{{ #futuregames }}
+	<div class="game">
+		<h2>Round {{ round }} Seating</h2>
+		<table>
+			<tr>
+				<th {{ #showwinds }}colspan="4"{{ /showwinds }}{{ ^showwinds }}colspan="3"{{ /showwinds }}>Table {{ table }}</th>
+			</tr>
+			{{ #seating }}
+				<tr>
+					{{ #showwinds }}<td>{{ wind }}</td>{{ /showwinds }}
+					<td><a href="/playerstats/{{ name }}">{{ name }}</a></td>
+					<td>{{ country }}</td>
+					<td>{{{ flag }}}</td>
+				</tr>
+			{{ /seating }}
+		</table>
+	</div>
+{{ /futuregames }}

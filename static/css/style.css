@@ -49,7 +49,7 @@ h1 {
 	margin:1em;
 }
 
-a {
+a, .ui-widget-content a {
 	text-decoration:none;
 	font-weight:bold;
 	color:inherit;
@@ -130,6 +130,16 @@ button.clearplayercomplete {
 
 .actionbutton {
     display:inline;
+}
+
+.penaltyEditorHidden {
+    display: none;
+}
+
+.sectionControl {
+    height: 1em;
+    vertical-align: middle;
+    margin-bottom: 0.2em;
 }
 
 #tables > .table{
