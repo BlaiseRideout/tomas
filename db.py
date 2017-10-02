@@ -348,15 +348,15 @@ def updateGame(scores):
                         "message":"Scores do not add up to {0}".format(
                             len(scores) * pointsPerPlayer)}
 
-            cur.execute("DELETE FROM Scores WHERE GameId = ? and Round = ?",
-                        (gameID, roundID))
-            fields = ['roundid', 'gameid', 'playerid', 'rank', 'rawscore',
-                      'score']
+            identifiers = ['roundid', 'gameid', 'playerid']
+            fields = ['rank', 'rawscore', 'score']
             cur.executemany(
-                "INSERT INTO Scores"
-                " (Round, GameId, PlayerId, Rank, RawScore, Score)"
-                " VALUES (?, ?, ?, ?, ?, ?)",
-                map(lambda score: [score[f] for f in fields], scores))
+                    "INSERT OR IGNORE INTO Scores (Round, GameId, PlayerId) VALUES (?, ?, ?)",
+                    map(lambda score: [score[f] for f in identifiers], scores))
+            cur.executemany(
+                "UPDATE Scores SET Rank = ?, RawScore = ?, Score = ?"
+                " WHERE Round = ? AND GameId = ? AND PlayerId = ?",
+                map(lambda score: [score[f] for f in fields] + [score[f] for f in identifiers], scores))
     except Exception as e:
         return {"status":"error",
                 "message": "Error during database update of scores, {0}".format(e)}
@@ -400,7 +400,7 @@ def updatePenalties(scoreID, penalties):
                                     field)
             if len(message) > 0:
                 return {"status": "error", "message": message}
-            
+
             cur.execute("DELETE FROM Penalties WHERE ScoreId = ?", (scoreID,))
             fields = ['scoreID', 'penalty', 'description', 'referee']
             cur.executemany(
