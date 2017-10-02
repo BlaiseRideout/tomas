@@ -136,15 +136,15 @@ def getSeating(roundid = None):
                    ON Players.Id = Seating.Player
                  LEFT OUTER JOIN Scores
                    ON Rounds.Id = Scores.Round AND Players.Id = Scores.PlayerId
-                 LEFT OUTER JOIN 
-                   (SELECT Players.Id, Round, GameId, 
+                 LEFT OUTER JOIN
+                   (SELECT Players.Id, Round, GameId,
                            COALESCE(SUM(Penalty), 0) as sum
                       FROM Players
                         LEFT OUTER JOIN Scores ON Players.Id = Scores.PlayerId
                         LEFT OUTER JOIN Penalties ON Scores.Id = Penalties.ScoreId
                         GROUP BY Players.Id, Round, GameId) AS PenaltyPoints
                    ON Players.Id = PenaltyPoints.Id AND
-                      Scores.Round = PenaltyPoints.Round AND 
+                      Scores.Round = PenaltyPoints.Round AND
                       Scores.GameId = PenaltyPoints.GameId
                  LEFT OUTER JOIN Countries
                    ON Countries.Id = Players.Country
@@ -368,7 +368,7 @@ class SeatingHandler(handler.BaseHandler):
                         if len(players) <= cutsize:
                             continue
                         for i in range(0, cutsize if cut else len(players), cutsize):
-                            playerpool = pool + str(i)
+                            playerpool = pool + format(i, '04')
                             if not playerpool in pools:
                                 pools[playerpool] = []
                             if not cut and (i + cutsize * 2 > len(players) and len(players) - (i + cutsize) < cutsize / 2):
@@ -380,7 +380,9 @@ class SeatingHandler(handler.BaseHandler):
                     random.seed(seed)
 
                 players = []
-                for pool in pools.values():
+                pools = list(pools.items())
+                pools.sort(key=itemgetter(0))
+                for pool in map(itemgetter(1), pools):
                     pool = ALGORITHMS[algorithm].seat(pool)
                     poolplayers, status = fixTables(pool, cur, duplicates, diversity, round)
                     players += poolplayers
