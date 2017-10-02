@@ -25,7 +25,7 @@ player_fields = ["id", "name", "number", "country", "countryid", "flag_image",
 
 def getPlayers(self):
     global player_fields
-    editable = self.current_user is not None
+    editable = self.get_is_admin()
     with db.getCur() as cur:
         cur.execute(
             "SELECT Players.Id, Players.Name, Number, Countries.Code,"
