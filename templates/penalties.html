@@ -6,7 +6,7 @@
 	<th>Penalty</th>
 	<th>Description</th>
 	<th>Referee</th>
-	<th>Action</th>
+	<th>{% if current_user %} Action {% end %}</th>
       </thead>
       <tbody class="penaltyEditorBody">
 	{% for penalty in penalties %}
@@ -43,10 +43,12 @@
 	  </td>
 	</tr>
 	{% end %}
+	{% if current_user %}
 	<tr>
 	  <td colspan="4"><input type="button" class="addPenalty"
 				 value="Add penalty" /></td>
 	</tr>
+	{% end %}
       </tbody>
     </table>
   </td>
