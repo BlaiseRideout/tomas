@@ -32,7 +32,7 @@ class BaseHandler(tornado.web.RequestHandler):
 def is_admin(func):
     def func_wrapper(self, *args, **kwargs):
         if not self.get_is_admin():
-            self.render("message.html", 
+            self.render("message.html",
                         message = "You must be admin to do that")
         else:
             func(self, *args, **kwargs)
@@ -42,7 +42,7 @@ def is_admin(func):
 def is_admin_ajax(func):
     def func_wrapper(self, *args, **kwargs):
         if not self.get_is_admin():
-            self.write('{"status":1, "error":"You must be admin to do that"}')
+            self.write('{"status":"error", "message":"You must be admin to do that"}')
         else:
             func(self, *args, **kwargs)
 
