@@ -150,8 +150,124 @@ $(function() {
 					}
 				}, "json");
 		}
+	};
+
+	function updatePenaltyField(ev) {
+		var penalty = $(this).parents(".penaltyrecord"),
+			penaltyid = penalty.data("penaltyid"),
+			colname = $(this).data("colname");
+		if (ev && 'type' in ev && ev.type == 'keyup' &&
+			$(this).attr('type') == 'number' &&
+			!valueChangingKeys[ev.key]) {
+			console.log('Ignoring ' + ev.type + ' event: ' + ev.key)
+			return;
+		};
+		console.log('Penalty ' + penaltyid + ' update of ' + colname + ' to ' + $(this).val());
+		updatePenaltyRecords();
+	};
+
+	function updatePenaltyRecords(deleteID) {
+		/* deleteID can be penalty record ID to delete it,
+		   or '-1' to add a new record */
+
+		var player = $(this).parents(".player"),
+			penaltyeditor = player.next(),
+			penalties = [],
+			totalpenalty = 0,
+			scoreID = penaltyeditor.data('scoreid');
+		penaltyeditor.find(".penaltyrecord").each(function() {
+			if ($(this).data('penaltyid') != deleteID) {
+				var penalty = parseInt($(this).find("input.penaltyamout").val());
+				penalties = penalties.concat({
+					'foo': scoreID,
+					'scoreID': scoreID,
+					'penalty': penalty,
+					'description': $(this).find("input.penaltydescription").val(),
+					'referee': $(this).find("input.penaltyreferee").val(),
+				});
+				totalpenalty += penalty;
+			}
+		});
+		if (deleteID == '-1') {
+			penalties = penalties.concat({
+				'foo': scoreID,
+				'scoreID': scoreID,
+				'penalty': -1,
+				'description': ' ',
+				'referee': ''
+			});
+			totalpenalty -= 1;
+		};
+		$.post('/penalties', {
+				'foo': scoreID,
+				'scoreID': scoreID,
+				'penalties': JSON.stringify(penalties)
+			},
+			function(data) {
+				if (data["message"]) {
+					$.notify(data["message"], data["status"]);
+					console.log(message);
+				}
+				if (data['status'] === 'success') {
+					populatePenaltyEditor.call(penaltyeditor.get());
+					penaltyeditor.find(".penaltyinput").removeClass('bad');
+					penaltyeditor.find(".penaltyinput").addClass('good');
+					player.find(".playerpenalty").text(totalpenalty);
+				}
+				else {
+					penaltyeditor.find(".penaltyinput").removeClass('good');
+					penaltyeditor.find(".penaltyinput").addClass('bad');
+				}
+			},
+			"json");
+	};
+
+	function populatePenaltyEditor() {
+		var penaltyeditor = $(this),
+			scoreid = penaltyeditor.data('scoreid');
+		$.get('/penalties/' + scoreid, function(data) {
+			console.log('After fetching /penalties/' + scoreid +
+				' the returned data is:');
+			console.log(data);
+			if (penaltyeditor.find(".penaltyrecord").length > 0) {
+				penaltyeditor.find(".penaltyrecord").replaceWith(data);
+			}
+			else {
+				penaltyeditor.find(".penaltyEditorBody").prepend(data);
+			}
+			penaltyeditor.find(".deletepenalty").click(function() {
+				updatePenaltyRecords($(this).data('penaltyid'));
+			});
+			penaltyeditor.find(".addPenalty").click(function() {
+				updatePenaltyRecords('-1');
+			});
+			penaltyeditor.find(".penaltyfield").change(updatePenaltyField)
+				.keyup(updatePenaltyField);
+		});
 	}
+
+	function togglePenaltyEditor() {
+		var images = ['/static/images/closed-section-pointer.png',
+			'/static/images/open-section-pointer.png'
+		]
+		var player = $(this).parents(".player"),
+			penaltyeditor = player.next(),
+			scoreid = penaltyeditor.data('scoreid'),
+			img = player.find(".sectionControl"),
+			image = img.attr('src');
+		if (image == images[0]) {
+			populatePenaltyEditor.call(penaltyeditor.get());
+			img.attr('src', images[1]);
+			penaltyeditor.show();
+		}
+		else {
+			img.attr('src', images[0]);
+			penaltyeditor.hide();
+		}
+	};
+
 	$(".playerscore").change(scoreChange).keyup(scoreChange);
+	$(".sectionControl").click(togglePenaltyEditor);
 	$("input.swapper").change(function() {
 		var round = $(this).parents(".round");
 		var roundid = $(round).data("round");

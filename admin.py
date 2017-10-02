@@ -99,11 +99,21 @@ class EditGameHandler(handler.BaseHandler):
         self.write(json.dumps(db.updateGame(scores)))
 
 class EditPenaltiesHandler(handler.BaseHandler):
+    def get(self, scoreid):
+        with db.getCur() as cur:
+            fields = ["id", "penalty", "description", "referee"]
+            cur.execute("SELECT {0} FROM Penalties WHERE ScoreId = ?".format(
+                ", ".join(fields)),
+                        (scoreid,));
+            penalties = [dict(zip(fields, row)) for row in cur.fetchall()]
+        
+        rows = self.render_string("penalties.html", penalties=penalties)
+        self.write(rows)
+
     @tornado.web.authenticated
     def post(self):
-        penalties = self.get_argument('penalties', None)
-        penalties = json.loads(penalties)
-        self.write(json.dumps(db.updatePenalties(penalties['scoreid'],
-                                                 penalties['penalties'])))
+        scoreID = self.get_argument('scoreID', None)
+        penalties = json.loads(self.get_argument('penalties', None))
+        self.write(json.dumps(db.updatePenalties(scoreID, penalties)))
 
 

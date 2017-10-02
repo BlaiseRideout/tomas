@@ -375,14 +375,14 @@ def updatePenalties(scoreID, penalties):
                 return {"status":1,
                         "error":"Score ID {0} not in Scores".format(scoreID)}
             for penalty in penalties:
-                if penalty['scoreid'] != scoreID:
+                if str(penalty['scoreID']) != str(scoreID):
                     return {"status":"error",
                             "message": "All penalties must be for a single player score record"}
                 if penalty['penalty'] > 0:
                     return {"status":"error",
                             "message": "All penalties must be negative integers"}
             cur.execute("DELETE FROM Penalties WHERE ScoreId = ?", (scoreID,))
-            fields = ['scoreid', 'penalty', 'description', 'refereee']
+            fields = ['scoreID', 'penalty', 'description', 'referee']
             cur.executemany(
                 "INSERT INTO Penalties"
                 " (ScoreId, Penalty, Description, Referee)"
