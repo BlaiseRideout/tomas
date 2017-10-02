@@ -64,9 +64,11 @@
 								<td class="rank">{{ player['player']['rank'] }}</td>
 								<td class="score">{{ player['player']['score'] }}</td>
 								<td class="penalty">
-								  {% if player['player']['scoreid'] and (current_user or player['player']['penalty'] != 0) %}
-								  <span class="sectionControl" data-scoreid="{{ player['player']['scoreid'] }}">&#9654;</span>
-								  {% end %}
+								  <span class="sectionControl" data-scoreid="{{ player['player']['scoreid'] }}">
+								    {% if player['player']['scoreid'] and (current_user or player['player']['penalty'] != 0) %}
+								    &#9654;
+								    {% end %}
+								  </span>
 								   <span class="playerpenalty">{{ player['player']['penalty'] }}</span>
 								</td>
 								{% if is_admin and not round['has_scores'] %}

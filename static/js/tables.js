@@ -147,6 +147,9 @@ $(function() {
 					if (data['status'] === 'success') {
 						$(table).parents(".round").find(".genround").remove();
 						$(table).parents(".round").find(".swapper").remove();
+						/* TODO: Populate score IDs and
+						   enable penalty editor for new
+						   score entries */
 					}
 				}, "json");
 		}
@@ -252,14 +255,15 @@ $(function() {
 		});
 	}
 
+	var glyphs = ['▶', '▼', '&#9654;', '&#9660;'];
+
 	function togglePenaltyEditor() {
-		var glyphs = ['▶', '▼', '&#9654;', '&#9660;']
 		var player = $(this).parents(".player"),
 			scoreid = $(this).data('scoreid'),
 			penaltyeditor = $(".penaltyEditor[data-scoreid='" +
 				scoreid + "']"),
 			control = player.find(".sectionControl"),
-			glyph = control.html(),
+			glyph = control.html().trim(),
 			index = $.inArray(glyph, glyphs);
 		if (index < 0) {
 			$.notify("Unexpected character in section control",
