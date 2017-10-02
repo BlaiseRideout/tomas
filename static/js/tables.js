@@ -155,6 +155,7 @@ $(function() {
 	function updatePenaltyField(ev) {
 		var penalty = $(this).parents(".penaltyrecord"),
 			penaltyid = penalty.data("penaltyid"),
+			scoreID = penalty.parents(".penaltyEditor").data("scoreid"),
 			colname = $(this).data("colname");
 		if (ev && 'type' in ev && ev.type == 'keyup' &&
 			$(this).attr('type') == 'number' &&
@@ -162,87 +163,96 @@ $(function() {
 			console.log('Ignoring ' + ev.type + ' event: ' + ev.key)
 			return;
 		};
-		console.log('Penalty ' + penaltyid + ' update of ' + colname + ' to ' + $(this).val());
-		updatePenaltyRecords();
+		console.log('Penalty ' + penaltyid + ' for score ' + scoreID +
+			' update of ' + colname + ' to ' + $(this).val());
+		updatePenaltyRecords(null, scoreID, false);
 	};
 
-	function updatePenaltyRecords(deleteID) {
-		/* deleteID can be penalty record ID to delete it,
+	function updatePenaltyRecords(deleteID, scoreID, reload) {
+		/* deleteID can be a penalty record ID to delete it,
 		   or '-1' to add a new record */
 
-		var player = $(this).parents(".player"),
-			penaltyeditor = player.next(),
+		if (reload === undefined) {
+			reload = true
+		};
+		var attribute = "[data-scoreid='" + scoreID + "']",
+			player = $(".player" + attribute),
+			penaltyeditor = $(".penaltyEditor" + attribute),
 			penalties = [],
-			totalpenalty = 0,
-			scoreID = penaltyeditor.data('scoreid');
+			totalpenalty = 0;
 		penaltyeditor.find(".penaltyrecord").each(function() {
 			if ($(this).data('penaltyid') != deleteID) {
-				var penalty = parseInt($(this).find("input.penaltyamout").val());
-				penalties = penalties.concat({
-					'foo': scoreID,
-					'scoreID': scoreID,
-					'penalty': penalty,
-					'description': $(this).find("input.penaltydescription").val(),
-					'referee': $(this).find("input.penaltyreferee").val(),
+				var rec = {
+					'scoreID': scoreID
+				};
+				$(this).find(".penaltyfield").each(function() {
+					rec[$(this).data('colname')] = $(this).val();
+					if ($(this).attr('type') == 'number') {
+						rec[$(this).data('colname')] = parseInt($(this).val());
+					}
 				});
-				totalpenalty += penalty;
+				penalties = penalties.concat(rec);
+				totalpenalty += rec['penalty'];
 			}
 		});
 		if (deleteID == '-1') {
 			penalties = penalties.concat({
-				'foo': scoreID,
 				'scoreID': scoreID,
 				'penalty': -1,
-				'description': ' ',
+				'description': '',
 				'referee': ''
 			});
 			totalpenalty -= 1;
+			reload = true;
 		};
 		$.post('/penalties', {
-				'foo': scoreID,
 				'scoreID': scoreID,
 				'penalties': JSON.stringify(penalties)
 			},
 			function(data) {
 				if (data["message"]) {
 					$.notify(data["message"], data["status"]);
-					console.log(message);
+					console.log(data["message"]);
 				}
 				if (data['status'] === 'success') {
-					populatePenaltyEditor(penaltyeditor, scoreID);
-					penaltyeditor.find(".penaltyinput").removeClass('bad');
-					penaltyeditor.find(".penaltyinput").addClass('good');
+					if (reload) {
+						populatePenaltyEditor(penaltyeditor, scoreID);
+						penaltyeditor = $(".penaltyEditor" + attribute)
+					}
+					penaltyeditor.find(".penaltyfield").removeClass('bad');
+					penaltyeditor.find(".penaltyfield").addClass('good');
 					player.find(".playerpenalty").text(totalpenalty);
 				}
 				else {
-					penaltyeditor.find(".penaltyinput").removeClass('good');
-					penaltyeditor.find(".penaltyinput").addClass('bad');
+					penaltyeditor.find(".penaltyfield").removeClass('good');
+					penaltyeditor.find(".penaltyfield").addClass('bad');
 				}
 			},
 			"json");
 	};
 
-	function populatePenaltyEditor(penaltyeditor, scoreid) {
-		$.get('/penalties/' + scoreid, function(data) {
-			console.log('After fetching /penalties/' + scoreid +
+	function populatePenaltyEditor(penaltyeditor, scoreID) {
+		$.get('/penalties/' + scoreID, function(data) {
+			console.log('After fetching /penalties/' + scoreID +
 				' the returned data is:');
 			console.log(data);
 			/* Create a row below the player row if one is not supplied */
 			if (penaltyeditor.length == 0) {
-				var attribute = "[data-scoreid='" + scoreid + "']";
+				var attribute = "[data-scoreid='" + scoreID + "']";
 				penaltyeditor = $(".player" + attribute).after(
-					"<div id='NPE451' data-scoreid='" + scoreid + "'></div>");
+					"<div id='NPE451' data-scoreid='" + scoreID + "'></div>");
 				penaltyeditor = $("#NPE451" + attribute);
 			}
 			penaltyeditor.replaceWith(data);
 
-			penaltyeditor.find(".deletepenalty").click(function() {
-				updatePenaltyRecords($(this).data('penaltyid'));
+			$(".deletepenalty").click(function() {
+				updatePenaltyRecords($(this).data('penaltyid'),
+					scoreID);
 			});
-			penaltyeditor.find(".addPenalty").click(function() {
-				updatePenaltyRecords('-1');
+			$(".addPenalty").click(function() {
+				updatePenaltyRecords('-1', scoreID);
 			});
-			penaltyeditor.find(".penaltyfield").change(updatePenaltyField)
+			$(".penaltyfield").change(updatePenaltyField)
 				.keyup(updatePenaltyField);
 		});
 	}

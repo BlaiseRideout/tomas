@@ -363,8 +363,19 @@ def updateGame(scores):
 
     return {"status": "success"}
 
+penalty_fields = ['penalty', 'description', 'referee']
+
+valid = {
+    'all': re.compile(r'^[\w\s():,.\'+\u202F-]*$'),
+    'description': re.compile(r'^[\w\s():,.\'+\u202F-]*$'),
+    'penalty': re.compile(r'^-?\d*$'),
+    'name': re.compile(r'^[\w\s():,.\'+\u202F-]*$'),
+    'number': re.compile(r'^\d*$'),
+}
 
 def updatePenalties(scoreID, penalties):
+    global penalty_fields
+    global valid
     if penalties is None:
         return {"status":"error", "message":"Please enter a list of penalties"}
 
@@ -372,15 +383,24 @@ def updatePenalties(scoreID, penalties):
         with getCur() as cur:
             cur.execute("SELECT Id from Scores WHERE Id = ?", (scoreID,))
             if cur.fetchone() is None:
-                return {"status":1,
-                        "error":"Score ID {0} not in Scores".format(scoreID)}
+                return {"status": "error",
+                        "message":"Score ID {0} not in Scores".format(scoreID)}
+            message = ''
             for penalty in penalties:
                 if str(penalty['scoreID']) != str(scoreID):
                     return {"status":"error",
                             "message": "All penalties must be for a single player score record"}
                 if penalty['penalty'] > 0:
-                    return {"status":"error",
-                            "message": "All penalties must be negative integers"}
+                    message += ' All penalties must be negative integers.'
+                for field, val in penalty.items():
+                    if field not in penalty_fields or not isinstance(val, str):
+                        continue
+                    if not valid[field if field in valid else 'all'].match(val):
+                        message += " Invalid entry for {0} field.".format(
+                                    field)
+            if len(message) > 0:
+                return {"status": "error", "message": message}
+            
             cur.execute("DELETE FROM Penalties WHERE ScoreId = ?", (scoreID,))
             fields = ['scoreID', 'penalty', 'description', 'referee']
             cur.executemany(
