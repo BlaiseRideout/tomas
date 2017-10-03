@@ -1,4 +1,4 @@
-html, body, #tournament > ul {
+html, body, #tournament > ul, #seating > ul {
 	background:#111;
 	color:#eee;
 }
