@@ -95,14 +95,17 @@ class SetupHandler(handler.BaseHandler):
                             "VALUES (?, LOWER(?), ?)",
                             (code, email, expiration_date().isoformat()))
 
-            util.sendEmail(email, "Your {0} Account".format(settings.TOURNAMENTNAME),
-                           format_invite(settings.TOURNAMENTNAME, self.request.host,
-                                         code))
+                if len(settings.EMAILPASSWORD) > 0:
+                    util.sendEmail(email, "Your {0} Account".format(settings.TOURNAMENTNAME),
+                                   format_invite(settings.TOURNAMENTNAME, self.request.host,
+                                                 code))
 
-            self.render("message.html",
-                        message = "Invite sent. It will expire in {0} days."
-                        .format(settings.LINKVALIDDAYS),
-                        title = "Invite")
+                    self.render("message.html",
+                                message = "Invite sent. It will expire in {0} days."
+                                .format(settings.LINKVALIDDAYS),
+                                title = "Invite")
+                else:
+                    self.redirect("/verify/{0}".format(code))
 
 class VerifyHandler(handler.BaseHandler):
 	def get(self, q):
