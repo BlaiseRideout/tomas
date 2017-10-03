@@ -75,14 +75,14 @@ class PlayersHandler(handler.BaseHandler):
             return self.write({'status':"error", 'message':"Please provide an info object"})
         info = json.loads(info)
         try:
+            fields = []
             with db.getCur() as cur:
                 for colname, val in info.items():
                     col = colname.lower()
                     if not (col in player_fields and
                             (db.valid[col if col in db.valid else 'all'].match(
                                 val))):
-                        return self.write({'status':"error",
-                             'message':"Invalid column or value provided"})
+                        fields.append(col)
                     if player == '-1':
                         cur.execute("INSERT INTO Players (Name, Country) VALUES"
                                     " ('\u202Fnewplayer',"
@@ -104,6 +104,12 @@ class PlayersHandler(handler.BaseHandler):
                         cur.execute("UPDATE Players SET {0} = ? WHERE Id = ?"
                                     .format(colname),
                                     (val, player))
+            if len(fields) > 0:
+                return self.write(
+                    {'status':"error",
+                     'message': 
+                     "Invalid column(s) or value provided: {0}".format(
+                         ", ".join(fields))})
             return self.write({'status':"success"})
         except:
             return self.write({'status':"error",

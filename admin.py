@@ -11,12 +11,6 @@ import login
 
 user_fields = ["id", "email", "password", "admin"]
 
-valid = {
-    'all': re.compile(r'^[\w\s():,.\'+-\u202F]*$'),
-    'email': re.compile(r'^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]+$', re.IGNORECASE),
-    'admin': re.compile(r'^(0|1|Y|N|YES|NO)$')
-}
-
 class ManageUsersHandler(handler.BaseHandler):
     @handler.is_admin
     def get(self):
@@ -34,7 +28,6 @@ class ManageUsersHandler(handler.BaseHandler):
     @handler.is_admin_ajax
     def post(self):
         global user_fields
-        global valid
         user = self.get_argument("user", None)
         if user is None or not (user.isdigit() or user == "-1"):
             return self.write(json.dumps(
@@ -60,8 +53,8 @@ class ManageUsersHandler(handler.BaseHandler):
                     col = colname.lower()
                     if not col in ('del', 'reset') and not (
                             col in user_fields and
-                            (valid[col].match(val) if col in valid else
-                             valid['all'].match(val))):
+                            (db.valid[col].match(val) if col in db.valid else
+                             db.valid['all'].match(val))):
                         return self.write(json.dumps(
                             {'status':"error",
                              'message':"Invalid column or value provided"}))

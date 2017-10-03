@@ -174,7 +174,7 @@ $(function() {
 					input.removeClass("good");
 					input.addClass("bad");
 				}
-				if(data["message"])
+				if (data["message"])
 					$.notify(data["message"], data["status"]);
 			}.bind(this), "json")
 	};
@@ -182,7 +182,7 @@ $(function() {
 		$.post("/players", {
 				'player': '-1',
 				'info': JSON.stringify({
-					'name': '?'
+					'name': ' '
 				})
 			},
 			function(data) {
@@ -194,7 +194,7 @@ $(function() {
 				else {
 					console.log(data);
 				}
-				if(data["message"])
+				if (data["message"])
 					$.notify(data["message"], data["status"]);
 			}, "json");
 	};
@@ -230,17 +230,17 @@ $(function() {
 				$(picker).change(function() {
 					var data = new FormData(form);
 					$.ajax({
-						'url':'/uploadplayers',
-						'data':data,
-						'type':'POST',
-						'contentType':false,
-						'processData':false,
-						success:function(data) {
-							if(data["status"] === "success")
+						'url': '/uploadplayers',
+						'data': data,
+						'type': 'POST',
+						'contentType': false,
+						'processData': false,
+						success: function(data) {
+							if (data["status"] === "success")
 								updatePlayers();
 							else
 								console.log(data);
-							if(data["message"])
+							if (data["message"])
 								$.notify(data["message"], data["status"]);
 						}
 					})
@@ -256,7 +256,7 @@ $(function() {
 						updatePlayers();
 					else
 						console.log(data);
-					if(data["message"])
+					if (data["message"])
 						$.notify(data["message"], data["status"]);
 				}, "json");
 			});
@@ -269,7 +269,7 @@ $(function() {
 						updatePlayers();
 					else
 						console.log(data);
-					if(data["message"])
+					if (data["message"])
 						$.notify(data["message"], data["status"]);
 				}, "json");
 			});
@@ -352,7 +352,7 @@ $(function() {
 					input.removeClass("good");
 					input.addClass("bad");
 				}
-				if(data["message"])
+				if (data["message"])
 					$.notify(data["message"], data["status"]);
 			}, "json")
 	};
@@ -379,7 +379,7 @@ $(function() {
 			else {
 				console.log(data);
 			}
-			if(data["message"])
+			if (data["message"])
 				$.notify(data["message"], data["status"]);
 		}, "json");
 	};

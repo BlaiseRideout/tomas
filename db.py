@@ -357,11 +357,15 @@ def updateGame(scores):
                 "UPDATE Scores SET Rank = ?, RawScore = ?, Score = ?"
                 " WHERE Round = ? AND GameId = ? AND PlayerId = ?",
                 map(lambda score: [score[f] for f in fields] + [score[f] for f in identifiers], scores))
+            cur.execute("SELECT Id, PlayerId FROM Scores"
+                        " WHERE Round = ? AND GameId = ?",
+                        (roundID, gameID))
+            IDpairs = cur.fetchall()
     except Exception as e:
         return {"status":"error",
                 "message": "Error during database update of scores, {0}".format(e)}
 
-    return {"status": "success"}
+    return {"status": "success", "IDpairs": IDpairs}
 
 penalty_fields = ['penalty', 'description', 'referee']
 
@@ -371,6 +375,8 @@ valid = {
     'penalty': re.compile(r'^-?\d*$'),
     'name': re.compile(r'^[\w\s():,.\'+\u202F-]*$'),
     'number': re.compile(r'^\d*$'),
+    'email': re.compile(r'^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]+$', re.IGNORECASE),
+    'admin': re.compile(r'^(0|1|Y|N|YES|NO)$')
 }
 
 def updatePenalties(scoreID, penalties):
