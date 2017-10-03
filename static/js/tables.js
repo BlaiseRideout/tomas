@@ -147,9 +147,20 @@ $(function() {
 					if (data['status'] === 'success') {
 						$(table).parents(".round").find(".genround").remove();
 						$(table).parents(".round").find(".swapper").remove();
-						/* TODO: Populate score IDs and
-						   enable penalty editor for new
-						   score entries */
+						if (data['IDpairs']) {
+							$.each(data['IDpairs'],
+								function(i, IDs) {
+									$(table).find(".player[data-playerid='" + IDs[1] + "']")
+										.attr("data-scoreid", IDs[0])
+										.find(".sectionControl")
+										.attr("data-scoreid", IDs[0])
+										.each(function() {
+											if ($(this).html().trim().length == 0) {
+												$(this).html(glyphs[0]);
+											}
+										});
+								});
+						}
 					}
 				}, "json");
 		}
