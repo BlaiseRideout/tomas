@@ -3,6 +3,7 @@
 import json
 import csv
 import re
+import io
 
 import tornado.web
 import handler
@@ -107,13 +108,32 @@ class PlayersHandler(handler.BaseHandler):
             if len(fields) > 0:
                 return self.write(
                     {'status':"error",
-                     'message': 
+                     'message':
                      "Invalid column(s) or value provided: {0}".format(
                          ", ".join(fields))})
             return self.write({'status':"success"})
         except:
             return self.write({'status':"error",
                  'message':"Invalid info provided"})
+
+class DownloadPlayersHandler(handler.BaseHandler):
+    def get(self):
+        with db.getCur() as cur:
+            cur.execute(
+                "SELECT Players.Name, Number, Countries.Code, Association, Pool, Type"
+                " FROM Players "
+                " LEFT OUTER JOIN Countries ON Countries.Id = Players.Country")
+            cols = ["Name", "Number", "Country", "Association", "Pool", "Type"]
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow(cols)
+            for row in cur.fetchall():
+                row = list(row)
+                row[-1] = db.playertypes[row[-1]]
+                writer.writerow(row)
+            self.set_header("Content-Type", "text/csv")
+            return self.write(output.getvalue())
+
 
 class UploadPlayersHandler(handler.BaseHandler):
     @handler.is_admin_ajax

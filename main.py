@@ -59,6 +59,7 @@ class Application(tornado.web.Application):
                 (r"/", tournament.TournamentHandler),
                 (r"/players", tournament.PlayersHandler),
                 (r"/uploadplayers", tournament.UploadPlayersHandler),
+                (r"/players.csv", tournament.DownloadPlayersHandler),
                 (r"/deleteplayer", tournament.DeletePlayerHandler),
                 (r"/players.html", tournament.ShowPlayersHandler),
                 (r"/users", admin.ManageUsersHandler),
