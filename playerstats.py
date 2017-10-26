@@ -66,9 +66,9 @@ class PlayerStatsDataHandler(handler.BaseHandler):
                     "  ON Players.Id = Scores2.PlayerId"
                     " JOIN Countries"
                     "  ON Players.Country = Countries.Id"
-                    " WHERE Scores.PlayerId = ?"
+                    " WHERE Scores.PlayerId = ? AND Scores2.PlayerId != ?"
                     " ORDER BY Scores2.Round, Scores2.Rank",
-                    (playerID,)
+                    (playerID, db.getUnusedPointsPlayerID())
                 )
             cols = ['rank', 'score', 'name', 'country', 'flag']
             playergames = []

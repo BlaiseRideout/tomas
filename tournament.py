@@ -33,7 +33,9 @@ def getPlayers(self):
             " Countries.Id, Flag_Image, Association, Pool, Type"
             " FROM Players LEFT OUTER JOIN Countries"
             "   ON Countries.Id = Players.Country"
-            " ORDER BY Players.Name asc")
+            " WHERE Players.Type != ?"
+            " ORDER BY Players.Name asc", 
+            (db.playertypes.index('UnusedPoints'),))
         rows = [dict(zip(player_fields, row)) for row in cur.fetchall()]
         for row in rows:
             row['type'] = db.playertypes[int(row['type'] or 0)]

@@ -27,6 +27,7 @@ def leaderData():
                         GROUP BY Players.Id) AS PenaltyPoints
          ON Players.Id = PenaltyPoints.Id
        LEFT JOIN Countries ON Players.Country = Countries.Id
+       WHERE Players.Type != ?
        GROUP BY Players.Id
        ORDER BY Type ASC, GamesPlayed DESC, Total DESC;"""
     fields = ['name', 'country', 'flag_image', 'type', 'games_played',
@@ -34,7 +35,7 @@ def leaderData():
     with db.getCur() as cur:
         leaderboard = []
         last_total = None
-        cur.execute(query)
+        cur.execute(query, (db.playertypes.index('UnusedPoints'),))
         for i, row in enumerate(cur.fetchall()):
             rec = dict(zip(fields, row))
             rec['type'] = db.playertypes[int(rec['type'] or 0)]
@@ -68,6 +69,7 @@ class ScoreboardHandler(handler.BaseHandler):
            LEFT JOIN Players ON Scores.PlayerId = Players.Id
            LEFT JOIN Countries ON Players.Country = Countries.Id
            LEFT OUTER JOIN Penalties ON Scores.Id = Penalties.ScoreId
+           WHERE Players.Type != ?
            GROUP BY Scores.Id
            ORDER BY Type ASC, Players.Name ASC
         """
@@ -76,7 +78,7 @@ class ScoreboardHandler(handler.BaseHandler):
         with db.getCur() as cur:
             scoreboard = {}
             rounds = []
-            cur.execute(query)
+            cur.execute(query, (db.playertypes.index('UnusedPoints'),))
             for i, row in enumerate(cur.fetchall()):
                 rec = dict(zip(fields, row))
                 if rec['round'] not in rounds:
