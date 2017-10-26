@@ -8,6 +8,7 @@ import handler
 import db
 import util
 import login
+import settings
 
 user_fields = ["id", "email", "password", "admin"]
 
@@ -51,6 +52,8 @@ class ManageUsersHandler(handler.BaseHandler):
                     user = str(cur.lastrowid)
                 for colname, val in info.items():
                     col = colname.lower()
+                    if isinstance(val, str):
+                        val = val.lower()
                     if not col in ('del', 'reset') and not (
                             col in user_fields and
                             (db.valid[col].match(val) if col in db.valid else
@@ -60,7 +63,7 @@ class ManageUsersHandler(handler.BaseHandler):
                              'message':"Invalid column or value provided"}))
                     if col == 'admin':
                         cur.execute("DELETE from Admins WHERE Id = ?", (user,))
-                        if val.lower().startswith('y') or val == '1':
+                        if val.startswith('y') or val == '1':
                             cur.execute("INSERT INTO Admins (Id) VALUES (?)",
                                         (user,))
                     elif col == 'del':
@@ -91,6 +94,44 @@ class EditGameHandler(handler.BaseHandler):
         scores = json.loads(scores)
         self.write(json.dumps(db.updateGame(scores)))
 
+class EditUnusedPointsHandler(handler.BaseHandler):
+    @tornado.web.authenticated
+    def get(self, tableID, roundID):
+        rows = ""
+        with db.getCur() as cur:
+            cur.execute("SELECT Id FROM Rounds WHERE Id = ?", (roundID,))
+            rounds = cur.fetchall()
+            cur.execute("SELECT DISTINCT TableNum FROM Seating"
+                        " WHERE Round = ? AND TableNum = ?",
+                        (roundID, tableID))
+            tables = cur.fetchall()
+            if len(rounds) != 1 or len(tables) != 1:
+                rows = ("<p>Table not uniquely specified"
+                        " ({0} tables, {1} rounds)</p>").format(
+                            len(tables), len(rounds))
+            else:
+                fields = ["id", "rawscore"]
+                cur.execute("SELECT {0} FROM Scores"
+                            " WHERE PlayerId = ? AND Round = ? AND GameId = ?"
+                            .format(", ".join(fields)),
+                            (db.getUnusedPointsPlayerID(), roundID, tableID));
+                scores = cur.fetchall()
+                if len(scores) > 1:
+                    rows = "<p>Internal error: multiple unused point scores</p>"
+                else:
+                    if len(scores) == 0:
+                        cur.execute(
+                            "INSERT INTO Scores"
+                            " (GameId, Round, PlayerId, RawScore)"
+                            " VALUES (?, ?, ?, ?)",
+                            (tableID, roundID, db.getUnusedPointsPlayerID(), 0))
+                        scores = [(str(cur.lastrowid), 0)]
+                    rows = self.render_string(
+                        "unusedpoints.html",
+                        unusedPoints=dict(zip(fields, scores[0])),
+                        unusedPointsIncrement=settings.UNUSEDPOINTSINCREMENT)
+        self.write(rows)
+        
 class EditPenaltiesHandler(handler.BaseHandler):
     def get(self, scoreid):
         with db.getCur() as cur:

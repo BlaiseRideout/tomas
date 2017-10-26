@@ -26,6 +26,10 @@ LINKVALIDDAYS = 7
 #   STATSHISTORYSIZE is the number of players who will be displayed
 #   in the "Recently Viewed" section of the player stats page
 STATSHISTORYSIZE = 10
+#   UNUSEDPOINTSINCREMENT is smallest amount of points that can be marked
+#   as unused at the end of game.  The unused points must be a multiple of
+#   this increment, typically 1000 for a riichi bet.
+UNUSEDPOINTSINCREMENT = 1000
 
 # EMAIL
 #   These settings are for the outbound email server that sends invites

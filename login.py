@@ -270,7 +270,7 @@ class LoginHandler(handler.BaseHandler):
         uri = self.get_argument('next', '/')
 
         if not email or not password or email == "" or password == "":
-            self.render("login.html",
+            self.render("login.html", uri = uri,
                         message = "Please enter an email and password",
                         tournamentname=settings.TOURNAMENTNAME)
             return

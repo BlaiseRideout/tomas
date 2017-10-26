@@ -122,7 +122,7 @@ schema = collections.OrderedDict({
 })
 
 # Decode table for Players.Type values
-playertypes = ['', 'Inactive', 'Substitute']
+playertypes = ['', 'Inactive', 'Substitute', 'UnusedPoints']
 
 def init(force=False):
     warnings.filterwarnings('ignore', r'Table \'[^\']*\' already exists')
@@ -309,6 +309,30 @@ def field_spec_matches_pragma(field_spec, pragma_rec):
                 1 if 'PRIMARY' in spec and 'KEY' in spec else 0))
     )
 
+_unusedPointsPlayer = None
+unusedPointsPlayerName = '!#*UnusedPointsPlayer*#!'
+
+def getUnusedPointsPlayerID():
+    """ Get the ID of the Players table entry that records unused points in
+    games.  If an entry doesn't exist, create one."""
+    global _unusedPointsPlayer, unusedPointsPlayerName, playertypes
+    if _unusedPointsPlayer:
+        return _unusedPointsPlayer
+    with getCur() as cur:
+        cur.execute("SELECT Id from Players WHERE Name = ? AND Type = ?",
+                    (unusedPointsPlayerName, playertypes.index('UnusedPoints')))
+        result = cur.fetchall()
+        if len(result) > 1:
+            raise Exception("More than 1 player defined for unused points")
+        elif len(result) == 1:
+            _unusedPointsPlayer = result[0][0]
+        else:
+            cur.execute(
+                "INSERT INTO Players (Name, Type) VALUES (?, ?)",
+                (unusedPointsPlayerName, playertypes.index('UnusedPoints')))
+            _unusedPointsPlayer = cur.lastrowid
+    return _unusedPointsPlayer
+
 pointsPerPlayer = 30000
 
 def updateGame(scores):
@@ -323,6 +347,7 @@ def updateGame(scores):
             total = 0
             gameID = None
             roundID = None
+            unusedPointsIncluded = False
             for score in scores:
                 total += score['rawscore']
 
@@ -342,11 +367,18 @@ def updateGame(scores):
                     return {"status":"error",
                             "message": "Inconsistent round IDs"}
                 roundID = score['roundid']
-
-            if total != len(scores) * pointsPerPlayer:
+                if score['playerid'] == getUnusedPointsPlayerID():
+                    unusedPointsIncluded = True
+                    if len(scores) == 4:
+                        return {"status":"error",
+                                "message":"Unused points can only be 5th score"}
+            if len(scores) == 5 and not unusedPointsIncluded:
+                return {"status":"error",
+                        "message":"Only 4 scores can be submitted per game"}
+            if total != 4 * pointsPerPlayer:
                 return {"status":"error",
                         "message":"Scores do not add up to {0}".format(
-                            len(scores) * pointsPerPlayer)}
+                            4 * pointsPerPlayer)}
 
             identifiers = ['roundid', 'gameid', 'playerid']
             fields = ['rank', 'rawscore', 'score']
