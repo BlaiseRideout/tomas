@@ -389,6 +389,14 @@ def updateGame(scores):
                 "UPDATE Scores SET Rank = ?, RawScore = ?, Score = ?"
                 " WHERE Round = ? AND GameId = ? AND PlayerId = ?",
                 map(lambda score: [score[f] for f in fields] + [score[f] for f in identifiers], scores))
+            # If unused points is edited to be 0, remove the score record so
+            # it won't show up in the display
+            if unusedPointsIncluded and 0 in [
+                    score['rawscore'] for score in scores
+                    if score['playerid'] == getUnusedPointsPlayerID()]:
+                cur.execute("DELETE FROM Scores"
+                            " WHERE Round = ? AND GameId = ? AND PlayerId = ?",
+                        (roundID, gameID, getUnusedPointsPlayerID()))
             cur.execute("SELECT Id, PlayerId FROM Scores"
                         " WHERE Round = ? AND GameId = ?",
                         (roundID, gameID))

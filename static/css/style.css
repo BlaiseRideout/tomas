@@ -156,6 +156,9 @@ button.clearplayercomplete {
 .table > div > .windicator {
 	float:left;
 }
+.unusedPointsEditor[data-scoreid=""] {
+    display:none;
+}
 @media (max-width:600px) {
 	#tables > .table {
 		width:100%;

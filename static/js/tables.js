@@ -77,55 +77,76 @@ $(function() {
 			console.log('Ignoring ' + ev.type + ' event: ' + ev.key)
 			return;
 		};
-		var score = $(this).val();
-		var player = $(this).parents(".player");
-		var table = player.parents(".table");
-		var tabletotal = table.prev("thead").find(".tabletotal");
-		var scores = table.find(".playerscore");
-		var total = 0,
+		var score = $(this).val(),
+			player = $(this).parents(".player"),
+			table = $(this).parents(".table"),
+			tabletotal = table.prev("thead").find(".tabletotal"),
+			scores = table.find(".playerscore, .unusedpointsfield"),
+			highlightfields = table.find(".playerscore, .playerpenalty, .unusedPointsEditor, .unusedpointsfield"),
+			unusedpointsrow = table.find(".unusedPointsEditor"),
+			total = 0,
+			unusedpoints = 0,
 			partial = false,
 			umas = [15, 5, -5, -15];
 		scores.each(function(i, elem) {
 			var val = parseInt($(elem).val());
 			total += val;
+			if ($(elem).hasClass('unusedpointsfield')) {
+				unusedpoints = val
+			};
 			partial = partial || (val % 100 != 0);
 		});
 		tabletotal.text("TOTAL " + total);
 		partial = partial || !(total == totalPoints || total == 0);
 		newstate = partial ? "bad" : "good";
 		delstate = partial ? "good" : "bad";
-		table.find(".playerscore, .playerpenalty").removeClass(delstate);
-		table.find(".playerscore, .playerpenalty").addClass(newstate);
+		highlightfields.removeClass(delstate);
+		highlightfields.addClass(newstate);
 		tabletotal.removeClass(delstate);
 		tabletotal.addClass(newstate);
+		if (partial || unusedpoints > 0) {
+			unusedpointsrow.show();
+		}
+		else {
+			unusedpointsrow.hide();
+		}
 		if (total == totalPoints && !partial) {
 			var tablescore = [];
-			table.find(".player").each(function() {
+			table.find(".player, .unusedpointsfield").each(function() {
+				var UPfield = $(this).hasClass('unusedpointsfield')
 				tablescore = tablescore.concat({
 					'gameid': table.data("tableid"),
 					'roundid': table.data("roundid"),
 					'playerid': $(this).data("playerid"),
-					'rawscore': parseInt($(this).find(".playerscore").val()),
+					'unusedpoints': UPfield ? 1 : 0,
+					'rawscore': parseInt(UPfield ? $(this).val() : $(this).find(".playerscore").val()),
 					'penalty': parseInt($(this).find(".playerpenalty").text()),
-					'rank': $(this).find(".rank"),
+					'rank': UPfield ? null : $(this).find(".rank"),
 					'score': $(this).find(".score")
 				});
 			});
 			tablescore.sort(function(ra, rb) {
-				/* Sort by raw score; ignore penalties for rank */
-				return rb['rawscore'] - ra['rawscore'];
+				/* Sort by used/unused points then raw score; ignore penalties for rank */
+				if (rb['unusedpoints'] == ra['unusedpoints']) {
+					return rb['rawscore'] - ra['rawscore']
+				}
+				else {
+					return ra['unusedpoints'] - rb['unusedpoints']
+				}
 			});
 			var lastscore = NaN,
 				lastrank = 0,
 				rankhist = histogram();
 			for (var j = 0; j < tablescore.length; j++) {
-				var rank = tablescore[j]['rawscore'] != lastscore ?
-					j + 1 : lastrank;
-				rankhist.increment(rank);
-				lastscore = tablescore[j]['rawscore'];
-				lastrank = rank;
-				tablescore[j]['rank'].text(rank);
-				tablescore[j]['rank'] = rank;
+				if (tablescore[j]['unusedpoints'] == 0) {
+					var rank = tablescore[j]['rawscore'] != lastscore ?
+						j + 1 : lastrank;
+					rankhist.increment(rank);
+					lastscore = tablescore[j]['rawscore'];
+					lastrank = rank;
+					tablescore[j]['rank'].text(rank);
+					tablescore[j]['rank'] = rank;
+				}
 			};
 			for (var j = 0; j < tablescore.length; j++) {
 				var rank = tablescore[j]['rank'],
@@ -291,7 +312,7 @@ $(function() {
 		}
 	};
 
-	$(".playerscore").change(scoreChange).keyup(scoreChange);
+	$(".playerscore, .unusedpointsfield").change(scoreChange).keyup(scoreChange);
 	$(".sectionControl").click(togglePenaltyEditor);
 	$("input.swapper").change(function() {
 		var round = $(this).parents(".round");

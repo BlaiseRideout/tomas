@@ -82,7 +82,6 @@ class Application(tornado.web.Application):
                 (r"/scores", admin.EditGameHandler),
                 (r"/penalties", admin.EditPenaltiesHandler),
                 (r"/penalties/(\d+)", admin.EditPenaltiesHandler),
-                (r"/unusedpoints/(\d+)/(\d+)", admin.EditUnusedPointsHandler),
                 (r"/setup", login.SetupHandler),
                 (r"/login", login.LoginHandler),
                 (r"/logout", login.LogoutHandler),

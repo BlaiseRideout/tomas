@@ -5,8 +5,8 @@ import tornado.web
 import db
 import random
 import datetime
-import math
 from operator import itemgetter
+import pprint
 
 import handler
 import settings
@@ -136,6 +136,7 @@ def getSeating(roundid = None):
                    ON Players.Id = Seating.Player
                  LEFT OUTER JOIN Scores
                    ON Rounds.Id = Scores.Round AND Players.Id = Scores.PlayerId
+                      AND Seating.TableNum = Scores.GameID 
                  LEFT OUTER JOIN
                    (SELECT Players.Id, Round, GameId,
                            COALESCE(SUM(Penalty), 0) as sum
@@ -167,26 +168,35 @@ def getSeating(roundid = None):
                             }
                 if table is not None:
                     if not table in rounds[roundID]['tables']:
-                        rounds[roundID]['tables'][table] = {}
+                        rounds[roundID]['tables'][table] = {
+                            'unusedPoints': {'scoreid': '', 'rawscore': 0}
+                        }
                     if wind is not None and name is not None:
                         rounds[roundID]['has_scores'] |= rawscore > 0
-                        rounds[roundID]['tables'][table][wind] = {
-                                "id":playerid,
-                                "name":name,
-                                "country":country,
-                                "countryid":countryid,
-                                "flag":flag,
-                                "scoreid":scoreid,
-                                "rank":rank,
-                                "rawscore":rawscore,
-                                "score": round(score, 1) if isinstance(score, float) else score,
-                                "penalty":penalty
-                            }
+                    rounds[roundID]['tables'][table][wind] = {
+                        "id":playerid,
+                        "name":name,
+                        "country":country,
+                        "countryid":countryid,
+                        "flag":flag,
+                        "scoreid":scoreid,
+                        "rank":rank,
+                        "rawscore":rawscore,
+                        "score": round(score, 1) if isinstance(score, float) else score,
+                        "penalty":penalty
+                    }
+        cur.execute("SELECT Id, Round, GameId, RawScore FROM Scores"
+                    " WHERE PlayerId = ?",
+                    (db.getUnusedPointsPlayerID(),))
+        for Id, Round, GameId, RawScore in cur.fetchall():
+            rounds[Round]['tables'][GameId]['unusedPoints'] = {
+                'scoreid': Id, 'rawscore': RawScore}
+
         rounds = [
                 {
                     'round':      roundID,
-                    'winds':      tables['winds'],
-                    'has_scores': rounds[roundID]['has_scores'],
+                    'winds':      rounddict['winds'],
+                    'has_scores': rounddict['has_scores'],
                     'tables':
                         [
                             {
@@ -198,17 +208,21 @@ def getSeating(roundid = None):
                                             'wind':util.winds[wind]
                                         }
                                         for wind, name in players.items()
-                                    ]
+                                        if isinstance(wind, int)
+                                    ],
+                                'unusedPoints': players['unusedPoints']
                             }
-                            for table, players in tables['tables'].items() if len(players) == 4
+                            for table, players in rounddict['tables'].items() if len(players) == 5
                         ]
                 }
-                for roundID, tables in rounds.items()
+                for roundID, rounddict in rounds.items()
             ]
         for a_round in rounds:
             players = []
             for table in a_round['tables']:
-                table['total'] = sum([player['player']['rawscore'] for player in table['players']])
+                table['total'] = (table['unusedPoints']['rawscore'] +
+                                  sum([player['player']['rawscore']
+                                       for player in table['players']]))
                 players += [{
                     "Id": player['player']['id'],
                     "Country": player['player']['countryid']
@@ -232,7 +246,9 @@ class SeatingCsvHandler(handler.BaseHandler):
 
 class ShowSeatingHandler(handler.BaseHandler):
     def get(self):
-        return self.render("tables.html", rounds = getSeating())
+        return self.render("tables.html", rounds = getSeating(),
+                           unusedPointsIncrement=settings.UNUSEDPOINTSINCREMENT,
+                           unusedPointsPlayerID=db.getUnusedPointsPlayerID())
 
 class SwapSeatingHandler(handler.BaseHandler):
     @handler.is_admin_ajax

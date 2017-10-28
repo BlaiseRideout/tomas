@@ -81,6 +81,23 @@
 								{% end %}
 						</tr>
 						{% end %}
+						<tr class="unusedPointsEditor"
+						    data-scoreid="{{ table['unusedPoints']['scoreid'] }}">
+						  <td></td>
+						  <td colspan="3">Unused Points</td>
+						  <td colspan="4">
+						    {% if current_user %}
+						    <input type="number" 
+							   class="unusedpointsfield"
+							   data-playerid="{{ unusedPointsPlayerID }}"
+							   step="{{ unusedPointsIncrement }}" 
+							   min="0"
+							   value="{{ table['unusedPoints']['rawscore'] }}"/>
+						    {% else %}
+						    {{ table['unusedPoints']['rawscore'] }}
+						    {% end %}
+						  </td>
+						</tr>
 					</tbody>
 				{% end %}
 			</table>
