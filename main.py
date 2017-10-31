@@ -68,6 +68,7 @@ class Application(tornado.web.Application):
                 (r"/settings", tournament.SettingsHandler),
                 (r"/settings.html", tournament.ShowSettingsHandler),
                 (r"/countries", tournament.CountriesHandler),
+                (r"/associations", tournament.AssociationsHandler),
                 (r"/algorithms", seating.AlgorithmsHandler),
                 (r"/orderings", seating.OrderingsHandler),
                 (r"/seating", seating.SeatingHandler),

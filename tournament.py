@@ -273,3 +273,11 @@ class CountriesHandler(handler.BaseHandler):
         with db.getCur() as cur:
             cur.execute("SELECT Id, Name, Code, IOC_Code, IOC_Name, Flag_Image FROM Countries")
             return self.write(json.dumps([{'Id': row[0], 'Name': row[1], 'Code': row[2], 'IOC_Code': row[3], 'IOC_Name': row[4], 'Flag_Image': row[5]} for row in cur.fetchall()]))
+
+class AssociationsHandler(handler.BaseHandler):
+    def get(self):
+        with db.getCur() as cur:
+            cur.execute("SELECT DISTINCT Association FROM Players"
+                        " WHERE Association IS NOT null"
+                        "       AND length(Association) > 0")
+            return self.write(json.dumps([row[0] for row in cur.fetchall()]))

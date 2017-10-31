@@ -247,6 +247,7 @@ $(function() {
 				});
 			});
 			$(".playerfield").change(updatePlayer).keyup(updatePlayer);
+			populateAssociationComplete(true);
 			$(".addplayerbutton").click(addNewPlayer);
 			$("#clearplayers").click(function() {
 				$.post("/deleteplayer", {
@@ -436,4 +437,21 @@ $(function() {
 		if (typeof callback === 'function')
 			callback();
 	}
+	var associations = null;
+
+	function getAssociations() {
+		$.getJSON('/associations', function(data) {
+			associations = data;
+			populateAssociationComplete();
+		}).fail(window.xhrError);
+	}
+	populateAssociationComplete = function(force) {
+		if (associations === null || force)
+			return getAssociations();
+		$("input[data-colname='Association']").autocomplete({
+			source: associations,
+			minLength: 1
+		});
+	}
+
 });
