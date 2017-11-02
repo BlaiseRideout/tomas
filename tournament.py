@@ -22,7 +22,7 @@ class TournamentHandler(handler.BaseHandler):
                            tournamentname=settings.TOURNAMENTNAME)
 
 player_fields = ["id", "name", "number", "country", "countryid", "flag_image",
-                 "association", "pool", "type"]
+                 "association", "pool", "type", "wheel"]
 
 def getPlayers(self):
     global player_fields
@@ -30,11 +30,11 @@ def getPlayers(self):
     with db.getCur() as cur:
         cur.execute(
             "SELECT Players.Id, Players.Name, Number, Countries.Code,"
-            " Countries.Id, Flag_Image, Association, Pool, Type"
+            " Countries.Id, Flag_Image, Association, Pool, Type, Wheel"
             " FROM Players LEFT OUTER JOIN Countries"
             "   ON Countries.Id = Players.Country"
             " WHERE Players.Type != ?"
-            " ORDER BY Players.Name asc", 
+            " ORDER BY Players.Name asc",
             (db.playertypes.index('UnusedPoints'),))
         rows = [dict(zip(player_fields, row)) for row in cur.fetchall()]
         for row in rows:
@@ -122,10 +122,10 @@ class DownloadPlayersHandler(handler.BaseHandler):
     def get(self):
         with db.getCur() as cur:
             cur.execute(
-                "SELECT Players.Name, Number, Countries.Code, Association, Pool, Type"
+                "SELECT Players.Name, Number, Countries.Code, Association, Pool, Type, Wheel"
                 " FROM Players "
                 " LEFT OUTER JOIN Countries ON Countries.Id = Players.Country")
-            cols = ["Name", "Number", "Country", "Association", "Pool", "Type"]
+            cols = ["Name", "Number", "Country", "Association", "Pool", "Type", "Wheel"]
             output = io.StringIO()
             writer = csv.writer(output)
             writer.writerow(cols)
@@ -180,13 +180,17 @@ class UploadPlayersHandler(handler.BaseHandler):
                             status = db.playertypes.index(status)
                     else:
                         status = 0
+                    if len(row) >= 7:
+                        wheel = row[6]
+                    else:
+                        wheel = 0
                     cur.execute(
-                        "INSERT INTO Players(Name, Number, Country, Association, Pool, Type)"
+                        "INSERT INTO Players(Name, Number, Country, Association, Pool, Type, Wheel)"
                         " VALUES(?, ?,"
                         "   (SELECT Id FROM Countries"
                         "      WHERE Name = ? OR Code = ? OR IOC_Code = ?),"
-                        "   ?, ?, ?);",
-                        (name, number, country, country, country, association, pool, status))
+                        "   ?, ?, ?, ?);",
+                        (name, number, country, country, country, association, pool, status, wheel))
                     good += 1
             return self.write({'status':"success",
                                'message':
