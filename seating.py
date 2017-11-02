@@ -14,19 +14,19 @@ import util
 
 class SeatingAlg():
     name = None
-    def seat(self, players):
+    def seat(self, players, round = 1):
         return players
 
 class Random(SeatingAlg):
     name = "Random"
-    def seat(self, players):
+    def seat(self, players, round = 1):
         players = players[:]
         random.shuffle(players)
         return players
 
 class Snake(SeatingAlg):
     name = "Snake"
-    def seat(self, players):
+    def seat(self, players, round = 1):
         rowlen = int(len(players) / 4)
         numplayers = rowlen * 4
         players = [players[i:i + rowlen] for i in range(0, numplayers, rowlen)]
@@ -37,7 +37,7 @@ class Snake(SeatingAlg):
 
 class StraightAcross(SeatingAlg):
     name = "Straight Across"
-    def seat(self, players):
+    def seat(self, players, round = 1):
         if len(players) <= 4:
             return players
         rowlen = int(len(players) / 4)
@@ -45,16 +45,31 @@ class StraightAcross(SeatingAlg):
         players = [players[i:i + rowlen] for i in range(0, numplayers, rowlen)]
         return list(sum(zip(*players), ()))
 
+class Wheel(SeatingAlg):
+    name = "Wheel"
+    def seat(self, players, round = 1):
+        if len(players) <= 4:
+            return players
+        wheellen = int(len(players) / 4)
+        numplayers = wheellen * 4
+        players = [players[i:i + wheellen] for i in range(0, numplayers, wheellen)]
+        offset = (round - 1) % wheellen
+        for i in range(len(players)):
+            players[i] = players[i][offset * i:] + players[i][0:offset * i]
+        return list(sum(zip(*players), ()))
+
 ALGORITHMS = [
     Random(),
     Snake(),
-    StraightAcross()
+    StraightAcross(),
+    Wheel()
 ]
 
 ORDERINGS = [
     ("Number", "ORDER BY Players.Number ASC"),
     ("Score", "ORDER BY NetScore DESC"),
-    ("Rank", "ORDER BY LastRank ASC, NetScore DESC")
+    ("Rank", "ORDER BY LastRank ASC, NetScore DESC"),
+    ("Wheel", "ORDER BY Players.Wheel ASC, Players.Number ASC, NetScore DESC")
 ]
 
 class AlgorithmsHandler(handler.BaseHandler):
@@ -136,7 +151,7 @@ def getSeating(roundid = None):
                    ON Players.Id = Seating.Player
                  LEFT OUTER JOIN Scores
                    ON Rounds.Id = Scores.Round AND Players.Id = Scores.PlayerId
-                      AND Seating.TableNum = Scores.GameID 
+                      AND Seating.TableNum = Scores.GameID
                  LEFT OUTER JOIN
                    (SELECT Players.Id, Round, GameId,
                            COALESCE(SUM(Penalty), 0) as sum
@@ -399,7 +414,7 @@ class SeatingHandler(handler.BaseHandler):
                 pools = list(pools.items())
                 pools.sort(key=itemgetter(0))
                 for pool in map(itemgetter(1), pools):
-                    pool = ALGORITHMS[algorithm].seat(pool)
+                    pool = ALGORITHMS[algorithm].seat(pool, round)
                     poolplayers, status = fixTables(pool, cur, duplicates, diversity, round)
                     players += poolplayers
 
