@@ -131,7 +131,7 @@ class DownloadPlayersHandler(handler.BaseHandler):
             writer.writerow(cols)
             for row in cur.fetchall():
                 row = list(row)
-                row[-1] = db.playertypes[row[-1]]
+                row[5] = db.playertypes[row[5]]
                 writer.writerow(row)
             self.set_header("Content-Type", "text/csv")
             return self.write(output.getvalue())
