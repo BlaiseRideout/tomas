@@ -354,11 +354,13 @@ def updateGame(scores):
 
                 for table, id in [('Players', 'playerid'),
                                   ('Rounds', 'roundid')]:
+                    if score['playerid'] == getUnusedPointsPlayerID():
+                        continue
                     cur.execute("SELECT Id from {0} WHERE Id = ?".format(table),
                                 (score[id],))
                     if cur.fetchone() is None:
-                        return {"status":1,
-                                "error":"ID {0} not in {1}".format(
+                        return {"status":"error",
+                                "message":"ID {0} not in {1}".format(
                                     score[id], table)}
                 if gameID is not None and gameID != score['gameid']:
                     return {"status":"error",
@@ -406,7 +408,7 @@ def updateGame(scores):
         return {"status":"error",
                 "message": "Error during database update of scores, {0}".format(e)}
 
-    return {"status": "success", "IDpairs": IDpairs}
+    return {"status": "success", "IDpairs": IDpairs, "message":"Updated game scores"}
 
 penalty_fields = ['penalty', 'description', 'referee']
 
