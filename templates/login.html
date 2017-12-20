@@ -10,7 +10,7 @@
 		{% end %}
 	{% except %}{% end %}
 
-	<form action="/login" method="post">
+	<form action="login" method="post">
 		{% if uri %}
 			<input type="hidden" name="next" value="{{ uri }}" />
 		{% end %}
@@ -20,5 +20,5 @@
 
 		<input type="submit" value="Login"/>
 	</form>
-	<a href="/reset">Reset my password</a>
+	<a href="reset">Reset my password</a>
 {% end %}

@@ -1,7 +1,7 @@
 {{ #editable }}
 	<button id="uploadplayers">Upload players CSV</button>
 	<button id="clearplayers">Clear Players</button><br />
-	<a href="/players.csv">Download players CSV</a>
+	<a href="players.csv">Download players CSV</a>
 {{ /editable }}
 <table>
     <tr>

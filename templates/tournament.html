@@ -7,16 +7,16 @@
 <div id="tournament">
 	{% if no_user %}
 		<p>It appears you've no users. Would you like to create one?</p>
-		<a class="button" href="/setup">SETUP</a>
+		<a class="button" href="setup">SETUP</a>
 	{% end %}
 	<ul>
-		<li><a href="/leaderboard.html">Standings</a></li>
-		<li><a href="/scoreboard">Scores</a></li>
-		<li><a href="/seating.html">Seating</a></li>
+		<li><a href="leaderboard.html">Standings</a></li>
+		<li><a href="scoreboard">Scores</a></li>
+		<li><a href="seating.html">Seating</a></li>
 		<li data-id="players"><a href="#players">Players</a></li>
 	  {% if is_admin %}
 		<li data-id="users"><a href="#users">Users</a></li>
-		<li><a href="/settings.html">Settings</a></li>
+		<li><a href="settings.html">Settings</a></li>
 	  {% end %}
 	</ul>
 	<div id="players">

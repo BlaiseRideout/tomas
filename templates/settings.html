@@ -4,7 +4,7 @@
 
 {% block content %}
 	<h1>User Settings</h1>
-	<form action="/settings" method="post" id="settingsform">
+	<form action="settings" method="post" id="settingsform">
 		<label for="email">Email: </label>
 		<input id="email" name="email" type="text" value="{{ email }}" />
 		<label for="stylesheet">Stylesheet: </label>
@@ -14,6 +14,6 @@
 			{% end %}
 		</select>
 		<input type="submit" value="Update"/>
-		<a href="/reset">Reset password</a>
+		<a href="reset">Reset password</a>
 	</form>
 {% end %}
