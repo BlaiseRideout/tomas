@@ -44,7 +44,7 @@ class PreferencesHandler(handler.BaseHandler):
             self.render("message.html",
                         message="Please pick a stylesheet and enter a valid email",
                         title="Preference Errors",
-                        next="Preferences", next_url="/preferences")
+                        next="Preferences", next_url="preferences")
         else:
             with db.getCur() as cur:
                 cur.execute(
@@ -63,4 +63,4 @@ class PreferencesHandler(handler.BaseHandler):
             self.render("message.html",
                         message="",
                         title="Preferences Updated",
-                        next="Preferences", next_url="/preferences")
+                        next="Preferences", next_url="preferences")

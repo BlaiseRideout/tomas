@@ -39,13 +39,13 @@
 	    <img src="{{ static_url("images/seattle_richi_mahjong_club_logo.jpeg") }}"
 		 class="sitelogo" alt="Logo"></a>
 	  <div id="navbar">
-			<a href="/">Home</a>
+			<a href="../">Home</a>
 			{% if not current_user %}
-				<a href="/login?next={{ request.uri }}">Login</a>
+				<a href="login?next={{ request.uri }}">Login</a>
 			{% else %}
-				<a href="/preferences">Preferences</a>
-				<a href="/invite">Invite</a>
-				<a href="/logout?next={{ request.uri }}">Logout</a>
+				<a href="preferences">Preferences</a>
+				<a href="invite">Invite</a>
+				<a href="logout?next={{ request.uri }}">Logout</a>
 			{% end %}
 		</div>
 		<div id="content">

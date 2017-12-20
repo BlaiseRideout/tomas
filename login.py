@@ -272,7 +272,7 @@ class LoginHandler(handler.BaseHandler):
     def post(self):
         email = self.get_argument('email', None)
         password = self.get_argument('password', None)
-        uri = self.get_argument('next', '/')
+        uri = self.get_argument('next', '..')
 
         if not email or not password or email == "" or password == "":
             self.render("login.html", uri = uri,
@@ -315,7 +315,7 @@ class LoginHandler(handler.BaseHandler):
 
 class LogoutHandler(handler.BaseHandler):
     def get(self):
-        uri = self.get_argument('next', '/')
+        uri = self.get_argument('next', '..')
         userID = handler.stringify(self.get_secure_cookie("user"))
         log.info("Explicit logout for user ID {0}".format(userID))
         self.clear_cookie("user")

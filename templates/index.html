@@ -2,12 +2,12 @@
 {% block content %}
 	{% if no_user %}
 		<p>It appears you've no users. Would you like to create one?</p>
-		<a class="button" href="/setup">SETUP</a>
+		<a class="button" href="setup">SETUP</a>
 	{% end %}
 	{% if current_user %}
-		<a href="/newtournament">New Tournament</a>
+		<a href="newtournament">New Tournament</a>
 		{% for tournament in tournaments %}
-			<a href="/tournament/{{ tournament.name }}">{{ tournament.name }}</a>
+			<a href="tournament/{{ tournament.name }}">{{ tournament.name }}</a>
 		{% end %}
 	{% end %}
 {% end %}

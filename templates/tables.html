@@ -13,7 +13,7 @@
 			{% if current_user %}
 				<button class="genscores">Randomize Scores</button><br />
 			{% end %}
-			<a href="/seating.csv?round={{ round['round'] }}">Download as CSV</a>
+			<a href="seating.csv?round={{ round['round'] }}">Download as CSV</a>
 			<div class="roundstatus">
 				Players sitting with players they've played before: {{ round['duplicates'] }}<br />
 				Players sitting with players of the same country: {{ round['diversity'] }}
