@@ -47,7 +47,15 @@
 				<a href="invite">Invite</a>
 				<a href="logout?next={{ request.uri }}">Logout</a>
 			{% end %}
-		</div>
+	  </div>
+	  <div id="tournamet_title">
+	    {% try %}
+	      {% if tournamentname %} {{ tournamentname }}
+	      {% else %} Tournament Mahjong {% end %}
+	    {% except %}
+	      Tournament Mahjong
+	    {% end %}
+	  </div>
 		<div id="content">
 			{% block content %}{% end %}
 		</div>
