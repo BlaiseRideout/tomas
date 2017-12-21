@@ -92,12 +92,9 @@ class Application(tornado.web.Application):
                 (r"/reset", login.ResetPasswordHandler),
                 (r"/reset/([^/]+)", login.ResetPasswordLinkHandler),
         ]
-        prefix = settings.PROXYPREFIX.rstrip('/')
-        if len(prefix) == 0:
-            prefix = os.path.dirname(__file__)
         app_settings = dict(
-                template_path = os.path.join(prefix, "templates"),
-                static_path = os.path.join(prefix, "static"),
+                template_path = os.path.join(os.path.dirname(__file__), "templates"),
+                static_path = os.path.join(os.path.dirname(__file__), "static"),
                 debug = True,
                 cookie_secret = cookie_secret,
                 login_url = "/login"
