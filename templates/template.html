@@ -36,7 +36,7 @@
 	</head>
 	<body>
 	  <a href="https://seattlemahjong.club/" target="_blank">
-	    <img src="{{ static_url("images/seattle_richi_mahjong_club_logo.jpeg") }}"
+	    <img src="{{ proxyprefix.rstrip('/') + static_url("images/seattle_richi_mahjong_club_logo.jpeg") }}"
 		 class="sitelogo" alt="Logo"></a>
 	  <div id="navbar">
 			<a href="{{ proxyprefix }}">Home</a>
