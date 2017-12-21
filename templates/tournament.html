@@ -1,7 +1,7 @@
 {% extends "template.html" %}
 {% block head %}
-		<link href="{{ static_url("css/tournament.css") }}" type="text/css" rel="stylesheet" />
-		<script src="{{ static_url("js/tournament.js") }}"></script>
+		<link href="{{ proxyprefix.rstrip('/') + static_url("css/tournament.css") }}" type="text/css" rel="stylesheet" />
+		<script src="{{ proxyprefix.rstrip('/') + static_url("js/tournament.js") }}"></script>
 {% end %}
 {% block content %}
 <div id="tournament">
@@ -10,13 +10,13 @@
 		<a class="button" href="setup">SETUP</a>
 	{% end %}
 	<ul>
-		<li><a href="leaderboard.html">Standings</a></li>
-		<li><a href="scoreboard">Scores</a></li>
-		<li><a href="seating.html">Seating</a></li>
+		<li><a href="{{ proxyprefix }}leaderboard.html">Standings</a></li>
+		<li><a href="{{ proxyprefix }}scoreboard">Scores</a></li>
+		<li><a href="{{ proxyprefix }}seating.html">Seating</a></li>
 		<li data-id="players"><a href="#players">Players</a></li>
 	  {% if is_admin %}
 		<li data-id="users"><a href="#users">Users</a></li>
-		<li><a href="settings.html">Settings</a></li>
+		<li><a href="{{ proxyprefix }}settings.html">Settings</a></li>
 	  {% end %}
 	</ul>
 	<div id="players">
