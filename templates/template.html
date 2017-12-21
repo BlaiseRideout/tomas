@@ -39,13 +39,13 @@
 	    <img src="{{ static_url("images/favicon.png") }}" class="sitelogo"
 		 alt="Logo"></a>
 	  <div id="navbar">
-			<a href="../">Home</a>
+			<a href="{{ proxyprefix }}">Home</a>
 			{% if not current_user %}
-				<a href="login?next={{ request.uri }}">Login</a>
+				<a href="{{ proxyprefix }}login?next={{ proxyprefix.rstrip('/') + request.uri }}">Login</a>
 			{% else %}
-				<a href="preferences">Preferences</a>
-				<a href="invite">Invite</a>
-				<a href="logout?next={{ request.uri }}">Logout</a>
+				<a href="{{ proxyprefix }}preferences">Preferences</a>
+				<a href="{{ proxyprefix }}invite">Invite</a>
+				<a href="{{ proxyprefix }}logout?next={{ proxyprefix.rstrip('/') + request.uri }}">Logout</a>
 			{% end %}
 	  </div>
 	  <div id="tournamet_title">

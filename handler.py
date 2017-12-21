@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import tornado.web
 from util import stringify
+import settings
 
 class BaseHandler(tornado.web.RequestHandler):
     def get_current_user(self):
@@ -20,6 +21,7 @@ class BaseHandler(tornado.web.RequestHandler):
             current_user = self.current_user,
             is_admin = self.get_is_admin(),
             stylesheet = self.get_stylesheet(),
+            proxyprefix = settings.PROXYPREFIX,
             **kwargs
         )
 
