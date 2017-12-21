@@ -92,14 +92,17 @@ class Application(tornado.web.Application):
                 (r"/reset", login.ResetPasswordHandler),
                 (r"/reset/([^/]+)", login.ResetPasswordLinkHandler),
         ]
-        settings = dict(
-                template_path = os.path.join(os.path.dirname(__file__), "templates"),
-                static_path = os.path.join(os.path.dirname(__file__), "static"),
+        prefix = settings.PROXYPREFIX.rstrip('/')
+        if len(prefix) == 0:
+            prefix = os.path.dirname(__file__)
+        app_settings = dict(
+                template_path = os.path.join(prefix, "templates"),
+                static_path = os.path.join(prefix, "static"),
                 debug = True,
                 cookie_secret = cookie_secret,
                 login_url = "/login"
         )
-        tornado.web.Application.__init__(self, handlers, **settings)
+        tornado.web.Application.__init__(self, handlers, **app_settings)
 
 def periodicCleanup():
     pass
