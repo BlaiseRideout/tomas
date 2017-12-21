@@ -36,8 +36,8 @@
 	</head>
 	<body>
 	  <a href="https://worldriichi.org/" target="_blank">
-	    <img src="{{ static_url("images/favicon.png") }}" class="sitelogo"
-		 alt="Logo"></a>
+	    <img src="{{ proxyprefix.rstrip('/') + static_url("images/favicon.png") }}"
+		 class="sitelogo" alt="Logo"></a>
 	  <div id="navbar">
 			<a href="{{ proxyprefix }}">Home</a>
 			{% if not current_user %}
