@@ -1,9 +1,10 @@
 {% extends "template.html" %}
 {% block title %} - Seater{% end %}
 {% block head %}
-		<link href="{{ static_url("css/seating.css") }}" type="text/css" rel="stylesheet" />
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.2.1/mustache.min.js" type="text/javascript"></script>
-		<script src="{{ static_url("js/seating.js") }}"></script>
+<link href="{{ proxyprefix.rstrip('/') + static_url("css/seating.css") }}" 
+      type="text/css" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.2.1/mustache.min.js" type="text/javascript"></script>
+<script src="{{ proxyprefix.rstrip('/') + static_url("js/seating.js") }}"></script>
 {% end %}
 {% block content %}
 	{% if current_user %}
