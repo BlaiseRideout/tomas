@@ -7,13 +7,17 @@
 	<form action="{{ proxyprefix }}preferences" method="post" id="preferencesform">
 		<label for="email">Email: </label>
 		<input id="email" name="email" type="text" value="{{ email }}" />
+		<br>
 		<label for="stylesheet">Stylesheet: </label>
 		<select id="stylesheet" name="stylesheet">
 			{% for sheet in stylesheets %}
 			<option value="{{ sheet }}"{% if sheet == stylesheet %} selected{% end %}>{{ sheet }}</option>
 			{% end %}
 		</select>
+		<br>
 		<input type="submit" value="Update"/>
+		<br>
+		<br>
 		<a href="reset">Reset password</a>
 	</form>
 {% end %}
