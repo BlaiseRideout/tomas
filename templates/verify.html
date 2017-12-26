@@ -10,7 +10,7 @@
 		{% end %}
 	{% except %}{% end %}
 
-	<form action="verify/{{ id }}" method="post">
+	<form action="./{{ id }}" method="post">
 		<input autocapitalize="off" autocorrect="off" id="email-field" name="email" placeholder="EMAIL" type="text" {% try %}{% if email is not None %}value="{{ email }}"{% end %}{% except %}{% end %}/><br/>
 
 		<input id="password-field" name="password" placeholder="PASSWORD" type="password" /><br/>

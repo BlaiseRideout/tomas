@@ -76,7 +76,8 @@ class ManageUsersHandler(handler.BaseHandler):
                                      login.expiration_date(duration=1).isoformat()))
                         return self.write(json.dumps(
                             {'status':"success",
-                             'redirect': "/reset/{0}".format(code)}))
+                             'redirect': "{}/reset/{}".format(
+                                 settings.PROXYPREFIX.rstrip('/'), code)}))
                     else:
                         cur.execute("UPDATE Users SET {0} = ? WHERE Id = ?"
                                     .format(colname),

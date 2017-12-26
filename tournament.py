@@ -18,8 +18,7 @@ class TournamentHandler(handler.BaseHandler):
             cur.execute("SELECT COUNT(*) FROM Users")
             no_user = cur.fetchone()[0] == 0
 
-        return self.render("tournament.html", no_user=no_user,
-                           tournamentname=settings.TOURNAMENTNAME)
+        return self.render("tournament.html", no_user=no_user)
 
 player_fields = ["id", "name", "number", "country", "countryid", "flag_image",
                  "association", "pool", "type", "wheel"]
