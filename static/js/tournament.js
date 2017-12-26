@@ -2,7 +2,7 @@ $(function() {
 	var templates = {};
 	var templatedata = {};
 	var selects = {},
-		selectData = {};
+	    selectData = {};
 	var showInactive = true;
 	var sortkeys = {}; /* Most recent sorting for each template */
 	/* Structure sortkeys[templatename] =
@@ -95,8 +95,11 @@ $(function() {
 	}
 
 	function renderTemplate(template, endpoint, selector, callback, extra, reload) {
-		if (templates[template] === undefined)
-			$.get("/static/mustache/" + template, function(data) {
+	    var base = window.trimListR(document.URL.split('/'),
+					window.tomas_component_names, 3).join('/');
+	    if (templates[template] === undefined)
+			$.get(base + "/static/mustache/" + template,
+			      function(data) {
 				Mustache.parse(data);
 				templates[template] = data;
 				renderTemplate(template, endpoint, selector, callback, extra, reload);
@@ -158,7 +161,7 @@ $(function() {
 		info[colname] = newVal;
 		console.log('Player ' + player + ' update');
 		console.log(info);
-		$.post("/players", {
+		$.post("players", {
 				'player': player,
 				'info': JSON.stringify(info)
 			},
@@ -179,7 +182,7 @@ $(function() {
 			}.bind(this), "json")
 	};
 	var addNewPlayer = function() {
-		$.post("/players", {
+		$.post("players", {
 				'player': '-1',
 				'info': JSON.stringify({
 					'name': ' '
@@ -212,8 +215,8 @@ $(function() {
 		if (reload === undefined) {
 			reload = true
 		};
-		renderTemplate("players.mst", "/players", "#players", function() {
-			fillSelect("/countries", "span.countryselect", "Code", "Id", function() {
+		renderTemplate("players.mst", "players", "#players", function() {
+			fillSelect("countries", "span.countryselect", "Code", "Id", function() {
 				$(".countryselect").change(function() {
 					updatePlayer.call(this, function() {
 						$(this).parent().next(".flag").html($(this).data("selectData")[this.selectedIndex]["Flag_Image"]);
@@ -230,7 +233,7 @@ $(function() {
 				$(picker).change(function() {
 					var data = new FormData(form);
 					$.ajax({
-						'url': '/uploadplayers',
+						'url': 'uploadplayers',
 						'data': data,
 						'type': 'POST',
 						'contentType': false,
@@ -250,7 +253,7 @@ $(function() {
 			populateAssociationComplete(true);
 			$(".addplayerbutton").click(addNewPlayer);
 			$("#clearplayers").click(function() {
-				$.post("/deleteplayer", {
+				$.post("deleteplayer", {
 					'player': "all"
 				}, function(data) {
 					if (data['status'] === "success")
@@ -263,7 +266,7 @@ $(function() {
 			});
 			$(".deleteplayerbutton").click(function() {
 				var player = $(this).parents(".player").data("id");
-				$.post("/deleteplayer", {
+				$.post("deleteplayer", {
 					'player': player
 				}, function(data) {
 					if (data['status'] === "success")
@@ -337,7 +340,7 @@ $(function() {
 		var input = $(this);
 		info[colname] = newVal;
 		console.log(info);
-		$.post("/users", {
+		$.post("users", {
 				'user': user,
 				'info': JSON.stringify(info)
 			},
@@ -365,7 +368,7 @@ $(function() {
 			admin = row.attr("data-status") == '1',
 			info = {};
 		info['Admin'] = admin ? '0' : '1';
-		$.post("/users", {
+		$.post("users", {
 			'user': user,
 			'info': JSON.stringify(info)
 		}, function(data) {
@@ -389,7 +392,7 @@ $(function() {
 		if (reload === undefined) {
 			reload = true
 		};
-		renderTemplate("users.mst", "/users", "#users", function() {
+		renderTemplate("users.mst", "users", "#users", function() {
 				$(".userfield").change(updateUser).keyup(updateUser);
 				$(".adduserbutton").click(function() {
 					updateUser.call(this, "new", updateUsers);
@@ -440,7 +443,7 @@ $(function() {
 	var associations = null;
 
 	function getAssociations() {
-		$.getJSON('/associations', function(data) {
+		$.getJSON('associations', function(data) {
 			associations = data;
 			populateAssociationComplete();
 		}).fail(window.xhrError);

@@ -89,7 +89,8 @@ class ManageUsersHandler(handler.BaseHandler):
                             user))
                         return self.write(json.dumps(
                             {'status':"success",
-                             'redirect': "/reset/{0}".format(code)}))
+                             'redirect': "{}/reset/{}".format(
+                                 settings.PROXYPREFIX.rstrip('/'), code)}))
                     else:
                         cur.execute("UPDATE Users SET {0} = ? WHERE Id = ?"
                                     .format(colname),

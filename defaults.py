@@ -37,8 +37,17 @@ LINKVALIDDAYS = 7
 STATSHISTORYSIZE = 10
 #   PROXYPREFIX is the URL prefix needed for users accessing this web server
 #   through a proxy server.  If this web server is being accessed directly,
-#   leave this as '/' or empty ''.
+#   leave this as '/'.
 PROXYPREFIX = '/'
+#   SERVERPREFIX is the protocol scheme and hostname for the server
+#   that users access.  This will be the beginning of links sent in email
+#   to users when managing their accounts.  Leave this as None if no
+#   proxy is set up since the server can be determined from the input
+#   request.  If defined, include the scheme and optionally the port, e.g.
+#   SERVERPREFIX = 'https://myhost.com'
+#   or
+#   SERVERPREFIX = 'http://myhost.com:8080'
+SERVERPREFIX = None
 
 # EMAIL
 #   These settings are for the outbound email server that sends invites

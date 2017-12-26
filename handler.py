@@ -22,6 +22,7 @@ class BaseHandler(tornado.web.RequestHandler):
             is_admin = self.get_is_admin(),
             stylesheet = self.get_stylesheet(),
             proxyprefix = settings.PROXYPREFIX,
+            tournamentname = settings.TOURNAMENTNAME,
             **kwargs
         )
 

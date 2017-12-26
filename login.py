@@ -19,17 +19,24 @@ import admin
 
 log = logging.getLogger("WebServer")
 
-def format_invite(tournamentname, host, code):
+def this_server(request):
+    """Get the scheme and host to present to users for accessing this service.
+    The request must be a Tornado request object for some URL on this site.
+    """
+    return settings.SERVERPREFIX or "{}://{}".format(
+        request.protocol, request.host)
+
+def format_invite(tournamentname, hostprefix, code):
     return """
 <p>You've been invited to {tournamentname}\n<br />
-Click <a href="http://{host}/verify/{code}">this link</a>
+Click <a href="{hostprefix}/verify/{code}">this link</a>
 to accept the invite and register an account, or copy and paste the following
 into your URL bar:<br />
-http://{host}/verify/{code}</p>
+{hostprefix}/verify/{code}</p>
 
 <p>If you believe you received this email in error, it can be safely ignored.
 It is likely a user simply entered your email by mistake.</p>""".format(
-    tournamentname=tournamentname, host=host, code=code)
+    tournamentname=tournamentname, hostprefix=hostprefix, code=code)
 
 def expiration_date(start=None, duration=settings.LINKVALIDDAYS):
     if start is None:
@@ -41,13 +48,15 @@ class InviteHandler(handler.BaseHandler):
     def get(self):
         if self.current_user is not None:
             self.render("invite.html")
-        self.render("login.html")
+        else:
+            self.render("login.html", uri="invite")
 
     @tornado.web.authenticated
     def post(self):
         email = self.get_argument('email', None)
         if not db.valid['email'].match(email):
-            self.render("invite.html", message = "Please enter a valid email address.")
+            self.render("invite.html", 
+                        message = "Please enter a valid email address.")
         else:
             with db.getCur() as cur:
                 cur.execute("SELECT Email from Users where Email = ?", (email,))
@@ -68,8 +77,7 @@ class InviteHandler(handler.BaseHandler):
             util.sendEmail(email,
                            "Your {0} Account".format(settings.TOURNAMENTNAME),
                            format_invite(settings.TOURNAMENTNAME,
-                                         self.request.host,
-                                         code))
+                                         this_server(self.request), code))
 
             self.render("message.html",
                         message = "Invite sent. It will expire in {0} days."
@@ -81,13 +89,14 @@ class SetupHandler(handler.BaseHandler):
         with db.getCur() as cur:
             cur.execute("SELECT COUNT(*) FROM Users")
             if cur.fetchone()[0] != 0:
-                self.redirect("/")
+                self.redirect(settings.PROXYPREFIX)
             else:
                 self.render("setup.html")
     def post(self):
         email = self.get_argument('email', None)
         if not db.valid['email'].match(email):
-            self.render("setup.html", message = "Please enter a valid email address.")
+            self.render("setup.html",
+                        message = "Please enter a valid email address.")
         else:
             with db.getCur() as cur:
                 code = util.randString(32)
@@ -96,16 +105,19 @@ class SetupHandler(handler.BaseHandler):
                             (code, email, expiration_date().isoformat()))
 
                 if len(settings.EMAILPASSWORD) > 0:
-                    util.sendEmail(email, "Your {0} Account".format(settings.TOURNAMENTNAME),
-                                   format_invite(settings.TOURNAMENTNAME, self.request.host,
-                                                 code))
+                    util.sendEmail(email, "Your {0} Account".format(
+                        settings.TOURNAMENTNAME),
+                                   format_invite(
+                                       settings.TOURNAMENTNAME, 
+                                       this_server(self.request), code))
 
                     self.render("message.html",
                                 message = "Invite sent. It will expire in {0} days."
                                 .format(settings.LINKVALIDDAYS),
                                 title = "Invite")
                 else:
-                    self.redirect("/verify/{0}".format(code))
+                    self.redirect("{}/verify/{}".format(
+                        settings.PROXYPREFIX.rstrip('/'), code))
 
 class VerifyHandler(handler.BaseHandler):
 	def get(self, q):
@@ -116,7 +128,7 @@ class VerifyHandler(handler.BaseHandler):
                 try:
                     email, expires = cur.fetchone()
                 except:
-                    self.redirect("/")
+                    self.redirect(settings.PROXYPREFIX)
                     return
 
                 if expires < datetime.date.today().isoformat():
@@ -172,7 +184,7 @@ class VerifyHandler(handler.BaseHandler):
                 log.info('Removed verify link for {} (user {})'.format(
                     email, cur.lastrowid))
 
-            self.redirect("/")
+            self.redirect(settings.PROXYPREFIX)
 
 class ResetPasswordHandler(handler.BaseHandler):
     def get(self):
@@ -198,11 +210,11 @@ class ResetPasswordHandler(handler.BaseHandler):
                 util.sendEmail(
                     email, "Your {0} Account".format(settings.TOURNAMENTNAME), """
 <p>Here's the link to reset your {tournamentname} account password.<br />
-Click <a href="http://{host}/reset/{code}">this link</a> to reset your password,
+Click <a href="{hostprefix}/reset/{code}">this link</a> to reset your password,
 or copy and paste the following into your URL bar:<br />
-http://{host}/reset/{code} </p>
+{hostprefix}/reset/{code} </p>
 """.format(tournamentname=settings.TOURNAMENTNAME,
-           host=self.request.host, code=code))
+           hostprefix=this_server(self.request), code=code))
                 self.render("message.html",
                             message = "Your password reset link has been sent")
             else:
@@ -224,6 +236,7 @@ class ResetPasswordLinkHandler(handler.BaseHandler):
                             "Please request a new one.")
             else:
                 self.render("resetpassword.html", email = row[0], id = q)
+                
     def post(self, q):
         password = self.get_argument('password', None)
         vpassword = self.get_argument('vpassword', None)
@@ -244,11 +257,12 @@ class ResetPasswordLinkHandler(handler.BaseHandler):
                 email = row[1]
                 if password is None or vpassword is None or password == "" or vpassword == "":
                     self.render("resetpassword.html", email = email, id = q,
-                    message = "You must enter a pasword and repeat that password")
+                                message = "You must enter a pasword and repeat "
+                                "that password")
                     return
                 if password != vpassword:
                     self.render("resetpassword.html", email = email, id = q,
-                    message = "Your passwords didn't match")
+                                message = "Your passwords didn't match")
                     return
                 passhash = pbkdf2_sha256.encrypt(password)
 
@@ -267,8 +281,8 @@ class LoginHandler(handler.BaseHandler):
             else:
                 return self.redirect(uri)
 
-        self.render("login.html", uri = uri,
-                    tournamentname=settings.TOURNAMENTNAME)
+        self.render("login.html", uri = uri)
+
     def post(self):
         email = self.get_argument('email', None)
         password = self.get_argument('password', None)
@@ -276,8 +290,7 @@ class LoginHandler(handler.BaseHandler):
 
         if not email or not password or email == "" or password == "":
             self.render("login.html", uri = uri,
-                        message = "Please enter an email and password",
-                        tournamentname=settings.TOURNAMENTNAME)
+                        message = "Please enter an email and a password")
             return
 
         with db.getCur() as cur:
@@ -311,7 +324,7 @@ class LoginHandler(handler.BaseHandler):
                         return
         log.info("Invalid login attempt for {0}".format(email))
         self.render("login.html", message = "Incorrect email and password",
-                    uri = uri, tournamentname=settings.TOURNAMENTNAME)
+                    uri = uri)
 
 class LogoutHandler(handler.BaseHandler):
     def get(self):
