@@ -117,17 +117,23 @@ class PlayersHandler(handler.BaseHandler):
             return self.write({'status':"error",
                  'message':"Invalid info provided"})
 
+PlayerColumns = ["Name", "Number", "Country", "Association", "Pool", "Type", "Wheel"]
+CountriesColumns = {"Country": "Code"}
+
 class DownloadPlayersHandler(handler.BaseHandler):
     def get(self):
+        global PlayerColumns, CountriesColumns
+        colnames = [ 'Countries.{}'.format(CountriesColumns[c])
+                     if c in CountriesColumns else 'Players.{}'.format(c)
+                     for c in PlayerColumns ]
         with db.getCur() as cur:
             cur.execute(
-                "SELECT Players.Name, Number, Countries.Code, Association, Pool, Type, Wheel"
-                " FROM Players "
-                " LEFT OUTER JOIN Countries ON Countries.Id = Players.Country")
-            cols = ["Name", "Number", "Country", "Association", "Pool", "Type", "Wheel"]
+                ("SELECT {colnames} FROM Players "
+                 " LEFT OUTER JOIN Countries ON Countries.Id = Players.Country")
+                .format(colnames=', '.join(colnames)))
             output = io.StringIO()
             writer = csv.writer(output)
-            writer.writerow(cols)
+            writer.writerow(PlayerColumns)
             for row in cur.fetchall():
                 row = list(row)
                 row[5] = db.playertypes[row[5]]
@@ -139,57 +145,60 @@ class DownloadPlayersHandler(handler.BaseHandler):
 class UploadPlayersHandler(handler.BaseHandler):
     @handler.is_admin_ajax
     def post(self):
+        global PlayerColumns, CountriesColumns
         if 'file' not in self.request.files or len(self.request.files['file']) == 0:
             return self.write({'status':"error", 'message':"Please provide a players file"})
         players = self.request.files['file'][0]['body']
+        colnames = [c.lower() for c in PlayerColumns]
         try:
             with db.getCur() as cur:
                 reader = csv.reader(players.decode('utf-8').splitlines())
                 good = 0
                 bad = 0
+                first = True
                 for row in reader:
+                    hasheader = first and all(
+                        [v.lower() in colnames for v in row])
+                    first = False
+                    if hasheader:
+                        colnames = [v.lower() for v in row]
+                        colnames += [c.lower() for c in PlayerColumns 
+                                     if c.lower() not in colnames]
+                        continue
                     if len(row) < 3:
                         bad += 1;
                         continue
-                    somefilled = False
+                    filled = 0
                     for i in range(len(row)):
                         if row[i] == '':
                             row[i] = None
                         else:
-                            somefilled = True
-                    name = row[0]
-                    number = row[1]
-                    country = row[2]
-                    if (not somefilled or (name.lower() == 'name' and
-                                           number.lower() == 'number')):
-                        if not somefilled:
-                            bad += 1
+                            filled += 1
+                    if filled < 3:
+                        bad += 1
                         continue
-                    if len(row) >= 4:
-                        association = row[3]
-                    else:
-                        association = ""
-                    if len(row) >= 5:
-                        pool = row[4]
-                    else:
-                        pool = ""
-                    if len(row) >= 6:
-                        status = row[5] or 0
-                        if status in db.playertypes:
-                            status = db.playertypes.index(status)
-                    else:
-                        status = 0
-                    if len(row) >= 7:
-                        wheel = row[6]
-                    else:
-                        wheel = 0
+                    rowdict = dict(zip(
+                        colnames, list(row) + [None] * len(colnames)))
+                    if not (rowdict['name'] or
+                            (rowdict['number'] and 
+                             not rowdict['number'].isdigit()) or 
+                            (rowdict['type'] and 
+                             not rowdict['type'] in db.playertypes)):
+                        bad += 1
+                        continue
+                    rowdict['type'] = db.playertypes.index(rowdict['type']) if (
+                        rowdict['type']) else 0
                     cur.execute(
-                        "INSERT INTO Players(Name, Number, Country, Association, Pool, Type, Wheel)"
+                        "INSERT INTO Players(Name, Number, Country, "
+                        "                    Association, Pool, Type, Wheel)"
                         " VALUES(?, ?,"
                         "   (SELECT Id FROM Countries"
                         "      WHERE Name = ? OR Code = ? OR IOC_Code = ?),"
                         "   ?, ?, ?, ?);",
-                        (name, number, country, country, country, association, pool, status, wheel))
+                        (rowdict['name'], rowdict['number'], rowdict['country'],
+                         rowdict['country'], rowdict['country'],
+                         rowdict['association'], rowdict['pool'], 
+                         rowdict['type'], rowdict['wheel']))
                     good += 1
             return self.write({'status':"success",
                                'message':
