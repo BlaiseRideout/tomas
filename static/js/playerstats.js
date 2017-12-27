@@ -1,7 +1,7 @@
 $(function() {
-    var playerstats;
-    var base = window.trimListR(document.URL.split('/'),
-				window.tomas_component_names, 3).join('/');
+	var playerstats;
+	var base = window.trimListR(document.URL.split('/'),
+		window.tomas_component_names, 3).join('/');
 
 	$.get(base + "/static/mustache/playerstats.mst", function(data) {
 		playerstats = data;

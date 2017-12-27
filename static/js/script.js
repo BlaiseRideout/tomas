@@ -7,8 +7,11 @@
 		var NEWPLAYERSTRING = "NEW PLAYER";
 
 		function getPlayers() {
-			$.getJSON('/seating/players.json', function(data) {
-				players = data;
+			$.getJSON('players', function(data) {
+				players = [];
+				for (i = 0; i < data['players'].length; i++) {
+					players.push(data['players'][i]['name']);
+				}
 				populatePlayerComplete();
 			}).fail(window.xhrError);
 		}
@@ -21,7 +24,7 @@
 				minLength: 2
 			});
 			if (elem.next(".clearplayercomplete").length === 0) {
-				elem.after("<button class=\"clearplayercomplete\">✖</button>");
+				elem.after('<button class="clearplayercomplete">✖</button>');
 				elem.each(function(_, complete) {
 					$(complete).next(".clearplayercomplete").click(function(clearbutton) {
 						$(complete).val("");
@@ -35,29 +38,30 @@
 			console.log(xhr);
 		}
 
-    /* Names of endpoints that use javascript along with the empty string.
-       These are removed from the end of URL lists to find the base URL.
-     */
-    window.tomas_component_names = [
-	'', 'tournament', 'players', 'users', 'settings'
-    ];
-	    window.trimListR = function(list, trim_words, min_length) {
-		/* Trim words from the right of list.  No list element can be
-		   null.
+		/* Names of endpoints that use javascript along with the empty string.
+		   These are removed from the end of URL lists to find the base URL.
 		 */
-		if (min_length == null) {
-		    min_length = 0
+		window.tomas_component_names = [
+			'', 'tournament', 'players', 'users', 'settings'
+		];
+		window.trimListR = function(list, trim_words, min_length) {
+			/* Trim words from the right of list.  No list element can be
+			   null.
+			 */
+			if (min_length == null) {
+				min_length = 0
+			}
+			var last = null,
+				first = true;
+			while (list.length > min_length && (
+					first || trim_words.indexOf(last) >= 0)) {
+				last = list.pop();
+				first = false;
+			}
+			if (last != null && trim_words.indexOf(last) < 0) {
+				list.push(last)
+			}
+			return list;
 		}
-		var last = null, first = true;
-		while (list.length > min_length && (
-		    first || trim_words.indexOf(last) >= 0)) {
-		    last = list.pop();
-		    first = false;
-		}
-		if (last != null && trim_words.indexOf(last) < 0) {
-		    list.push(last)
-		}
-		return list;
-	    }
 	});
 })(jQuery);
