@@ -159,7 +159,7 @@ $(function() {
 				tablescore[j]['score'].text(round(score, 1));
 				tablescore[j]['score'] = score;
 			}
-			$.post("/scores", {
+			$.post("scores", {
 					'tablescores': JSON.stringify(tablescore)
 				},
 				function(data) {
@@ -238,7 +238,7 @@ $(function() {
 			totalpenalty -= 1;
 			reload = true;
 		};
-		$.post('/penalties', {
+		$.post('penalties', {
 				'scoreID': scoreID,
 				'penalties': JSON.stringify(penalties)
 			},
@@ -265,7 +265,7 @@ $(function() {
 	};
 
 	function populatePenaltyEditor(penaltyeditor, scoreID) {
-		$.get('/penalties/' + scoreID, function(data) {
+		$.get('penalties/' + scoreID, function(data) {
 			/* Create a row below the player row if one is not supplied */
 			if (penaltyeditor.length == 0) {
 				var attribute = "[data-scoreid='" + scoreID + "']";
@@ -320,7 +320,7 @@ $(function() {
 		var left = round.find("input.swapper[name=round" + roundid + "-left]:checked").val();
 		var right = round.find("input.swapper[name=round" + roundid + "-right]:checked").val();
 		if (left && right)
-			$.post("/swapseating", {
+			$.post("swapseating", {
 				"round": roundid,
 				"left": left,
 				"right": right
@@ -346,7 +346,7 @@ $(function() {
 	});
 	$(".genround").click(function() {
 		var round = $(this).parents(".round").data("round");
-		$.post("/seating", {
+		$.post("seating", {
 			"round": round
 		}, function(data) {
 			if (data["message"])

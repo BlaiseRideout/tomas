@@ -2,7 +2,7 @@ $(function() {
 	var templates = {};
 	var templatedata = {};
 	var selects = {},
-	    selectData = {};
+		selectData = {};
 	var showInactive = true;
 	var sortkeys = {}; /* Most recent sorting for each template */
 	/* Structure sortkeys[templatename] =
@@ -95,15 +95,15 @@ $(function() {
 	}
 
 	function renderTemplate(template, endpoint, selector, callback, extra, reload) {
-	    var base = window.trimListR(document.URL.split('/'),
-					window.tomas_component_names, 3).join('/');
-	    if (templates[template] === undefined)
+		var base = window.trimListR(document.URL.split('/'),
+			window.tomas_component_names, 3).join('/');
+		if (templates[template] === undefined)
 			$.get(base + "/static/mustache/" + template,
-			      function(data) {
-				Mustache.parse(data);
-				templates[template] = data;
-				renderTemplate(template, endpoint, selector, callback, extra, reload);
-			})
+				function(data) {
+					Mustache.parse(data);
+					templates[template] = data;
+					renderTemplate(template, endpoint, selector, callback, extra, reload);
+				})
 		else if (templatedata[template] === undefined || reload)
 			$.getJSON(endpoint, function(data) {
 				templatedata[template] = data;

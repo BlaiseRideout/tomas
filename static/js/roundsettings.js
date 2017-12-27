@@ -1,14 +1,14 @@
 $(function() {
 	$("#addround").click(function() {
-		$.post("/addround", function(data) {
+		$.post("addround", function(data) {
 			if (data['status'] === "success")
 				updateTab();
-			if(data["message"])
+			if (data["message"])
 				$.notify(data["message"], data["status"]);
 		}, "json");
 	});
 	$(".deleteround").click(function() {
-		$.post("/deleteround", {
+		$.post("deleteround", {
 			'round': $(this).parent().data("roundid")
 		}, function(data) {
 			if (data['status'] === "success")
@@ -16,7 +16,7 @@ $(function() {
 			else {
 				console.log(data);
 			}
-			if(data["message"])
+			if (data["message"])
 				$.notify(data["message"], data["status"]);
 		}, "json");
 	});
@@ -30,18 +30,18 @@ $(function() {
 		else
 			settings[colname] = $(this).val();
 		console.log(settings);
-		$.post("/settings", {
+		$.post("settings", {
 			'round': round,
 			'settings': JSON.stringify(settings)
 		}, function(data) {
-			if(data["message"])
+			if (data["message"])
 				$.notify(data["message"], data["status"]);
 			if (data['status'] !== "success") {
 				console.log(data);
 			}
-			else if(updatefield) {
+			else if (updatefield) {
 				var defval = $("#" + updatefield).data("default");
-				if(settings[colname] == 0 && defval) {
+				if (settings[colname] == 0 && defval) {
 					$("#" + updatefield).val(defval);
 					$("#" + updatefield).attr("disabled", true);
 				}

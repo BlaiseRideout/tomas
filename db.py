@@ -9,9 +9,12 @@ import collections
 import re
 import os
 import shutil
+import logging
 
 import util
 import settings
+
+log = logging.getLogger("WebServer")
 
 class getCur():
     con = None
@@ -154,13 +157,25 @@ def init(force=False):
     with getCur() as cur:
         cur.execute("SELECT COUNT(*) FROM Countries")
         if cur.fetchone()[0] == 0:
-            with open("countries.csv", "r") as countriesfile:
-                reader = csv.reader(countriesfile)
-                for row in reader:
-                    cur.execute(
-                        "INSERT INTO Countries"
-                        " (Name, Code, IOC_Code, IOC_Name, Flag_Image)"
-                        " VALUES(?, ?, ?, ?, ?)", row)
+            countries_file = 'countries.csv'
+            try:
+                vars = {
+                    'URLprefix': (settings.SERVERPREFIX or '') +
+                    settings.PROXYPREFIX
+                }
+                log.info("Countries table is empty.  Loading {} with substitutions {}"
+                         .format(countries_file, vars))
+                with open(countries_file, "r", encoding='utf-8') as countriesfile:
+                    reader = csv.reader(countriesfile)
+                    for row in reader:
+                        cur.execute(
+                            "INSERT INTO Countries"
+                            " (Name, Code, IOC_Code, IOC_Name, Flag_Image)"
+                            " VALUES(?, ?, ?, ?, ?)", 
+                            list(map(lambda x: x.format(**vars), row)))
+            except Exception as e:
+                log.error("Error loading countries from {}: {}".format(
+                    countries_file, e))
 
 def make_backup():
     backupdb = datetime.datetime.now().strftime(settings.DBDATEFORMAT) + "-" + os.path.split(settings.DBFILE)[1]
