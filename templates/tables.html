@@ -2,11 +2,11 @@
 	type="text/javascript"></script>
 <div id="seating">
 	<ul>
-		{% for round in rounds %}
+		{% for round in sorted(rounds, key=lambda r: r['round']) %}
 				<li><a href="#round-{{ round['round'] }}">Round {{ round['round'] }}</a></li>
 		{% end %}
 	</ul>
-	{% for round in rounds %}
+	{% for round in sorted(rounds, key=lambda r: r['round']) %}
 		<div class="round" data-round="{{ round['round'] }}" id="round-{{ round['round'] }}">
 		{% if is_admin and not round['has_scores'] %}
 			<button class="genround">Generate</button><br />
@@ -36,7 +36,7 @@
 						{% end %}
 					</tr>
 				</thead>
-				{% for table in round['tables'] %}
+				{% for table in sorted(round['tables'], key=lambda t: t['table']) %}
 					<thead>
 						<tr>
 							<th colspan="4">TABLE {{ table['table'] }}</h3>
