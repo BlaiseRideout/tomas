@@ -2,6 +2,7 @@
 
 import json
 import re
+import logging
 import tornado.web
 
 import handler
@@ -9,6 +10,8 @@ import db
 import util
 import login
 import settings
+
+log = logging.getLogger("WebServer")
 
 user_fields = ["id", "email", "password", "admin"]
 
@@ -39,6 +42,8 @@ class ManageUsersHandler(handler.BaseHandler):
                 {'status':"error", 'message':"Please provide an info object"}))
         info = json.loads(info)
         try:
+            log.info('Request to manage user {} ({}) {}'.format(
+                user, type(user), info))
             with db.getCur() as cur:
                 if user.isdigit():
                     cur.execute("SELECT Id FROM Users WHERE Id = ?", (user,))
@@ -50,6 +55,7 @@ class ManageUsersHandler(handler.BaseHandler):
                     cur.execute("INSERT INTO Users (Email, Password) VALUES"
                                 " (?, ?)", ('newuser', '?'))
                     user = str(cur.lastrowid)
+                    log.info('Inserted new user ID {}'.format(user))
                 for colname, val in info.items():
                     col = colname.lower()
                     if isinstance(val, str):
@@ -63,17 +69,24 @@ class ManageUsersHandler(handler.BaseHandler):
                              'message':"Invalid column or value provided"}))
                     if col == 'admin':
                         cur.execute("DELETE from Admins WHERE Id = ?", (user,))
+                        log.info('Removed admin privilege from user {}'
+                                  .format(user))
                         if val.startswith('y') or val == '1':
                             cur.execute("INSERT INTO Admins (Id) VALUES (?)",
                                         (user,))
+                            log.info('Granted admin privilege to user {}'
+                                     .format(user))
                     elif col == 'del':
                         cur.execute("DELETE from Users WHERE Id = ?", (user,))
+                        log.info('Deleted user {}'.format(user))
                     elif col == 'reset':
                         code = util.randString(32)
                         cur.execute("INSERT INTO ResetLinks(Id, User, Expires) "
                                     "VALUES (?, ?, ?)",
                                     (code, user,
                                      login.expiration_date(duration=1).isoformat()))
+                        log.info('Set up password reset for user {}'.format(
+                            user))
                         return self.write(json.dumps(
                             {'status':"success",
                              'redirect': "/reset/{0}".format(code)}))
@@ -81,6 +94,8 @@ class ManageUsersHandler(handler.BaseHandler):
                         cur.execute("UPDATE Users SET {0} = ? WHERE Id = ?"
                                     .format(colname),
                                     (val, user))
+                        log.info('Set {} to {} for user {}'.format(
+                            colname, val, user))
             return self.write(json.dumps({'status':"success"}))
         except:
             return self.write(json.dumps(

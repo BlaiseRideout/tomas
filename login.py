@@ -160,12 +160,17 @@ class VerifyHandler(handler.BaseHandler):
                 passhash = pbkdf2_sha256.encrypt(password)
 
                 cur.execute("INSERT INTO Users (Email, Password) VALUES (LOWER(?), ?)", (email, passhash))
+                log.info('Verified email {}'.format(email))
                 cur.execute("SELECT COUNT(*) FROM Users")
                 if cur.fetchone()[0] == 1:
                     cur.execute("INSERT INTO Admins SELECT Id FROM Users")
                     self.set_secure_cookie("admin", "1")
+                    log.info('Granted admin privilege to user {}'.format(
+                        cur.lastrowid))
                 self.set_secure_cookie("user", str(cur.lastrowid))
                 cur.execute("DELETE FROM VerifyLinks WHERE Id = ?", (q,))
+                log.info('Removed verify link for {} (user {})'.format(
+                    email, cur.lastrowid))
 
             self.redirect("/")
 
