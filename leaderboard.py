@@ -29,7 +29,7 @@ def leaderData():
        LEFT JOIN Countries ON Players.Country = Countries.Id
        WHERE Players.Type != ?
        GROUP BY Players.Id
-       ORDER BY Type ASC, GamesPlayed DESC, Total DESC;"""
+       ORDER BY Type ASC, GamesPlayed DESC, Total DESC, Penalty DESC;"""
     fields = ['name', 'country', 'flag_image', 'type', 'games_played',
               'score', 'penalty', 'total']
     with db.getCur() as cur:
