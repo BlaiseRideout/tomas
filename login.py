@@ -55,7 +55,7 @@ class InviteHandler(handler.BaseHandler):
     def post(self):
         email = self.get_argument('email', None)
         if not db.valid['email'].match(email):
-            self.render("invite.html", 
+            self.render("invite.html",
                         message = "Please enter a valid email address.")
         else:
             with db.getCur() as cur:
@@ -108,7 +108,7 @@ class SetupHandler(handler.BaseHandler):
                     util.sendEmail(email, "Your {0} Account".format(
                         settings.TOURNAMENTNAME),
                                    format_invite(
-                                       settings.TOURNAMENTNAME, 
+                                       settings.TOURNAMENTNAME,
                                        this_server(self.request), code))
 
                     self.render("message.html",
@@ -236,7 +236,7 @@ class ResetPasswordLinkHandler(handler.BaseHandler):
                             "Please request a new one.")
             else:
                 self.render("resetpassword.html", email = row[0], id = q)
-                
+
     def post(self, q):
         password = self.get_argument('password', None)
         vpassword = self.get_argument('vpassword', None)
@@ -270,14 +270,14 @@ class ResetPasswordLinkHandler(handler.BaseHandler):
                 cur.execute("DELETE FROM ResetLinks WHERE Id = ?", (q,))
                 self.render("message.html",
                     message = "The password has been reset. "
-                    "You may now <a href=\"/login\">Login</a>")
+                    "You may now <a href=\"{proxyprefix}login\">Login</a>".format(proxyprefix=settings.PROXYPREFIX))
 
 class LoginHandler(handler.BaseHandler):
     def get(self):
         uri = self.get_argument("next", None)
         if self.current_user is not None:
             if uri is None:
-                return self.render("message.html", message = "You're already logged in, would you like to <a href=\"/logout\">Logout?</a>")
+                return self.render("message.html", message = "You're already logged in, would you like to <a href=\"{proxyprefix}logout\">Logout?</a>".format(proxyprefix=settings.PROXYPREFIX))
             else:
                 return self.redirect(uri)
 
