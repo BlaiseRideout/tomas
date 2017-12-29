@@ -220,7 +220,6 @@ class DeleteRoundHandler(handler.BaseHandler):
             return self.write({'status':"success"})
 
 def getSettings(self):
-    editable = self.current_user is not None
     with db.getCur() as cur:
         cur.execute("SELECT Id, COALESCE(Ordering, 0), COALESCE(Algorithm, 0), Seed, Cut, SoftCut, CutSize,"
                     "Duplicates, Diversity, UsePools, Winds, Games FROM Rounds")
@@ -243,12 +242,13 @@ def getSettings(self):
                 }
                 for roundid, ordering, algorithm, seed, cut, softcut, cutsize, duplicates, diversity, usepools, winds, games in cur.fetchall()
             ]
-        cutsize = settings.DEFAULTCUTSIZE
-        return {'rounds':rounds, 'cutsize':cutsize}
+        return {'rounds':rounds,
+                'scoreperplayer':settings.SCOREPERPLAYER,
+                'unusedscoreincrement': settings.UNUSEDSCOREINCREMENT,
+                'cutsize':settings.DEFAULTCUTSIZE}
     return None
 
 class SettingsHandler(handler.BaseHandler):
-    @handler.is_admin_ajax
     def get(self):
         return self.write(getSettings(self))
     @handler.is_admin_ajax

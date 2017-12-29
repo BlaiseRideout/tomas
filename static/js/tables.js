@@ -9,6 +9,11 @@ $(function() {
 		window.currentTab = $("#seating").tabs().tabs("option", "active");
 	});
 	var totalPoints = 120000;
+	$.getJSON("settings", function(data) {
+		if (data['scoreperplayer']) {
+			totalPoints = 4 * data['scoreperplayer']
+		}
+	})
 
 	function histogram(default_increment) {
 		var hist = {},

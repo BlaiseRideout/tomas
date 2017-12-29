@@ -334,8 +334,6 @@ def getUnusedPointsPlayerID():
             _unusedPointsPlayer = cur.lastrowid
     return _unusedPointsPlayer
 
-pointsPerPlayer = 30000
-
 def updateGame(scores):
     if scores is None:
         return {"status":"error", "message":"Please enter some scores"}
@@ -378,10 +376,10 @@ def updateGame(scores):
             if len(scores) == 5 and not unusedPointsIncluded:
                 return {"status":"error",
                         "message":"Only 4 scores can be submitted per game"}
-            if total != 4 * pointsPerPlayer:
+            if total != 4 * settings.SCOREPERPLAYER:
                 return {"status":"error",
                         "message":"Scores do not add up to {0}".format(
-                            4 * pointsPerPlayer)}
+                            4 * settings.SCOREPERPLAYER)}
 
             identifiers = ['roundid', 'gameid', 'playerid']
             fields = ['rank', 'rawscore', 'score']
