@@ -2,12 +2,7 @@
 <html>
 	<head>
 		<title>
-		  {% try %}
-		      {% if tournamentname %} {{ tournamentname }}
-		      {% else %} Tournament Mahjong {% end %}
-		  {% except %}
-		      Tournament Mahjong
-		  {% end %}
+			{{ tournamentname }}
 		  {% block title %}{% end %}</title>
 
 		<meta charset="utf-8" />
@@ -49,12 +44,7 @@
 			{% end %}
 	  </div>
 	  <div id="tournamet_title">
-	    {% try %}
-	      {% if tournamentname %} {{ tournamentname }}
-	      {% else %} Tournament Mahjong {% end %}
-	    {% except %}
-	      Tournament Mahjong
-	    {% end %}
+	    {{ tournamentname }}
 	  </div>
 		<div id="content">
 			{% block content %}{% end %}
