@@ -52,7 +52,7 @@
 								{% if round['winds'] %}
 									<td class="windicator">{{ player['wind'] }}</td>
 								{% end %}
-								<td class="name">{{ player['player']['name'] }}</td>
+								<td class="name"><a href="playerstats/{{ player['player']['name'] }}">{{ player['player']['name'] }}</a></td>
 								<td class="country">{{ player['player']['country'] }}</td>
 								<td class="flag">{% raw player['player']['flag'] %}</td>
 								<td class="rawscore">
@@ -88,10 +88,10 @@
 						  <td colspan="3">Unused Points</td>
 						  <td colspan="4">
 						    {% if current_user %}
-						    <input type="number" 
+						    <input type="number"
 							   class="unusedpointsfield"
 							   data-playerid="{{ unusedPointsPlayerID }}"
-							   step="{{ unusedPointsIncrement }}" 
+							   step="{{ unusedPointsIncrement }}"
 							   min="0"
 							   value="{{ table['unusedPoints']['rawscore'] }}"/>
 						    {% else %}
