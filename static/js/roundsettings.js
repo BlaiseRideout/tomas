@@ -53,10 +53,10 @@ $(function() {
 		}, "json");
 
 	}
-	fillSelect("/algorithms", "span.algorithmselect", "Name", "Id", function() {
+	fillSelect("algorithms", "span.algorithmselect", "Name", "Id", function() {
 		$(".roundsetting").change(updateSetting).keyup(updateSetting);
 	});
-	fillSelect("/orderings", "span.orderingselect", "Name", "Id", function() {
+	fillSelect("orderings", "span.orderingselect", "Name", "Id", function() {
 		$(".roundsetting").change(updateSetting).keyup(updateSetting);
 	});
 });
