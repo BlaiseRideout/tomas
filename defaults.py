@@ -13,8 +13,8 @@ DBDATEFORMAT = "%Y-%m-%d-%H-%M-%S"
 
 # PREFERENCES
 # Tournament related
-#   DEFFAULTCUTSIZE controls the default number of players that advance
-#   between rounds.
+#   DEFAULTCUTSIZE controls how many players are included by default
+#   in subsequent rounds and the size of groups after soft cuts
 DEFAULTCUTSIZE = 32
 #   MAXSWAPDISTANCE is the maximum difference in rank that will
 #   be swapped to resolve duplicates and diversity
@@ -22,10 +22,15 @@ MAXSWAPDISTANCE = 10
 #   DUPLICATEIMPORTANCE is the factor by which duplicate resolution
 #   is prioritized over diversity resolution
 DUPLICATEIMPORTANCE = 4
-#   UNUSEDPOINTSINCREMENT is smallest amount of points that can be marked
-#   as unused at the end of game.  The unused points must be a multiple of
+#   SCOREPERPLAYER sets the initial score each player has at the start of
+#   each round.  It is used to determine what the total raw scores should
+#   sum to at the end of each round and how to calculate points from those
+#   sums
+SCOREPERPLAYER = 30000
+#   UNUSEDSCOREINCREMENT is smallest score amount that can be marked
+#   as unused at the end of game.  The unused score must be a multiple of
 #   this increment, typically 1000 for a riichi bet.
-UNUSEDPOINTSINCREMENT = 1000
+UNUSEDSCOREINCREMENT = 1000
 
 # Application behavior
 #   LINKVALIDDAYS is the number of days links for invitations and

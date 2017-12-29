@@ -262,7 +262,7 @@ class SeatingCsvHandler(handler.BaseHandler):
 class ShowSeatingHandler(handler.BaseHandler):
     def get(self):
         return self.render("tables.html", rounds = getSeating(),
-                           unusedPointsIncrement=settings.UNUSEDPOINTSINCREMENT,
+                           unusedPointsIncrement=settings.UNUSEDSCOREINCREMENT,
                            unusedPointsPlayerID=db.getUnusedPointsPlayerID())
 
 class SwapSeatingHandler(handler.BaseHandler):
