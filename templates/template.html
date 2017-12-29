@@ -27,6 +27,10 @@
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/notify/0.4.2/notify.min.js" type="text/javascript"></script>
 		<script src="{{ proxyprefix.rstrip('/') + static_url("js/script.js") }}"></script>
 
+		<script type="text/javascript">
+			var base = "{{ proxyprefix }}";
+		</script>
+
 		{% block head %}{% end %}
 	</head>
 	<body>

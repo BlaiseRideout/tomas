@@ -41,24 +41,5 @@
 		/* Names of endpoints that use javascript along with the empty string.
 		   These are removed from the end of URL lists to find the base URL.
 		 */
-		window.tomas_component_names = [
-			'', 'tournament', 'players', 'users', 'settings'
-		];
-		window.trimListR = function(list, trim_words, min_length) {
-			/* Trim words from the right of list.  No list element can be
-			   null.
-			 */
-			if (min_length == null) {
-				min_length = 0
-			}
-			var last = null;
-			do {
-				last = list.pop();
-			} while (list.length > min_length && trim_words.indexOf(last) >= 0);
-			if (last != null && trim_words.indexOf(last) < 0) {
-				list.push(last)
-			}
-			return list;
-		}
 	});
 })(jQuery);

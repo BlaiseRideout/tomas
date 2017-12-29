@@ -1,9 +1,7 @@
 $(function() {
 	var playerstats;
-	var base = window.trimListR(document.URL.split('/'),
-		window.tomas_component_names, 3).join('/');
 
-	$.get(base + "/static/mustache/playerstats.mst", function(data) {
+	$.get(base + "static/mustache/playerstats.mst", function(data) {
 		playerstats = data;
 		Mustache.parse(playerstats);
 		var parts = document.URL.split('/');
@@ -12,7 +10,7 @@ $(function() {
 	});
 
 	function getData(player) {
-		$.getJSON("playerstatsdata/" + player, function(data) {
+		$.getJSON(base + "playerstatsdata/" + player, function(data) {
 			$("#playerstats").html(Mustache.render(playerstats, data));
 			d3.selectAll(".playerstatperiod").each(function(d, i) {
 				drawData(d3.select(this).select('svg'),

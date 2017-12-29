@@ -95,10 +95,8 @@ $(function() {
 	}
 
 	function renderTemplate(template, endpoint, selector, callback, extra, reload) {
-		var base = window.trimListR(document.URL.split('/'),
-			window.tomas_component_names, 3).join('/');
 		if (templates[template] === undefined)
-			$.get(base + "/static/mustache/" + template,
+			$.get(base + "static/mustache/" + template,
 				function(data) {
 					Mustache.parse(data);
 					templates[template] = data;
