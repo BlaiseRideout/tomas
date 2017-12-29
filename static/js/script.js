@@ -51,13 +51,10 @@
 			if (min_length == null) {
 				min_length = 0
 			}
-			var last = null,
-				first = true;
-			while (list.length > min_length && (
-					first || trim_words.indexOf(last) >= 0)) {
+			var last = null;
+			do {
 				last = list.pop();
-				first = false;
-			}
+			} while (list.length > min_length && trim_words.indexOf(last) >= 0);
 			if (last != null && trim_words.indexOf(last) < 0) {
 				list.push(last)
 			}
