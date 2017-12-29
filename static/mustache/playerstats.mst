@@ -9,6 +9,7 @@
 		{{ /showstats }}
 	  <tr><td>Score</td> <td>{{ minscore }}</td> <td>{{ maxscore }}</td></tr>
 	  <tr><td>Avg Score</td>     <td colspan="2">{{ avgscore }}</td></tr>
+	  <tr><td>Penalties</td>      <td colspan="2">{{ penalties }}</td></tr>
 	  <tr><td>Rank</td>  <td>{{ minrank }}</td> <td>{{ maxrank }}</td></tr>
 	  <tr><td>Avg Rank</td>      <td colspan="2">{{ avgrank }}</td></tr>
 		{{ #showstats }}

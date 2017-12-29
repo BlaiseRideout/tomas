@@ -11,10 +11,13 @@ class PlayerStatsDataHandler(handler.BaseHandler):
          ROUND(SUM(Score) * 1.0/COUNT(*) * 100) / 100,
          ROUND(SUM(Rank) * 1.0/COUNT(*) * 100) / 100,
          MIN(Rank), MAX(Rank),
-         MIN(Round), MAX(Round) {subquery} """
+         MIN(Round), MAX(Round),
+         SUM(COALESCE(Penalties.Penalty, 0))
+         {subquery} """
     _statqfields = ['maxscore', 'minscore', 'numgames', 'avgscore',
                     'avgrank', 'maxrank', 'minrank',
-                    'minround', 'maxround']
+                    'minround', 'maxround',
+                    'penalties']
     _rankhistogramquery = """
         SELECT Rank, COUNT(*) {subquery} GROUP BY Rank ORDER BY Rank"""
     _rankhfields = ['rank', 'rankcount']
@@ -46,7 +49,7 @@ class PlayerStatsDataHandler(handler.BaseHandler):
 
             periods = [
                 {'name': 'All Rounds Stats',
-                 'subquery': "FROM Scores WHERE PlayerId = ?",
+                 'subquery': "FROM Scores LEFT OUTER JOIN Penalties ON ScoreId = Scores.Id WHERE PlayerId = ? ",
                  'params': (playerID,)
                 },
             ]
