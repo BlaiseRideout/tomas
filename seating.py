@@ -67,9 +67,9 @@ ALGORITHMS = [
 
 ORDERINGS = [
     ("Number", "ORDER BY Players.Number ASC"),
-    ("Score", "ORDER BY NetScore DESC"),
-    ("Rank", "ORDER BY LastRank ASC, NetScore DESC"),
-    ("Wheel", "ORDER BY Players.Wheel ASC, Players.Number ASC, NetScore DESC")
+    ("Score", "ORDER BY TotalScore DESC, Penalty DESC"),
+    ("Rank", "ORDER BY LastRank ASC, TotalScore DESC, Penalty DESC"),
+    ("Wheel", "ORDER BY Players.Wheel ASC, Players.Number ASC, TotalScore DESC, Penalty DESC")
 ]
 
 class AlgorithmsHandler(handler.BaseHandler):
@@ -329,18 +329,34 @@ class SeatingHandler(handler.BaseHandler):
                         Players.Country,
                         Pool,
                         COALESCE(SUM(Scores.Score), 0) AS NetScore,
-                        LastScore.Rank AS LastRank
-                         FROM Players
-                           LEFT OUTER JOIN Scores ON Players.Id = Scores.PlayerId AND Scores.Round < ?
-                           LEFT OUTER JOIN Scores AS LastScore ON Players.Id = LastScore.PlayerId AND LastScore.Round = ? - 1 AND LastScore.Rank != 0
+                        LastScore.Rank AS LastRank,
+                        COALESCE(PenaltyPoints.sum, 0) AS Penalty,
+                        COALESCE(SUM(Scores.Score), 0) + COALESCE(PenaltyPoints.sum, 0) AS TotalScore
+                        FROM Players
+                           LEFT OUTER JOIN Scores ON
+                             Players.Id = Scores.PlayerId AND Scores.Round < ?
+                           LEFT OUTER JOIN Scores AS LastScore ON
+                             Players.Id = LastScore.PlayerId AND 
+                             LastScore.Round = ? - 1 AND LastScore.Rank != 0
+                           LEFT OUTER JOIN 
+                             (SELECT Players.Id, 
+                                     COALESCE(SUM(Penalty), 0) as sum
+                                FROM Players
+                                  LEFT OUTER JOIN Scores 
+                                    ON Players.Id = Scores.PlayerId AND
+                                       Scores.Round < ?
+                                  LEFT OUTER JOIN Penalties
+                                    ON Scores.Id = Penalties.ScoreId
+                                GROUP BY Players.Id) AS PenaltyPoints
+                             ON Players.Id = PenaltyPoints.Id
                          WHERE Players.Type = 0
                          GROUP BY Players.Id
                     """
                 query += ORDERINGS[ordering][1]
-                cur.execute(query, (round, round))
+                cur.execute(query, (round, round, round))
                 players = []
                 for i, row in enumerate(cur.fetchall()):
-                    player, country, pool, score, lastrank = row
+                    player, country, pool, score, lastrank, penalty, total = row
                     if ordering != 2 or lastrank:
                         players += [{
                                         "Rank":i,
