@@ -302,13 +302,29 @@ $(function() {
 		}, reload);
 	}
 
+
+	var first_tab = null;
+	if (tab) {
+		$("#tournament").tabs().find('li').find('a').each(
+			function(i, e) {
+				var href = $(this).attr('href'),
+					pos = href && href.lastIndexOf(tab);
+				if (pos && 0 <= pos &&
+					pos == href.length - tab.length) {
+					console.log('Changing first tab to index ' + i);
+					first_tab = i;
+				}
+			});
+	};
+
 	$("#tournament").tabs({
 		beforeLoad: function(event, ui) {
 			ui.jqXHR.fail(function() {
 				ui.panel.html(
 					"Couldn't load this tab. We'll try to fix this as soon as possible.");
 			});
-		}
+		},
+		active: first_tab || 0
 	});
 
 	var updateUser = function(usercmd, callback) {

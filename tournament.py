@@ -4,12 +4,15 @@ import json
 import csv
 import re
 import io
+import logging
 
 import tornado.web
 import handler
 import db
 import seating
 import settings
+
+log = logging.getLogger('WebServer')
 
 class TournamentHandler(handler.BaseHandler):
     def get(self):
@@ -18,7 +21,11 @@ class TournamentHandler(handler.BaseHandler):
             cur.execute("SELECT COUNT(*) FROM Users")
             no_user = cur.fetchone()[0] == 0
 
-        return self.render("tournament.html", no_user=no_user)
+        tab = None if no_user else self.get_argument('tab', None)
+        if tab:
+            log.debug('Requested tab = {}'.format(tab))
+
+        return self.render("tournament.html", no_user=no_user, tab=tab)
 
 player_fields = ["id", "name", "number", "country", "countryid", "flag_image",
                  "association", "pool", "type", "wheel"]

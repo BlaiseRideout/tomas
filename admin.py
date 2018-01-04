@@ -55,7 +55,7 @@ class ManageUsersHandler(handler.BaseHandler):
             updatedict = dict(
                 [i for i in userdata.items()
                  if not i[0] in ['action', 'userID']])
-            log.info('Request to {} user {} {}'.format(
+            log.debug('Request to {} user {} {}'.format(
                 userdata['action'], userdata['userID'], updatedict))
             with db.getCur() as cur:
                 if action != 'add':
@@ -86,7 +86,7 @@ class ManageUsersHandler(handler.BaseHandler):
                         {'status':"success",
                          'redirect': "{}/reset/{}?nexturi={}&nexttask={}".format(
                              settings.PROXYPREFIX.rstrip('/'), code,
-                             url_escape('{}/users.html'.format(
+                             url_escape('{}/?tab=users.html'.format(
                                  settings.PROXYPREFIX.rstrip('/'))),
                              url_escape('Return to Users'))}))
                 elif action == 'update':
@@ -101,19 +101,20 @@ class ManageUsersHandler(handler.BaseHandler):
                                  'message':"Invalid column or value provided"}))
                     if not updatedict.get('Admin', False) == '1':
                         cur.execute("DELETE from Admins WHERE Id = ?", (user,))
-                        log.info('Removed admin privilege from user {}'
+                        log.debug('Removed admin privilege from user {}'
                                  .format(user))
                     else:
-                        cur.execute("INSERT INTO Admins (Id) VALUES (?)",
-                                    (user,))
-                        log.info('Granted admin privilege to user {}'
+                        cur.execute(
+                            "INSERT OR IGNORE INTO Admins (Id) VALUES (?)",
+                            (user,))
+                        log.debug('Granted admin privilege to user {}'
                                  .format(user))
                     for colname, val in updatedict.items():
                         if not colname.lower() in ('id', 'admin', 'password'):
                             cur.execute("UPDATE Users SET {} = ? WHERE Id = ?"
                                         .format(colname),
                                         (val, user))
-                            log.info('Set {} to {} for user {}'.format(
+                            log.debug('Set {} to {} for user {}'.format(
                                 colname, val, user))
                 elif action == 'add':
                     pass
