@@ -18,6 +18,20 @@
 	}
 }
 
+table {
+    margin: auto;
+}
+
+th, td {
+    padding: 3px;
+}
+
+input[type="checkbox"] {
+    height: 0.8em;
+    width: 0.8em;
+    margin-left: 0.5em;
+    border: 1px solid black;
+}
 
 #players > table tr > *:nth-of-type(1) {
 	width:20em;

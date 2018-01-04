@@ -386,46 +386,10 @@ $(function() {
 		}, "json");
 	};
 
-	function updateUsers(reload) {
-		if (reload === undefined) {
-			reload = true
-		};
-		renderTemplate("users.mst", "users", "#users", function() {
-				$(".userfield").change(updateUser).keyup(updateUser);
-				$(".adduserbutton").click(function() {
-					updateUser.call(this, "new", updateUsers);
-				});
-				$(".resetpwdbutton").click(function() {
-					updateUser.call(this, "reset",
-						function(data) {
-							if (data['status'] == 'success') {
-								open(data['redirect'], '_self')
-							}
-						});
-				});
-				$(".deluserbutton").click(function() {
-					updateUser.call(this, "del", updateUsers);
-				});
-				$(".toggleadmin").click(toggleUserAdminStatus);
-				$("#users .colheader").click(function(ev) {
-					if ($(ev.target).attr('class') == 'colheader') {
-						updateSortKeys("users.mst",
-							$(this).data("fieldname"),
-							$(this).data("type"),
-							"users", updateUsers);
-					}
-				});
-			},
-			null, reload);
-	}
-
 	$("#tournament").tabs().find('li').click(function(ev) {
 		var id = $(ev.target).parents('li').data('id');
 		if (id == 'players') {
 			return updatePlayers()
-		}
-		else if (id == 'users') {
-			return updateUsers()
 		}
 		else if (id) {
 			console.log('Unexpected click event for data-id = ' + id)

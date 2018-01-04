@@ -4,6 +4,7 @@ import json
 import re
 import logging
 import tornado.web
+from tornado.escape import *
 
 import handler
 import db
@@ -23,82 +24,136 @@ class ManageUsersHandler(handler.BaseHandler):
             cur.execute(
                 "SELECT Users.Id, Email, Password, Admins.Id IS NOT NULL"
                 " FROM Users LEFT JOIN Admins ON Admins.Id = Users.Id")
-            rows = [dict(zip(user_fields, row)) for row in cur.fetchall()]
-            for row in rows:
-                if row['admin'] == 0:
-                    row['admin'] = ''
-            return self.write(json.dumps({'users': rows}))
+            users = [dict(zip(user_fields, row)) for row in cur.fetchall()]
+            for user in users:
+                user['admin'] = user['admin'] != 0
+            invite_fields = ["id", "email", "expires"]
+            cur.execute(
+                "SELECT {} FROM VerifyLinks ORDER BY {} DESC".format(
+                    ', '.join(invite_fields), invite_fields[-1]))
+            invites = [dict(zip(invite_fields, row)) for row in cur.fetchall()]
+
+        page = self.render("users.html", users=users, invites=invites)
 
     @handler.is_admin_ajax
     def post(self):
         global user_fields
-        user = self.get_argument("user", None)
-        if user is None or not (user.isdigit() or user == "-1"):
+        userdata = json.loads(self.get_argument('userdata', None))
+        if userdata is None or not (
+                isinstance(userdata['userID'], int) or
+                userdata['userID'].isdigit() or userdata['userID'] == "-1"):
             return self.write(json.dumps(
-                {'status':"error", 'message':"Please provide a user ID"}))
-        info = self.get_argument("info", None)
-        if info is None:
+                {'status':"error", 'message':"Invalid user ID provided"}))
+        if not userdata['action'] in ['delete', 'update', 'resetpwd', 'add']:
             return self.write(json.dumps(
-                {'status':"error", 'message':"Please provide an info object"}))
-        info = json.loads(info)
+                {'status':"error", 
+                 'message':"Invalid action requested: {}".format(
+                     userdata['action'])}))
         try:
-            log.info('Request to manage user {} ({}) {}'.format(
-                user, type(user), info))
+            user = str(userdata['userID'])
+            action = userdata['action']
+            updatedict = dict(
+                [i for i in userdata.items()
+                 if not i[0] in ['action', 'userID']])
+            log.info('Request to {} user {} {}'.format(
+                userdata['action'], userdata['userID'], updatedict))
             with db.getCur() as cur:
-                if user.isdigit():
+                if action != 'add':
                     cur.execute("SELECT Id FROM Users WHERE Id = ?", (user,))
                     if cur.fetchone() is None:
                         return self.write(json.dumps(
                             {'status':"error",
                              'message':"Please provide a valid user ID"}))
-                elif user == '-1':
+                else:
                     cur.execute("INSERT INTO Users (Email, Password) VALUES"
                                 " (?, ?)", ('newuser', '?'))
                     user = str(cur.lastrowid)
                     log.info('Inserted new user ID {}'.format(user))
-                for colname, val in info.items():
-                    col = colname.lower()
-                    if isinstance(val, str):
-                        val = val.lower()
-                    if not col in ('del', 'reset') and not (
-                            col in user_fields and
-                            (db.valid[col].match(val) if col in db.valid else
-                             db.valid['all'].match(val))):
-                        return self.write(json.dumps(
-                            {'status':"error",
-                             'message':"Invalid column or value provided"}))
-                    if col == 'admin':
+
+                if action == 'delete':
+                    cur.execute("DELETE from Admins WHERE Id = ?", (user,))
+                    cur.execute("DELETE from Users WHERE Id = ?", (user,))
+                    log.info('Deleted user {}'.format(user))
+                elif action == 'resetpwd':
+                    code = util.randString(login.VerifyLinkIDLength)
+                    cur.execute("INSERT INTO ResetLinks(Id, User, Expires) "
+                                "VALUES (?, ?, ?)",
+                                (code, user,
+                                 login.expiration_date(duration=1).isoformat()))
+                    log.info('Set up password reset for user {}'.format(
+                        user))
+                    return self.write(json.dumps(
+                        {'status':"success",
+                         'redirect': "{}/reset/{}?nexturi={}&nexttask={}".format(
+                             settings.PROXYPREFIX.rstrip('/'), code,
+                             url_escape('{}/users.html'.format(
+                                 settings.PROXYPREFIX.rstrip('/'))),
+                             url_escape('Return to Users'))}))
+                elif action == 'update':
+                    for colname, val in updatedict.items():
+                        col = colname.lower()
+                        if isinstance(val, str):
+                            val = val.lower()
+                        if not col in user_fields or not db.valid[
+                                col if col in db.valid else 'all'].match(val):
+                            return self.write(json.dumps(
+                                {'status':"error",
+                                 'message':"Invalid column or value provided"}))
+                    if not updatedict.get('Admin', False) == '1':
                         cur.execute("DELETE from Admins WHERE Id = ?", (user,))
                         log.info('Removed admin privilege from user {}'
-                                  .format(user))
-                        if val.startswith('y') or val == '1':
-                            cur.execute("INSERT INTO Admins (Id) VALUES (?)",
-                                        (user,))
-                            log.info('Granted admin privilege to user {}'
-                                     .format(user))
-                    elif col == 'del':
-                        cur.execute("DELETE from Users WHERE Id = ?", (user,))
-                        log.info('Deleted user {}'.format(user))
-                    elif col == 'reset':
-                        code = util.randString(32)
-                        cur.execute("INSERT INTO ResetLinks(Id, User, Expires) "
-                                    "VALUES (?, ?, ?)",
-                                    (code, user,
-                                     login.expiration_date(duration=1).isoformat()))
-                        log.info('Set up password reset for user {}'.format(
-                            user))
-                        return self.write(json.dumps(
-                            {'status':"success",
-                             'redirect': "{}/reset/{}".format(
-                                 settings.PROXYPREFIX.rstrip('/'), code)}))
+                                 .format(user))
                     else:
-                        cur.execute("UPDATE Users SET {0} = ? WHERE Id = ?"
-                                    .format(colname),
-                                    (val, user))
-                        log.info('Set {} to {} for user {}'.format(
-                            colname, val, user))
+                        cur.execute("INSERT INTO Admins (Id) VALUES (?)",
+                                    (user,))
+                        log.info('Granted admin privilege to user {}'
+                                 .format(user))
+                    for colname, val in updatedict.items():
+                        if not colname.lower() in ('id', 'admin', 'password'):
+                            cur.execute("UPDATE Users SET {} = ? WHERE Id = ?"
+                                        .format(colname),
+                                        (val, user))
+                            log.info('Set {} to {} for user {}'.format(
+                                colname, val, user))
+                elif action == 'add':
+                    pass
+                else:
+                    return self.write(json.dumps(
+                        {'status':"error",
+                         'message': "Unknown action '{}' reqeusted".format(
+                             action)}))
             return self.write(json.dumps({'status':"success"}))
-        except:
+        except Exception as e:
+            log.error('Error in ManageUsersHandler.post: {}'.format(e))
+            return self.write(json.dumps(
+                {'status':"error",
+                 'message':"Invalid info provided"}))
+
+class ManageInvitesHandler(handler.BaseHandler):
+
+    @handler.is_admin_ajax
+    def post(self, inviteID):
+        invitedata = json.loads(self.get_argument('invitedata', None))
+        if invitedata is None or not (
+                isinstance(inviteID, str) and 
+                len(inviteID) == login.VerifyLinkIDLength):
+            return self.write(json.dumps(
+                {'status':"error", 'message':"Invalid invite ID provided"}))
+        try:
+            action = invitedata['action']
+            with db.getCur() as cur:
+                if action == 'drop':
+                    cur.execute("DELETE from VerifyLinks WHERE Id = ?", 
+                                (inviteID,))
+                    log.info('Deleted invite {}'.format(inviteID))
+                else:
+                    return self.write(json.dumps(
+                        {'status':"error", 
+                         'message':"Invalid action requested: {}".format(
+                             invitedata['action'])}))
+            return self.write(json.dumps({'status':"success"}))
+        except Exception as e:
+            log.error('Error in ManageInvitesHandler.post: {}'.format(e))
             return self.write(json.dumps(
                 {'status':"error",
                  'message':"Invalid info provided"}))

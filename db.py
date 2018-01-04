@@ -110,7 +110,7 @@ schema = collections.OrderedDict({
         'Id CHAR(32) PRIMARY KEY NOT NULL',
         'User INTEGER',
         'Expires DATETIME',
-        'FOREIGN KEY(User) REFERENCES Users(Id)'
+        'FOREIGN KEY(User) REFERENCES Users(Id) ON DELETE CASCADE'
     ],
     'VerifyLinks': [
         'Id CHAR(32) PRIMARY KEY NOT NULL',
@@ -121,7 +121,7 @@ schema = collections.OrderedDict({
         'UserId INTEGER',
         'Preference TEXT NOT NULL',
         'Value SETTING NOT NULL',
-        'FOREIGN KEY(UserId) REFERENCES Users(Id)'
+        'FOREIGN KEY(UserId) REFERENCES Users(Id) ON DELETE CASCADE'
     ],
 })
 

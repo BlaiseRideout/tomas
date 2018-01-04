@@ -43,6 +43,8 @@ def expiration_date(start=None, duration=settings.LINKVALIDDAYS):
         start = datetime.date.today()
     return start + datetime.timedelta(days=duration)
 
+VerifyLinkIDLength = 32
+
 class InviteHandler(handler.BaseHandler):
     @tornado.web.authenticated
     def get(self):
@@ -53,6 +55,7 @@ class InviteHandler(handler.BaseHandler):
 
     @tornado.web.authenticated
     def post(self):
+        global VerifyLinkIDLength
         email = self.get_argument('email', None)
         if not db.valid['email'].match(email):
             self.render("invite.html",
@@ -69,7 +72,7 @@ class InviteHandler(handler.BaseHandler):
                     return
                 except:
                     pass
-                code = util.randString(32)
+                code = util.randString(VerifyLinkIDLength)
                 cur.execute("INSERT INTO VerifyLinks (Id, Email, Expires) "
                             "VALUES (?, LOWER(?), ?)",
                             (code, email, expiration_date().isoformat()))
@@ -93,13 +96,14 @@ class SetupHandler(handler.BaseHandler):
             else:
                 self.render("setup.html")
     def post(self):
+        global VerifyLinkIDLength
         email = self.get_argument('email', None)
         if not db.valid['email'].match(email):
             self.render("setup.html",
                         message = "Please enter a valid email address.")
         else:
             with db.getCur() as cur:
-                code = util.randString(32)
+                code = util.randString(VerifyLinkIDLength)
                 cur.execute("INSERT INTO VerifyLinks (Id, Email, Expires) "
                             "VALUES (?, LOWER(?), ?)",
                             (code, email, expiration_date().isoformat()))
@@ -197,12 +201,13 @@ class ResetPasswordHandler(handler.BaseHandler):
                     email = email[0]
         self.render("forgotpassword.html", email = email)
     def post(self):
+        global VerifyLinkIDLength
         with db.getCur() as cur:
             email = self.get_argument("email", None)
             cur.execute("SELECT Id FROM Users WHERE Email = ?", (email,))
             row = cur.fetchone()
             if row is not None:
-                code = util.randString(32)
+                code = util.randString(VerifyLinkIDLength)
                 cur.execute("INSERT INTO ResetLinks(Id, User, Expires) "
                             "VALUES (?, ?, ?)",
                             (code, row[0], expiration_date().isoformat()))
@@ -235,11 +240,16 @@ class ResetPasswordLinkHandler(handler.BaseHandler):
                             message = "Link is either invalid or has expired. "
                             "Please request a new one.")
             else:
-                self.render("resetpassword.html", email = row[0], id = q)
+                nexturi = self.get_argument("nexturi", None)
+                nexttask = self.get_argument("nexttask", None)
+                self.render("resetpassword.html", email = row[0], id = q,
+                            nexturi=nexturi, nexttask=nexttask)
 
     def post(self, q):
         password = self.get_argument('password', None)
         vpassword = self.get_argument('vpassword', None)
+        nexturi = self.get_argument('nexturi', None)
+        nexttask = self.get_argument('nexttask', None)
 
         with db.getCur() as cur:
             cur.execute(
@@ -257,11 +267,13 @@ class ResetPasswordLinkHandler(handler.BaseHandler):
                 email = row[1]
                 if password is None or vpassword is None or password == "" or vpassword == "":
                     self.render("resetpassword.html", email = email, id = q,
+                                nexturi=nexturi, nexttask=nexttask,
                                 message = "You must enter a pasword and repeat "
                                 "that password")
                     return
                 if password != vpassword:
                     self.render("resetpassword.html", email = email, id = q,
+                                nexturi=nexturi, nexttask=nexttask,
                                 message = "Your passwords didn't match")
                     return
                 passhash = pbkdf2_sha256.encrypt(password)
@@ -269,8 +281,12 @@ class ResetPasswordLinkHandler(handler.BaseHandler):
                 cur.execute("UPDATE Users SET Password = ? WHERE Id = ?", (passhash, id))
                 cur.execute("DELETE FROM ResetLinks WHERE Id = ?", (q,))
                 self.render("message.html",
-                    message = "The password has been reset. "
-                    "You may now <a href=\"{proxyprefix}login\">Login</a>".format(proxyprefix=settings.PROXYPREFIX))
+                    message = "The password has been reset. {}".format(
+                        '<a href="{}">{}</a>'.format(nexturi, nexttask)
+                        if nexturi and nexttask and 
+                        len(nexturi) * len(nexttask) > 0 else
+                        'You may now <a href="{proxyprefix}login">Login</a>'.format(
+                            proxyprefix=settings.PROXYPREFIX)))
 
 class LoginHandler(handler.BaseHandler):
     def get(self):
