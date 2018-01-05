@@ -35,7 +35,7 @@ def leaderData():
     with db.getCur() as cur:
         leaderboard = []
         last_total = None
-        cur.execute(query, (db.playertypes.index('UnusedPoints'),))
+        cur.execute(query, (db.playertypecode['UnusedPoints'],))
         for i, row in enumerate(cur.fetchall()):
             rec = dict(zip(fields, row))
             rec['type'] = db.playertypes[int(rec['type'] or 0)]
@@ -78,7 +78,7 @@ class ScoreboardHandler(handler.BaseHandler):
         with db.getCur() as cur:
             scoreboard = {}
             rounds = []
-            cur.execute(query, (db.playertypes.index('UnusedPoints'),))
+            cur.execute(query, (db.playertypecode['UnusedPoints'],))
             for i, row in enumerate(cur.fetchall()):
                 rec = dict(zip(fields, row))
                 if rec['round'] not in rounds:

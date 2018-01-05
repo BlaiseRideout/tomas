@@ -127,6 +127,7 @@ schema = collections.OrderedDict({
 
 # Decode table for Players.Type values
 playertypes = ['', 'Inactive', 'Substitute', 'UnusedPoints']
+playertypecode = dict([(val, i) for i, val in enumerate(playertypes)])
 
 def init(force=False):
     warnings.filterwarnings('ignore', r'Table \'[^\']*\' already exists')
@@ -336,7 +337,7 @@ def getUnusedPointsPlayerID():
         return _unusedPointsPlayer
     with getCur() as cur:
         cur.execute("SELECT Id from Players WHERE Name = ? AND Type = ?",
-                    (unusedPointsPlayerName, playertypes.index('UnusedPoints')))
+                    (unusedPointsPlayerName, playertypecode['UnusedPoints']))
         result = cur.fetchall()
         if len(result) > 1:
             raise Exception("More than 1 player defined for unused points")
@@ -345,7 +346,7 @@ def getUnusedPointsPlayerID():
         else:
             cur.execute(
                 "INSERT INTO Players (Name, Type) VALUES (?, ?)",
-                (unusedPointsPlayerName, playertypes.index('UnusedPoints')))
+                (unusedPointsPlayerName, playertypecode['UnusedPoints']))
             _unusedPointsPlayer = cur.lastrowid
     return _unusedPointsPlayer
 

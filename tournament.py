@@ -41,7 +41,7 @@ def getPlayers(self):
             "   ON Countries.Id = Players.Country"
             " WHERE Players.Type != ?"
             " ORDER BY Players.Name asc",
-            (db.playertypes.index('UnusedPoints'),))
+            (db.playertypecode['UnusedPoints'],))
         rows = [dict(zip(player_fields, row)) for row in cur.fetchall()]
         for row in rows:
             row['type'] = db.playertypes[int(row['type'] or 0)]
@@ -97,19 +97,15 @@ class PlayersHandler(handler.BaseHandler):
                                     " ('\u202Fnewplayer',"
                                     "  (select Id from Countries limit 1))")
                     else:
-                        if colname == "Type":
-                            if val == "2":
-                                cur.execute(
-                                        "UPDATE Players SET Country = (SELECT Id FROM Countries"
-                                        "  WHERE Name = 'Substitute' OR 'Code' = 'SUB' OR IOC_Code = 'SUB')"
-                                        " WHERE Id = ?",
-                                        (player,))
-                            else:
-                                cur.execute(
-                                        "UPDATE Players SET Country = (SELECT Id FROM Countries"
-                                        "  WHERE NOT (Name = 'Substitute' OR 'Code' = 'SUB' OR IOC_Code = 'SUB'))"
-                                        " WHERE Id = ?",
-                                        (player,))
+                        if colname == "Type" and val == str(
+                                db.playertypecode['Substitute']):
+                            cur.execute(
+                                "UPDATE Players SET Country ="
+                                "   (SELECT Id FROM Countries WHERE"
+                                "      Name = 'Substitute' OR 'Code' = 'SUB'"
+                                "             OR IOC_Code = 'SUB')"
+                                " WHERE Id = ?",
+                                (player,))
                         cur.execute("UPDATE Players SET {0} = ? WHERE Id = ?"
                                     .format(colname),
                                     (val, player))
@@ -193,8 +189,8 @@ class UploadPlayersHandler(handler.BaseHandler):
                              not rowdict['type'] in db.playertypes)):
                         bad += 1
                         continue
-                    rowdict['type'] = db.playertypes.index(rowdict['type']) if (
-                        rowdict['type']) else 0
+                    rowdict['type'] = db.playertypecode[rowdict['type']] if (
+                        rowdict['type'] in db.playertypecode) else 0
                     cur.execute(
                         "INSERT INTO Players(Name, Number, Country, "
                         "                    Association, Pool, Type, Wheel)"
