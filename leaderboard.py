@@ -13,8 +13,8 @@ def leaderData():
          COUNT(Scores.Id) AS GamesPlayed,
          COALESCE(ROUND(SUM(Scores.Score) * 100) / 100, 0) AS TotalPoints,
          COALESCE(PenaltyPoints.sum, 0) as Penalty,
-         COALESCE(ROUND(SUM(Scores.Score) * 100) / 100 +
-                  PenaltyPoints.sum, 0) as Total
+         COALESCE(ROUND((SUM(Scores.Score) + PenaltyPoints.sum) * 100) / 100,
+                  0) as Total
        FROM Players
        LEFT JOIN Scores ON Players.Id = Scores.PlayerId
        LEFT OUTER JOIN 
@@ -36,8 +36,6 @@ def leaderData():
         for i, row in enumerate(cur.fetchall()):
             rec = dict(zip(fields, row))
             rec['type'] = db.playertypes[int(rec['type'] or 0)]
-#            rec['points'] = float(rec['points'])
-#            rec['total'] = float(rec['total'])
             if rec['total'] != last_total:
                 place = i+1
             last_total = rec['total']
@@ -62,8 +60,9 @@ class ScoreboardHandler(handler.BaseHandler):
            Players.Id, Players.Name, Countries.Code, Flag_Image, Type,
            Scores.Round, Scores.Rank, ROUND(Scores.Score * 100) / 100, 
            COALESCE(SUM(Penalties.Penalty), 0), 
-           COALESCE(ROUND(Scores.Score * 100) / 100, 0) + 
-             COALESCE(SUM(Penalties.Penalty), 0)
+           COALESCE(ROUND((Scores.Score + COALESCE(SUM(Penalties.Penalty), 0))
+                          * 100) / 100, 0)
+             
            FROM Scores
            LEFT JOIN Players ON Scores.PlayerId = Players.Id
            LEFT JOIN Countries ON Players.Country = Countries.Id
