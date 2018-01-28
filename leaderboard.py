@@ -11,13 +11,10 @@ def leaderData():
     query = """SELECT
          Players.Name, Countries.Code, Flag_Image, Type,
          COUNT(Scores.Id) AS GamesPlayed,
-         COALESCE(
-             ROUND(SUM(Scores.Score) * 1.0 / COUNT(Scores.Score) * 100) / 100
-             , 0) AS AvgScore,
+         COALESCE(ROUND(SUM(Scores.Score) * 100) / 100, 0) AS TotalPoints,
          COALESCE(PenaltyPoints.sum, 0) as Penalty,
-         COALESCE(
-             ROUND(SUM(Scores.Score) * 1.0 / COUNT(Scores.Score) * 100) / 100
-              + PenaltyPoints.sum, 0) as Total
+         COALESCE(ROUND(SUM(Scores.Score) * 100) / 100 +
+                  PenaltyPoints.sum, 0) as Total
        FROM Players
        LEFT JOIN Scores ON Players.Id = Scores.PlayerId
        LEFT OUTER JOIN 
@@ -31,7 +28,7 @@ def leaderData():
        GROUP BY Players.Id
        ORDER BY Type ASC, GamesPlayed DESC, Total DESC, Penalty DESC;"""
     fields = ['name', 'country', 'flag_image', 'type', 'games_played',
-              'score', 'penalty', 'total']
+              'points', 'penalty', 'total']
     with db.getCur() as cur:
         leaderboard = []
         last_total = None
@@ -39,6 +36,8 @@ def leaderData():
         for i, row in enumerate(cur.fetchall()):
             rec = dict(zip(fields, row))
             rec['type'] = db.playertypes[int(rec['type'] or 0)]
+#            rec['points'] = float(rec['points'])
+#            rec['total'] = float(rec['total'])
             if rec['total'] != last_total:
                 place = i+1
             last_total = rec['total']
@@ -74,7 +73,7 @@ class ScoreboardHandler(handler.BaseHandler):
            ORDER BY Type ASC, Players.Name ASC
         """
         fields = ['id', 'name', 'country', 'flag_image', 'type',
-                  'round', 'rank', 'score', 'penalty', 'total']
+                  'round', 'rank', 'points', 'penalty', 'total']
         with db.getCur() as cur:
             scoreboard = {}
             rounds = []
@@ -89,7 +88,7 @@ class ScoreboardHandler(handler.BaseHandler):
                     scoreboard[rec['id']]['scores'] = {}
                 scoreboard[rec['id']]['scores'][rec['round']] = {
                         'rank':rec['rank'],
-                        'score': round(rec['score'], 1),
+                        'score': round(rec['points'], 1),
                         'penalty':rec['penalty'],
                         'total': round(rec['total'], 1)
                     }

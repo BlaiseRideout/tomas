@@ -4,7 +4,7 @@
 		<th>NAME</th>
 		<th colspan="2" >COUNTRY</th>
 		<th>GAMES</th>
-		<th>AVG SCORE</th>
+		<th>RAW PTS</th>
 		<th>PENALTY</th>
 		<th>TOTAL</th>
 		<th>STATUS</th>
@@ -16,9 +16,9 @@
 			<td>{{ row['country'] }}</td>
 			<td>{% raw row['flag_image'] %}</td>
 			<td>{{ row['games_played'] }}</td>
-			<td>{{ row['score'] }}</td>
+			<td>{{ row['points'] }}</td>
 			<td>{{ row['penalty'] }}</td>
-			<td>{{ round(row['total'],1) }}</td>
+			<td>{{ row['total'] }}</td>
 			<td>{{ row['type'] }}</td>
 		</tr>
 	{% end %}
