@@ -33,7 +33,7 @@ class PlayerStatsDataHandler(handler.BaseHandler):
                     period_dict['params'])
         rank_histogram = dict([map(int, r) for r in cur.fetchall()])
         rank_histogram_list = [{'rank': i, 'count': rank_histogram.get(i, 0)}
-                               for i in range(1, 6)]
+                               for i in range(1, settings.LOWESTRANK + 1)]
         period_dict['rank_histogram'] = rank_histogram_list
 
     def get(self, player):

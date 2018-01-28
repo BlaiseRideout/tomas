@@ -31,6 +31,9 @@ SCOREPERPLAYER = 30000
 #   as unused at the end of game.  The unused score must be a multiple of
 #   this increment, typically 1000 for a riichi bet.
 UNUSEDSCOREINCREMENT = 1000
+#   LOWESTRANK is the lowest rank players can have.  This is normally 4 for
+#   4th place, but in some cases a 5th player is allowed to rotate in.
+LOWESTRANK = 4
 
 # Application behavior
 #   LINKVALIDDAYS is the number of days links for invitations and
