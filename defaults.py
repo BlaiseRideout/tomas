@@ -34,6 +34,14 @@ UNUSEDSCOREINCREMENT = 1000
 #   LOWESTRANK is the lowest rank players can have.  This is normally 4 for
 #   4th place, but in some cases a 5th player is allowed to rotate in.
 LOWESTRANK = 4
+#   UMAS are the bonuses awarded to players for their ranking after
+#   completing a hanchan.  They can be different for 4-player and 5-player
+#   tables.  The list of bonuses for each type goes from highest ranked to
+#   lowest ranked.  Ties are split by giving each player the average of
+#   the umas for the ranks.
+UMAS = {4:[15,5,-5,-15],
+        5:[15,5,0,-5,-15]}
+
 
 # Application behavior
 #   LINKVALIDDAYS is the number of days links for invitations and

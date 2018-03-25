@@ -91,8 +91,7 @@ $(function() {
 			unusedpointsrow = table.find(".unusedPointsEditor"),
 			total = 0,
 			unusedpoints = 0,
-			partial = false,
-			umas = [15, 5, -5, -15];
+			partial = false;
 		scores.each(function(i, elem) {
 			var val = parseInt($(elem).val());
 			total += val;
@@ -157,7 +156,7 @@ $(function() {
 				var rank = tablescore[j]['rank'],
 					raw = tablescore[j]['rawscore'];
 				for (var umasum = 0, i = 0; i < rankhist.get(rank); i++) {
-					umasum += umas[rank - 1 + i];
+					umasum += umas4[rank - 1 + i];
 				}
 				var score = (raw - totalPoints / 4) / 1000.0 +
 					umasum / rankhist.get(rank);
