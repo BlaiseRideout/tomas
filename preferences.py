@@ -15,7 +15,11 @@ email_pattern = re.compile(r'^[A-Z0-9][A-Z0-9._-]*@[A-Z0-9._-]*\.[A-Z]\w+$',
 class PreferencesHandler(handler.BaseHandler):
     @tornado.web.authenticated
     def get(self):
-        stylesheets = sorted(os.listdir("static/css/colors"))
+        if getattr(sys, 'frozen', False):
+            curdirname = os.path.dirname(sys.executable)
+        else:
+            curdirname = os.path.dirname(os.path.realpath(__file__))
+        stylesheets = sorted(os.listdir(os.path.join(curdirname, "static/css/colors")))
         stylesheet = stylesheets[0]
         with db.getCur() as cur:
             cur.execute("SELECT Email FROM Users WHERE Id = ?",

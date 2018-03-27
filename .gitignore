@@ -4,3 +4,5 @@ mysettings.py
 *.db
 *~
 *.log
+Output/
+build/
