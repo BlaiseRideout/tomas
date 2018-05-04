@@ -7,7 +7,7 @@ import db
 import handler
 import settings
 
-def leaderData():
+def leaderData(tournamentid):
     query = """SELECT
          Players.Name, Countries.Code, Flag_Image, Type,
          COUNT(Scores.Id) AS GamesPlayed,
@@ -20,7 +20,7 @@ def leaderData():
               + PenaltyPoints.sum, 0) as Total
        FROM Players
        LEFT JOIN Scores ON Players.Id = Scores.PlayerId
-       LEFT OUTER JOIN 
+       LEFT OUTER JOIN
          (SELECT Players.Id, COALESCE(SUM(Penalty), 0) as sum FROM Players
             LEFT OUTER JOIN Scores ON Players.Id = Scores.PlayerId
             LEFT OUTER JOIN Penalties ON Scores.Id = Penalties.ScoreId
@@ -28,6 +28,7 @@ def leaderData():
          ON Players.Id = PenaltyPoints.Id
        LEFT JOIN Countries ON Players.Country = Countries.Id
        WHERE Players.Type != ?
+       AND Players.Tournament = ?
        GROUP BY Players.Id
        ORDER BY Type ASC, GamesPlayed DESC, Total DESC, Penalty DESC;"""
     fields = ['name', 'country', 'flag_image', 'type', 'games_played',
@@ -35,7 +36,7 @@ def leaderData():
     with db.getCur() as cur:
         leaderboard = []
         last_total = None
-        cur.execute(query, (db.playertypecode['UnusedPoints'],))
+        cur.execute(query, (db.playertypecode['UnusedPoints'], tournamentid))
         for i, row in enumerate(cur.fetchall()):
             rec = dict(zip(fields, row))
             rec['type'] = db.playertypes[int(rec['type'] or 0)]
@@ -48,28 +49,32 @@ def leaderData():
     return None
 
 class LeaderDataHandler(handler.BaseHandler):
+    @handler.tournament_handler_ajax
     def get(self):
-        leaderboard = leaderData()
+        leaderboard = leaderData(self.tournamentid)
         self.write(json.dumps({'leaderboard':leaderboard}))
 
 class LeaderboardHandler(handler.BaseHandler):
+    @handler.tournament_handler
     def get(self):
-        leaderboard = leaderData()
+        leaderboard = leaderData(self.tournamentid)
         self.render("leaderboard.html", leaderboard = leaderboard)
 
 class ScoreboardHandler(handler.BaseHandler):
+    @handler.tournament_handler
     def get(self):
         query = """SELECT
            Players.Id, Players.Name, Countries.Code, Flag_Image, Type,
-           Scores.Round, Scores.Rank, ROUND(Scores.Score * 100) / 100, 
-           COALESCE(SUM(Penalties.Penalty), 0), 
-           COALESCE(ROUND(Scores.Score * 100) / 100, 0) + 
+           Scores.Round, Scores.Rank, ROUND(Scores.Score * 100) / 100,
+           COALESCE(SUM(Penalties.Penalty), 0),
+           COALESCE(ROUND(Scores.Score * 100) / 100, 0) +
              COALESCE(SUM(Penalties.Penalty), 0)
            FROM Scores
            LEFT JOIN Players ON Scores.PlayerId = Players.Id
            LEFT JOIN Countries ON Players.Country = Countries.Id
            LEFT OUTER JOIN Penalties ON Scores.Id = Penalties.ScoreId
            WHERE Players.Type != ?
+           AND Players.Tournament = ?
            GROUP BY Scores.Id
            ORDER BY Type ASC, Players.Name ASC
         """
@@ -78,7 +83,7 @@ class ScoreboardHandler(handler.BaseHandler):
         with db.getCur() as cur:
             scoreboard = {}
             rounds = []
-            cur.execute(query, (db.playertypecode['UnusedPoints'],))
+            cur.execute(query, (db.playertypecode['UnusedPoints'], self.tournamentid))
             for i, row in enumerate(cur.fetchall()):
                 rec = dict(zip(fields, row))
                 if rec['round'] not in rounds:

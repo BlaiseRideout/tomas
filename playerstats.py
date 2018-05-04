@@ -36,6 +36,7 @@ class PlayerStatsDataHandler(handler.BaseHandler):
                                for i in range(1, 6)]
         period_dict['rank_histogram'] = rank_histogram_list
 
+    @handler.tournament_handler_ajax
     def get(self, player):
         with db.getCur() as cur:
             name = player
@@ -121,6 +122,7 @@ class PlayerStatsDataHandler(handler.BaseHandler):
             })
 
 class PlayerStatsHandler(handler.BaseHandler):
+    @handler.tournament_handler
     def get(self, player):
         HISTORY_COOKIE = "stats_history"
         with db.getCur() as cur:

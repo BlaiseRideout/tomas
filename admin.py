@@ -46,7 +46,7 @@ class ManageUsersHandler(handler.BaseHandler):
                 {'status':"error", 'message':"Invalid user ID provided"}))
         if not userdata['action'] in ['delete', 'update', 'resetpwd', 'add']:
             return self.write(json.dumps(
-                {'status':"error", 
+                {'status':"error",
                  'message':"Invalid action requested: {}".format(
                      userdata['action'])}))
         try:
@@ -131,12 +131,11 @@ class ManageUsersHandler(handler.BaseHandler):
                  'message':"Invalid info provided"}))
 
 class ManageInvitesHandler(handler.BaseHandler):
-
     @handler.is_admin_ajax
     def post(self, inviteID):
         invitedata = json.loads(self.get_argument('invitedata', None))
         if invitedata is None or not (
-                isinstance(inviteID, str) and 
+                isinstance(inviteID, str) and
                 len(inviteID) == login.VerifyLinkIDLength):
             return self.write(json.dumps(
                 {'status':"error", 'message':"Invalid invite ID provided"}))
@@ -144,12 +143,12 @@ class ManageInvitesHandler(handler.BaseHandler):
             action = invitedata['action']
             with db.getCur() as cur:
                 if action == 'drop':
-                    cur.execute("DELETE from VerifyLinks WHERE Id = ?", 
+                    cur.execute("DELETE from VerifyLinks WHERE Id = ?",
                                 (inviteID,))
                     log.info('Deleted invite {}'.format(inviteID))
                 else:
                     return self.write(json.dumps(
-                        {'status':"error", 
+                        {'status':"error",
                          'message':"Invalid action requested: {}".format(
                              invitedata['action'])}))
             return self.write(json.dumps({'status':"success"}))
@@ -158,31 +157,3 @@ class ManageInvitesHandler(handler.BaseHandler):
             return self.write(json.dumps(
                 {'status':"error",
                  'message':"Invalid info provided"}))
-
-class EditGameHandler(handler.BaseHandler):
-    @tornado.web.authenticated
-    def post(self):
-        scores = self.get_argument('tablescores', None)
-        scores = json.loads(scores)
-        self.write(json.dumps(db.updateGame(scores)))
-
-class EditPenaltiesHandler(handler.BaseHandler):
-    def get(self, scoreid):
-        with db.getCur() as cur:
-            fields = ["id", "penalty", "description", "referee"]
-            cur.execute("SELECT {0} FROM Penalties WHERE ScoreId = ?".format(
-                ", ".join(fields)),
-                        (scoreid,));
-            penalties = [dict(zip(fields, row)) for row in cur.fetchall()]
-        
-        rows = self.render_string("penalties.html", penalties=penalties,
-                                  scoreid=scoreid)
-        self.write(rows)
-
-    @tornado.web.authenticated
-    def post(self):
-        scoreID = self.get_argument('scoreID', None)
-        penalties = json.loads(self.get_argument('penalties', None))
-        self.write(json.dumps(db.updatePenalties(scoreID, penalties)))
-
-

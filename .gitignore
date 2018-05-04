@@ -4,3 +4,4 @@ mysettings.py
 *.db
 *~
 *.log
+venv

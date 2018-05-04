@@ -1,8 +1,36 @@
 $(function() {
-	var templates = {};
-	var templatedata = {};
-	var selects = {},
-		selectData = {};
+	var templates = {},
+		templatedata = {};
+	window.renderTemplate = function(template, endpoint, selector, callback, extra, reload) {
+		if (templates[template] === undefined)
+			$.get(base + "static/mustache/" + template,
+				function(data) {
+					Mustache.parse(data);
+					templates[template] = data;
+					renderTemplate(template, endpoint, selector, callback, extra, reload);
+				})
+		else if (templatedata[template] === undefined || reload)
+			$.getJSON(endpoint, function(data) {
+				templatedata[template] = data;
+				renderTemplate(template, endpoint, selector, callback, extra, false);
+			});
+		else {
+			for (k in extra) {
+				templatedata[template][k] = extra[k]
+			}
+			if (sortkeys[template]) {
+				var toSort = templatedata[template][sortkeys[template]['table']];
+				toSort.sort(compareFunc(sortkeys[template]['keys']));
+				templatedata[template][sortkeys[template]['table']] = toSort
+			}
+			console.log(templatedata[template]);
+			$(selector).html(Mustache.render(
+				templates[template], templatedata[template]));
+			if (typeof callback === "function")
+				callback(templatedata[template]);
+		};
+	}
+
 	var showInactive = true;
 	var sortkeys = {}; /* Most recent sorting for each template */
 	/* Structure sortkeys[templatename] =
@@ -94,62 +122,6 @@ $(function() {
 		if (typeof callback === "function") callback();
 	}
 
-	function renderTemplate(template, endpoint, selector, callback, extra, reload) {
-		if (templates[template] === undefined)
-			$.get(base + "static/mustache/" + template,
-				function(data) {
-					Mustache.parse(data);
-					templates[template] = data;
-					renderTemplate(template, endpoint, selector, callback, extra, reload);
-				})
-		else if (templatedata[template] === undefined || reload)
-			$.getJSON(endpoint, function(data) {
-				templatedata[template] = data;
-				renderTemplate(template, endpoint, selector, callback, extra, false);
-			});
-		else {
-			for (k in extra) {
-				templatedata[template][k] = extra[k]
-			}
-			if (sortkeys[template]) {
-				var toSort = templatedata[template][sortkeys[template]['table']];
-				toSort.sort(compareFunc(sortkeys[template]['keys']));
-				templatedata[template][sortkeys[template]['table']] = toSort
-			}
-			$(selector).html(Mustache.render(
-				templates[template], templatedata[template]));
-			if (typeof callback === "function")
-				callback(templatedata[template]);
-		};
-	}
-
-	window.fillSelect = function(endpoint, selector, displayrow, valuerow, callback) {
-		if (selects[endpoint] === undefined)
-			$.getJSON(endpoint, function(data) {
-				selects[endpoint] = document.createElement("select");
-				selectData[endpoint] = data;
-				for (var i = 0; i < data.length; ++i) {
-					var option = document.createElement("option");
-					$(option).text(data[i][displayrow]);
-					$(option).val(data[i][valuerow]);
-					selects[endpoint].appendChild(option);
-				}
-				fillSelect(endpoint, selector, displayrow, valuerow, callback);
-			});
-		else {
-			$(selector).each(function(i, elem) {
-				var select = selects[endpoint].cloneNode(true);
-				select.className = this.className;
-				$(select).val($(elem).data("value"));
-				$(select).data("colname", $(elem).data("colname"));
-				$(select).data("selectData", selectData[endpoint]);
-				$(elem).replaceWith(select);
-			});
-			if (typeof callback === 'function')
-				callback();
-		}
-	}
-
 	var updatePlayer = function(callback) {
 		var player = $(this).parents(".player").data("id");
 		var colname = $(this).data("colname");
@@ -214,7 +186,7 @@ $(function() {
 			reload = true
 		};
 		renderTemplate("players.mst", "players", "#players", function() {
-			fillSelect("countries", "span.countryselect", "Code", "Id", function() {
+			fillSelect("/countries", "span.countryselect", "Code", "Id", function() {
 				$(".countryselect").change(function() {
 					updatePlayer.call(this, function() {
 						$(this).parent().next(".flag").html($(this).data("selectData")[this.selectedIndex]["Flag_Image"]);

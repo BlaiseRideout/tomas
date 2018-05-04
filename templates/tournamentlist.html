@@ -1,0 +1,70 @@
+{% extends "template.html" %}
+{% block head %}
+<style type="text/css">
+.tournamentlist {
+	width:100%;
+}
+table.tournamentlist tr > *:nth-of-type(2) {
+	width:3em;
+}
+table.tournamentlist tr > *:nth-of-type(3) {
+	width:1em;
+}
+</style>
+{% end %}
+{% block content %}
+{% if no_user %}
+	<p>It appears you've no users. Would you like to create one?</p>
+	<a class="button" href="setup">SETUP</a>
+{% end %}
+{%
+set colheads = [
+	{
+		"Name": "Name"
+	},
+	{
+		"Name": "Country",
+		"Attrs": "colspan=2"
+	}
+]
+%}
+<div id="tournamentlist">
+	<a href="/newtournament">Create New Tournament</a>
+	<h2>Your Tournaments</h2>
+	<table class="tournamentlist">
+		<thead>
+			<tr>
+				{% for colhead in colheads %}
+					<th{% raw " " + colhead["Attrs"] if "Attrs" in colhead else "" %}>{{ colhead['Name'] }}</th>
+				{% end %}
+			</tr>
+		</thead>
+		{% for tournament in tournaments %}
+			<tr>
+				<td><a href="/t/{{ tournament['Name'] }}/tournament">{{ tournament['Name'] }}</a></td>
+				<td>{{ tournament['Code'] }}</td>
+				<td>{% raw tournament['Flag_Image'] %}</td>
+			</tr>
+		{% end %}
+	</table>
+	{% if is_admin and len(admintournaments) > 0 %}
+		<h2>All Tournaments</h2>
+		<table class="tourmantelist">
+			<thead>
+				<tr>
+					{% for colhead in colheads %}
+						<th{% raw " " + colhead["Attrs"] if "Attrs" in colhead else "" %}>{{ colhead['Name'] }}</th>
+					{% end %}
+				</tr>
+			</thead>
+			{% for tournament in admintournaments %}
+				<tr>
+					<td><a href="/t/{{ tournament['Id'] }}/tournament">{{ tournament['Name'] }}</a></td>
+					<td>{{ tournament['Code'] }}</td>
+					<td>{% raw tournament['Flag_Image'] %}</td>
+				</tr>
+			{% end %}
+		</table>
+	{% end %}
+</div>
+{% end %}

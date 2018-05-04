@@ -3,13 +3,17 @@ import tornado.web
 from util import stringify
 import settings
 
+import db
+
 class BaseHandler(tornado.web.RequestHandler):
+    tournamentid = None
+    tournamentname = None
     def get_current_user(self):
-#        return "1"
+        return "1"
         return stringify(self.get_secure_cookie("user"))
 
     def get_is_admin(self):
-#        return True
+        return True
         return stringify(self.get_secure_cookie("admin")) == "1"
 
     def get_stylesheet(self):
@@ -22,7 +26,9 @@ class BaseHandler(tornado.web.RequestHandler):
             is_admin = self.get_is_admin(),
             stylesheet = self.get_stylesheet(),
             proxyprefix = settings.PROXYPREFIX,
-            tournamentname = settings.TOURNAMENTNAME,
+            websitename = settings.WEBSITENAME,
+            tournamentid = self.tournamentid,
+            tournamentname = self.tournamentname,
             **kwargs
         )
 
@@ -42,5 +48,29 @@ def is_admin_ajax(func):
             self.write('{"status":"error", "message":"You must be admin to do that"}')
         else:
             func(self, *args, **kwargs)
+
+    return func_wrapper
+
+def tournament_handler(func):
+    def func_wrapper(self, tournament, *args, **kwargs):
+        with db.getCur() as cur:
+            cur.execute("SELECT Id, Name FROM Tournaments WHERE Name = ? OR Id = ?", (tournament, tournament))
+            row = cur.fetchone()
+            if row is None:
+                return self.render("message.html",
+                            message = "Tournament not found")
+        self.tournamentid, self.tournamentname = row
+        return func(self, *args, **kwargs)
+    return func_wrapper
+
+def tournament_handler_ajax(func):
+    def func_wrapper(self, tournament, *args, **kwargs):
+        with db.getCur() as cur:
+            cur.execute("SELECT Id, Name FROM Tournaments WHERE Name = ? OR Id = ?", (tournament,tournament))
+            row = cur.fetchone()
+            if row is None:
+                return self.write('{"status":"error", "message":"Tournament not found"}')
+        self.tournamentid, self.tournamentname = row
+        return func(self, *args, **kwargs)
 
     return func_wrapper

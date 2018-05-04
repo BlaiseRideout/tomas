@@ -1,0 +1,29 @@
+{% extends "template.html" %}
+{% block head %}
+<script>
+$(function() {
+	fillSelect("countries", "span.countryselect", "Code", "Id", function() {
+		$(".countryselect").change(function() {
+			$(this).next(".flag").html($(this).data("selectData")[this.selectedIndex]["Flag_Image"]);
+		});
+	});
+});
+</script>
+{% end %}
+{% block content %}
+{% try %}
+	{% if message %}
+			<div id="message">{% raw message %}</div>
+	{% end %}
+{% except %}
+{% end %}
+<form method="post" action="/newtournament" id="newtournamentform">
+	<input id="namefield" name="name" type="text" placeholder="Tournament Name" />
+	<span class="countryselect" name="country" form="newtournamentform"
+														 data-value="{{ default_country_id }}">
+		{{ default_country_code }}
+	</span>
+	<span class="flag">{% raw default_flag_image %}</span>
+	<input type="submit" value="Create" />
+</form>
+{% end %}

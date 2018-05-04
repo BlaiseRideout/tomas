@@ -1,45 +1,39 @@
-(function($) {
-	$(function() {
-		var players = null;
+(function() {
 
-		var OTHERSTRING = "OTHER (PLEASE SPECIFY)";
-		var SELECTSTRING = "PLEASE SELECT A PLAYER";
-		var NEWPLAYERSTRING = "NEW PLAYER";
+	var selects = {},
+		selectData = {};
 
-		function getPlayers() {
-			$.getJSON('players', function(data) {
-				players = [];
-				for (i = 0; i < data['players'].length; i++) {
-					players.push(data['players'][i]['name']);
+	window.fillSelect = function(endpoint, selector, displayrow, valuerow, callback) {
+		if (selects[endpoint] === undefined)
+			$.getJSON(endpoint, function(data) {
+				selects[endpoint] = document.createElement("select");
+				selectData[endpoint] = data;
+				for (var i = 0; i < data.length; ++i) {
+					var option = document.createElement("option");
+					$(option).text(data[i][displayrow]);
+					$(option).val(data[i][valuerow]);
+					selects[endpoint].appendChild(option);
 				}
-				populatePlayerComplete();
-			}).fail(window.xhrError);
-		}
-		window.populatePlayerComplete = function(force) {
-			if (players === null || force)
-				return getPlayers();
-			var elem = $("input.playercomplete");
-			elem.autocomplete({
-				source: players,
-				minLength: 2
+				fillSelect(endpoint, selector, displayrow, valuerow, callback);
 			});
-			if (elem.next(".clearplayercomplete").length === 0) {
-				elem.after('<button class="clearplayercomplete">✖</button>');
-				elem.each(function(_, complete) {
-					$(complete).next(".clearplayercomplete").click(function(clearbutton) {
-						$(complete).val("");
-					});
-				});
-			}
+		else {
+			$(selector).each(function(i, elem) {
+				var select = selects[endpoint].cloneNode(true);
+				select.className = this.className;
+				$(select).val($(elem).data("value"));
+				$(select).data("colname", $(elem).data("colname"));
+				$(select).data("selectData", selectData[endpoint]);
+				$(select).attr("name", $(elem).attr("name"));
+				$(select).attr("form", $(elem).attr("form"));
+				$(elem).replaceWith(select);
+			});
+			if (typeof callback === 'function')
+				callback();
 		}
+	}
 
-		window.xhrError = function(xhr, status, error) {
-			console.log(status + ": " + error);
-			console.log(xhr);
-		}
-
-		/* Names of endpoints that use javascript along with the empty string.
-		   These are removed from the end of URL lists to find the base URL.
-		 */
-	});
-})(jQuery);
+	window.xhrError = function(xhr, status, error) {
+		console.log(status + ": " + error);
+		console.log(xhr);
+	}
+})();

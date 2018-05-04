@@ -127,7 +127,7 @@ def duplicateCountHeuristic(oldheuristic = None, factor = 1, players = [], round
 def noHeuristic():
     return lambda p1, p2: 0
 
-def getSeating(roundid = None):
+def getSeating(tournamentid, roundid = None):
     with db.getCur() as cur:
         query = """
                 SELECT Rounds.Id,
@@ -164,11 +164,12 @@ def getSeating(roundid = None):
                       Scores.GameId = PenaltyPoints.GameId
                  LEFT OUTER JOIN Countries
                    ON Countries.Id = Players.Country
+                 WHERE Rounds.Tournament = ?
             """
-        bindings = ()
+        bindings = (tournamentid,)
         if roundid is not None:
-            query += " WHERE Rounds.Id = ?"
-            bindings = (roundid,)
+            query += " AND Rounds.Id = ?"
+            bindings = (tournamentid, roundid)
         cur.execute(query, bindings)
         rounds = {}
         for row in cur.fetchall():
@@ -247,9 +248,10 @@ def getSeating(roundid = None):
         return rounds
 
 class SeatingCsvHandler(handler.BaseHandler):
+    @handler.tournament_handler
     def get(self):
         round = int(self.get_argument("round", 1))
-        rounds = getSeating(round)
+        rounds = getSeating(self.tournamentid, round)
         self.set_header("Content-Type", "text/csv")
         for r in rounds:
             if r["round"] == round:
@@ -260,13 +262,15 @@ class SeatingCsvHandler(handler.BaseHandler):
             })
 
 class ShowSeatingHandler(handler.BaseHandler):
+    @handler.tournament_handler
     def get(self):
-        return self.render("tables.html", rounds = getSeating(),
+        return self.render("tables.html", rounds = getSeating(self.tournamentid),
                            unusedPointsIncrement=settings.UNUSEDSCOREINCREMENT,
                            unusedPointsPlayerID=db.getUnusedPointsPlayerID())
 
 class SwapSeatingHandler(handler.BaseHandler):
     @handler.is_admin_ajax
+    @handler.tournament_handler_ajax
     def post(self):
         round = self.get_argument('round', None)
         left = self.get_argument('left', None)
@@ -276,7 +280,14 @@ class SwapSeatingHandler(handler.BaseHandler):
             ret["message"] = "Can't swap a player with themself"
             return self.write(ret)
         with db.getCur() as cur:
-            cur.execute("SELECT Id, Player FROM Seating WHERE Round = ? AND (Player = ? OR Player = ?)", (round, left, right))
+            cur.execute(
+                """SELECT Id, Player
+                    FROM Seating
+                    WHERE Tournament = ?
+                        AND Round = ?
+                        AND (Player = ? OR Player = ?)""",
+                (self.tournamentid, round, left, right)
+            )
             rows = cur.fetchall()
             if len(rows) != 2:
                 ret["message"] = "Can't find those two players in that round"
@@ -288,9 +299,11 @@ class SwapSeatingHandler(handler.BaseHandler):
         return self.write(ret)
 
 class SeatingHandler(handler.BaseHandler):
+    @handler.tournament_handler_ajax
     def get(self):
-        return self.write(json.dumps({'rounds':getSeating()}))
+        return self.write(json.dumps({'rounds':getSeating(self.tournamentid)}))
     @handler.is_admin
+    @handler.tournament_handler_ajax
     def post(self):
         round = self.get_argument('round', None)
         if round is not None:
@@ -309,8 +322,8 @@ class SeatingHandler(handler.BaseHandler):
                             Duplicates,
                             Diversity,
                             UsePools
-                             FROM Rounds WHERE Id = ?""",
-                        (round,)
+                             FROM Rounds WHERE Id = ? AND Tournament = ?""",
+                        (round, self.tournamentid)
                     )
                 round, ordering, algorithm, seed, cut, softcut, cutsize, duplicates, diversity, usepools = cur.fetchone()
                 cut = cut == 1
@@ -336,13 +349,13 @@ class SeatingHandler(handler.BaseHandler):
                            LEFT OUTER JOIN Scores ON
                              Players.Id = Scores.PlayerId AND Scores.Round < ?
                            LEFT OUTER JOIN Scores AS LastScore ON
-                             Players.Id = LastScore.PlayerId AND 
+                             Players.Id = LastScore.PlayerId AND
                              LastScore.Round = ? - 1 AND LastScore.Rank != 0
-                           LEFT OUTER JOIN 
-                             (SELECT Players.Id, 
+                           LEFT OUTER JOIN
+                             (SELECT Players.Id,
                                      COALESCE(SUM(Penalty), 0) as sum
                                 FROM Players
-                                  LEFT OUTER JOIN Scores 
+                                  LEFT OUTER JOIN Scores
                                     ON Players.Id = Scores.PlayerId AND
                                        Scores.Round < ?
                                   LEFT OUTER JOIN Penalties
@@ -350,10 +363,11 @@ class SeatingHandler(handler.BaseHandler):
                                 GROUP BY Players.Id) AS PenaltyPoints
                              ON Players.Id = PenaltyPoints.Id
                          WHERE Players.Type = 0
+                         AND Players.Tournament = ?
                          GROUP BY Players.Id
                     """
                 query += ORDERINGS[ordering][1]
-                cur.execute(query, (round, round, round))
+                cur.execute(query, (round, round, round, self.tournamentid))
                 players = []
                 for i, row in enumerate(cur.fetchall()):
                     player, country, pool, score, lastrank, penalty, total = row
@@ -374,9 +388,10 @@ class SeatingHandler(handler.BaseHandler):
                          FROM Players
                            LEFT OUTER JOIN Countries ON Players.Country = Countries.Id
                          WHERE Players.Type = 2
+                         AND Players.Tournament = ?
                          GROUP BY Players.Id
                     """
-                cur.execute(query)
+                cur.execute(query, (self.tournamentid,))
                 subs = []
                 for i, row in enumerate(cur.fetchall()):
                     subs += [{
@@ -439,13 +454,13 @@ class SeatingHandler(handler.BaseHandler):
                 if len(players) > 0:
                     bindings = []
                     for i, player in enumerate(players):
-                        bindings += [round, player["Id"], int(i / 4) + 1, i % 4]
-                    cur.execute("DELETE FROM Seating WHERE Round = ?", (round,))
-                    playerquery = "(?, ?, ?, ?)"
-                    cur.execute("""
-                        INSERT INTO Seating (Round, Player, TableNum, Wind)
-                        VALUES {0}
-                    """.format(",".join([playerquery] * len(players))),
+                        bindings += [(self.tournamentid, round, player["Id"], int(i / 4) + 1, i % 4)]
+                    cur.execute("DELETE FROM Seating WHERE Tournament = ? AND Round = ?", (self.tournamentid, round))
+                    playerquery = ""
+                    cur.executemany("""
+                        INSERT INTO
+                            Seating (Tournament, Round, Player, TableNum, Wind)
+                            VALUES  (?,          ?,     ?,      ?,        ?)""",
                         bindings
                     )
                     if ret["status"] != "warn":

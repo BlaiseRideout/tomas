@@ -2,7 +2,7 @@
 <html>
 	<head>
 		<title>
-			{{ tournamentname }}
+			{{ websitename }}
 		  {% block title %}{% end %}</title>
 
 		<meta charset="utf-8" />
@@ -44,11 +44,11 @@
 			{% else %}
 				<a href="{{ proxyprefix }}preferences">Preferences</a>
 				<a href="{{ proxyprefix }}invite">Invite</a>
+				{% if is_admin %}
+					<a href="{{ proxyprefix }}users.html">Users</a>
+				{% end %}
 				<a href="{{ proxyprefix }}logout?next={{ proxyprefix.rstrip('/') + request.uri }}">Logout</a>
 			{% end %}
-	  </div>
-	  <div id="tournamet_title">
-	    {{ tournamentname }}
 	  </div>
 		<div id="content">
 			{% block content %}{% end %}

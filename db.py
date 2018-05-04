@@ -33,6 +33,24 @@ class getCur():
         return False
 
 schema = collections.OrderedDict({
+    'Users': [
+        "Id INTEGER PRIMARY KEY AUTOINCREMENT",
+        "Email TEXT NOT NULL",
+        "Password TEXT NOT NULL",
+        "UNIQUE(Email)"
+    ],
+    'Admins': [
+        "Id INTEGER PRIMARY KEY NOT NULL",
+        "FOREIGN KEY(Id) REFERENCES Users(Id) ON DELETE CASCADE"
+    ],
+    'Tournaments': [
+        "Id INTEGER PRIMARY KEY AUTOINCREMENT",
+        "Name TEXT",
+        "Owner INTEGER",
+        "Country INTEGER",
+        "FOREIGN KEY(Owner) REFERENCES Users(Id) ON DELETE CASCADE",
+        "FOREIGN KEY(Country) REFERENCES Countries(Id) ON DELETE CASCADE"
+    ],
     'Countries': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
         "Name TEXT",
@@ -43,6 +61,8 @@ schema = collections.OrderedDict({
     ],
     'Rounds': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
+        "Tournament INTEGER",
+        "Number INTEGER",
         "Ordering INTEGER",
         "Algorithm INTEGER",
         "Seed TEXT",
@@ -53,19 +73,12 @@ schema = collections.OrderedDict({
         "Diversity TINYINT DEFAULT 1",
         "UsePools TINYINT DEFAULT 1",
         "Winds TINYINT DEFAULT 1",
-        "Games INTEGER DEFAULT 1"
-    ],
-    'Seating': [
-        "Id INTEGER PRIMARY KEY AUTOINCREMENT",
-        "Round INTEGER",
-        "Player INTEGER",
-        "TableNum INTEGER",
-        "Wind TINYINT",
-        "FOREIGN KEY(Player) REFERENCES Players(Id) ON DELETE CASCADE",
-        "FOREIGN KEY(Round) REFERENCES Rounds(Id) ON DELETE CASCADE"
+        "Games INTEGER DEFAULT 1",
+        "FOREIGN KEY(Tournament) REFERENCES Tournaments(Id) ON DELETE CASCADE"
     ],
     'Players': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
+        "Tournament INTEGER",
         "Name TEXT NOT NULL",
         "Number INTEGER",
         "Country INTEGER",
@@ -73,8 +86,20 @@ schema = collections.OrderedDict({
         "Pool TEXT",
         "Wheel TINYINT DEFAULT 0",
         "Type TINYINT DEFAULT 0",
+        "FOREIGN KEY(Tournament) REFERENCES Tournaments(Id) ON DELETE CASCADE",
         "FOREIGN KEY(Country) REFERENCES Countries(Id) ON DELETE CASCADE",
-        "UNIQUE(Number)"
+        "CONSTRAINT NumberInTournament UNIQUE(Number, Tournament)"
+    ],
+    'Seating': [
+        "Id INTEGER PRIMARY KEY AUTOINCREMENT",
+        "Round INTEGER",
+        "Tournament INTEGER",
+        "Player INTEGER",
+        "TableNum INTEGER",
+        "Wind TINYINT",
+        "FOREIGN KEY(Tournament) REFERENCES Tournaments(Id) ON DELETE CASCADE",
+        "FOREIGN KEY(Player) REFERENCES Players(Id) ON DELETE CASCADE",
+        "FOREIGN KEY(Round) REFERENCES Rounds(Id) ON DELETE CASCADE"
     ],
     'Scores': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
@@ -96,16 +121,6 @@ schema = collections.OrderedDict({
         "Referee TEXT",
         "FOREIGN KEY(ScoreId) REFERENCES Scores(Id) ON DELETE CASCADE",
     ],
-    'Users': [
-        "Id INTEGER PRIMARY KEY AUTOINCREMENT",
-        "Email TEXT NOT NULL",
-        "Password TEXT NOT NULL",
-        "UNIQUE(Email)"
-    ],
-    'Admins': [
-        'Id INTEGER PRIMARY KEY NOT NULL',
-        'FOREIGN KEY(Id) REFERENCES Users(Id) ON DELETE CASCADE'
-    ],
     'ResetLinks': [
         'Id CHAR(32) PRIMARY KEY NOT NULL',
         'User INTEGER',
@@ -126,7 +141,7 @@ schema = collections.OrderedDict({
 })
 
 # Decode table for Players.Type values
-playertypes = ['', 'Inactive', 'Substitute', 'UnusedPoints']
+playertypes = ['Regular', 'Inactive', 'Substitute', 'UnusedPoints']
 playertypecode = dict([(val, i) for i, val in enumerate(playertypes)])
 
 def init(force=False):
@@ -172,7 +187,7 @@ def init(force=False):
                         cur.execute(
                             "INSERT INTO Countries"
                             " (Name, Code, IOC_Code, IOC_Name, Flag_Image)"
-                            " VALUES(?, ?, ?, ?, ?)", 
+                            " VALUES(?, ?, ?, ?, ?)",
                             list(map(lambda x: x.format(**vars), row)))
             except Exception as e:
                 log.error("Error loading countries from {}: {}".format(

@@ -4,22 +4,24 @@
 		<script src="{{ proxyprefix.rstrip('/') + static_url("js/tournament.js") }}"></script>
 		<script>
 		  var tab = {% if tab %}"{{ tab }}"{% else %}null{% end %};
+			var tournamentid = {{ tournamentid }};
 		</script>
+{% end %}
+{% block title %}
+	{{ websitename }} - {{ tournamentname }}
 {% end %}
 {% block content %}
 <div id="tournament">
-	{% if no_user %}
-		<p>It appears you've no users. Would you like to create one?</p>
-		<a class="button" href="setup">SETUP</a>
-	{% end %}
+	<div id="tournament_title">
+		 {{ tournamentname }}
+	</div>
 	<ul>
-		<li><a href="{{ proxyprefix }}leaderboard.html">Standings</a></li>
-		<li><a href="{{ proxyprefix }}scoreboard">Scores</a></li>
-		<li><a href="{{ proxyprefix }}seating.html">Seating</a></li>
+		<li><a href="leaderboard.html">Standings</a></li>
+		<li><a href="scoreboard">Scores</a></li>
+		<li><a href="seating.html">Seating</a></li>
 		<li data-id="players"><a href="#players">Players</a></li>
 	  {% if is_admin %}
-		<li><a href="{{ proxyprefix }}users.html">Users</a></li>
-		<li><a href="{{ proxyprefix }}settings.html">Settings</a></li>
+		<li><a href="settings.html">Settings</a></li>
 	  {% end %}
 	</ul>
 	<div id="players">

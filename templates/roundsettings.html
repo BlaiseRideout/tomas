@@ -3,7 +3,7 @@
 <button id="addround">Add Round</button>
 {% for round in rounds %}
 	<div class="round" data-roundid="{{ round['id'] }}">
-		<h2>Round {{ round['id'] }}</h2>
+		<h2>Round {{ round['number'] }}</h2>
 
 		<label for="round{{ round['id'] }}-ordering">Ordering</label>
 		<span id="round{{ round['id'] }}-ordering" class="orderingselect roundsetting" data-colname="Ordering" data-value="{{ round['ordering'] }}">{{ round['orderingname'] }}</span>
@@ -65,6 +65,6 @@
 
 		<br />
 
-		<button class="deleteround">Delete Round {{ round['id'] }}</button>
+		<button class="deleteround">Delete Round {{ round['number'] }}</button>
 	</div>
 {% end %}
