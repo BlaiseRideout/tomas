@@ -4,6 +4,8 @@ import datetime
 
 # Tournament Name - Used in email communications and headers
 TOURNAMENTNAME = "{0} Tournament".format(datetime.date.today().strftime('%Y'))
+# Linked web site - Link for upper left corner 'sponsor' logo
+SPONSORLINK = "https://seattlemahjong.com"
 
 # DB
 #  DBFILE is the name of the file that contains the scores and player database.

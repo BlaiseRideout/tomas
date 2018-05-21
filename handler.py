@@ -23,6 +23,7 @@ class BaseHandler(tornado.web.RequestHandler):
             stylesheet = self.get_stylesheet(),
             proxyprefix = settings.PROXYPREFIX,
             tournamentname = settings.TOURNAMENTNAME,
+            SponsorLink = settings.SPONSORLINK,
             **kwargs
         )
 
