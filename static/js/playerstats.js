@@ -1,9 +1,9 @@
 $(function() {
-	var playerstats;
+	var statsTemplate, ranks = ["1st", "2nd", "3rd", "4th", "5th"];
 
 	$.get(base + "static/mustache/playerstats.mst", function(data) {
-		playerstats = data;
-		Mustache.parse(playerstats);
+		statsTemplate = data;
+		Mustache.parse(statsTemplate);
 		var parts = document.URL.split('/');
 		player = parts[parts.length - 1];
 		getData(player);
@@ -11,13 +11,16 @@ $(function() {
 
 	function getData(player) {
 		$.getJSON(base + "playerstatsdata/" + player, function(data) {
-			$("#playerstats").html(Mustache.render(playerstats, data));
+		    if (data.status != 0) {
+			$.notify(data.error);
+		    } else {
+			$("#playerstats").html(Mustache.render(statsTemplate, data));
 			d3.selectAll(".playerstatperiod").each(function(d, i) {
 				drawData(d3.select(this).select('svg'),
 					d3.select(this).select('.rankpielegend'),
 					data['playerstats'][i]['rank_histogram']);
 			})
-		});
+		    }});
 	}
 
 	function drawData(svg_selection, legend_selection, data) {
@@ -84,7 +87,7 @@ $(function() {
 			return d.column + "_" + d.value + "_label " +
 				d.column + "_label"
 		}).text(function(d) {
-			return d.value
+			return d.column == 'rank' ? ranks[d.value - 1] : d.value
 		});
 	}
 });

@@ -43,7 +43,7 @@ class PlayerStatsDataHandler(handler.BaseHandler):
             player = cur.fetchone()
             if player is None or len(player) == 0:
                 self.write(json.dumps({'status': 1,
-                                       'error': "Couldn't find player"}))
+                                       'error': "Couldn't find player " + name}))
                 return
             playerID, name = player
 
@@ -115,6 +115,7 @@ class PlayerStatsDataHandler(handler.BaseHandler):
                 futuregames[-1]['seating'] += [seat]
 
             self.write({
+                'status': 0,
                 'playerstats': periods,
                 'playergames': playergames,
                 'futuregames': futuregames
