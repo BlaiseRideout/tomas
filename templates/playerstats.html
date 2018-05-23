@@ -23,8 +23,8 @@
 		{% if history and len(history) > 0 %}
 			<div id="statshistory">
 				<h2>Recently Viewed</h2>
-				{% for item in history %}
-					<a href="playerstats/{{ item }}">{{ item }}</a><br />
+				{% for player in history %}
+					<a href="{{ proxyprefix }}playerstats/{{ player[0] }}">{{ player[1] }}</a><br />
 				{% end %}
 			</div>
 		{% end %}

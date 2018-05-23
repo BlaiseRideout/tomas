@@ -11,16 +11,18 @@ $(function() {
 
 	function getData(player) {
 		$.getJSON(base + "playerstatsdata/" + player, function(data) {
-		    if (data.status != 0) {
-			$.notify(data.error);
-		    } else {
-			$("#playerstats").html(Mustache.render(statsTemplate, data));
-			d3.selectAll(".playerstatperiod").each(function(d, i) {
-				drawData(d3.select(this).select('svg'),
-					d3.select(this).select('.rankpielegend'),
-					data['playerstats'][i]['rank_histogram']);
-			})
-		    }});
+			if (data.status != 0) {
+				$.notify(data.error);
+			} else {
+				data['base'] = base;
+				$("#playerstats").html(Mustache.render(statsTemplate, data));
+				d3.selectAll(".playerstatperiod").each(function(d, i) {
+					drawData(d3.select(this).select('svg'),
+						d3.select(this).select('.rankpielegend'),
+						data['playerstats'][i]['rank_histogram']);
+				});
+			}
+		});
 	}
 
 	function drawData(svg_selection, legend_selection, data) {

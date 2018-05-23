@@ -9,7 +9,7 @@ import settings
 
 def leaderData(tournamentid):
     query = """SELECT
-         Players.Name, Countries.Code, Flag_Image, Type,
+         Players.Id, Players.Name, Countries.Code, Flag_Image, Type,
          COUNT(Scores.Id) AS GamesPlayed,
          COALESCE(ROUND(SUM(Scores.Score) * 100) / 100, 0) AS TotalPoints,
          COALESCE(PenaltyPoints.sum, 0) as Penalty,
@@ -28,7 +28,7 @@ def leaderData(tournamentid):
        AND Players.Tournament = ?
        GROUP BY Players.Id
        ORDER BY Type ASC, GamesPlayed DESC, Total DESC, Penalty DESC;"""
-    fields = ['name', 'country', 'flag_image', 'type', 'games_played',
+    fields = ['id', 'name', 'country', 'flag_image', 'type', 'games_played',
               'points', 'penalty', 'total']
     with db.getCur() as cur:
         leaderboard = []
@@ -62,11 +62,12 @@ class ScoreboardHandler(handler.BaseHandler):
     def get(self):
         query = """SELECT
            Players.Id, Players.Name, Countries.Code, Flag_Image, Type,
-           Scores.Round, Scores.Rank, ROUND(Scores.Score * 100) / 100,
+           Rounds.Number, Scores.Rank, ROUND(Scores.Score * 100) / 100,
            COALESCE(SUM(Penalties.Penalty), 0),
            COALESCE(ROUND((Scores.Score + COALESCE(SUM(Penalties.Penalty), 0))
                           * 100) / 100, 0)
            FROM Scores
+           LEFT JOIN Rounds ON Scores.Round = Rounds.Id
            LEFT JOIN Players ON Scores.PlayerId = Players.Id
            LEFT JOIN Countries ON Players.Country = Countries.Id
            LEFT OUTER JOIN Penalties ON Scores.Id = Penalties.ScoreId

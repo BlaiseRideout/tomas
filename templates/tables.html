@@ -4,7 +4,7 @@
 <div id="seating">
 	<ul>
 		{% for round in sorted(rounds, key=lambda r: r['round']) %}
-				<li><a href="#round-{{ round['round'] }}">Round {{ round['round'] }}</a></li>
+				<li><a href="#round-{{ round['round'] }}">Round {{ round['number'] }}</a></li>
 		{% end %}
 	</ul>
 	{% for round in sorted(rounds, key=lambda r: r['round']) %}
@@ -53,7 +53,7 @@
 								{% if round['winds'] %}
 									<td class="windicator">{{ player['wind'] }}</td>
 								{% end %}
-								<td class="name"><a href="playerstats/{{ player['player']['name'] }}">{{ player['player']['name'] }}</a></td>
+								<td class="name"><a href="{{ proxyprefix }}playerstats/{{ player['player']['id'] }}">{{ player['player']['name'] }}</a></td>
 								<td class="country">{{ player['player']['country'] }}</td>
 								<td class="flag">{% raw player['player']['flag'] %}</td>
 								<td class="rawscore">

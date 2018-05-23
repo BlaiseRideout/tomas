@@ -46,21 +46,6 @@ $(function() {
 				['country', 1, 'str']
 			]
 		},
-		'leaderboard.mst': {
-			'table': 'leaderboard',
-			'keys': [
-				['type', 1, 'str'],
-				['games_played', -1, 'num'],
-				['score', -1, 'num']
-			]
-		},
-		'users.mst': {
-			'table': 'users',
-			'keys': [
-				['email', 1, 'str'],
-				['admin', 1, 'num'],
-			]
-		},
 	};
 
 	/* Build a comparison function that compares keys in order specified */

@@ -1,6 +1,6 @@
 <ul>
 	{{ #rounds }}
-			<li><a href="#round-{{ round }}">Round {{ round }}</a></li>
+			<li><a href="#round-{{ round }}">Round {{ number }}</a></li>
 	{{ /rounds }}
 </ul>
 {{ #rounds }}

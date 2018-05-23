@@ -26,9 +26,9 @@ def this_server(request):
     return settings.SERVERPREFIX or "{}://{}".format(
         request.protocol, request.host)
 
-def format_invite(tournamentname, hostprefix, code):
+def format_invite(websitename, hostprefix, code):
     return """
-<p>You've been invited to {tournamentname}\n<br />
+<p>You've been invited to {websitename}\n<br />
 Click <a href="{hostprefix}/verify/{code}">this link</a>
 to accept the invite and register an account, or copy and paste the following
 into your URL bar:<br />
@@ -36,7 +36,7 @@ into your URL bar:<br />
 
 <p>If you believe you received this email in error, it can be safely ignored.
 It is likely a user simply entered your email by mistake.</p>""".format(
-    tournamentname=tournamentname, hostprefix=hostprefix, code=code)
+    websitename=websitename, hostprefix=hostprefix, code=code)
 
 def expiration_date(start=None, duration=settings.LINKVALIDDAYS):
     if start is None:
@@ -78,8 +78,8 @@ class InviteHandler(handler.BaseHandler):
                             (code, email, expiration_date().isoformat()))
 
             util.sendEmail(email,
-                           "Your {0} Account".format(settings.TOURNAMENTNAME),
-                           format_invite(settings.TOURNAMENTNAME,
+                           "Your {0} Account".format(settings.WEBSITENAME),
+                           format_invite(settings.WEBSITENAME,
                                          this_server(self.request), code))
 
             self.render("message.html",
@@ -110,9 +110,9 @@ class SetupHandler(handler.BaseHandler):
 
                 if len(settings.EMAILPASSWORD) > 0:
                     util.sendEmail(email, "Your {0} Account".format(
-                        settings.TOURNAMENTNAME),
+                        settings.WEBSITENAME),
                                    format_invite(
-                                       settings.TOURNAMENTNAME,
+                                       settings.WEBSITENAME,
                                        this_server(self.request), code))
 
                     self.render("message.html",
@@ -213,12 +213,12 @@ class ResetPasswordHandler(handler.BaseHandler):
                             (code, row[0], expiration_date().isoformat()))
 
                 util.sendEmail(
-                    email, "Your {0} Account".format(settings.TOURNAMENTNAME), """
-<p>Here's the link to reset your {tournamentname} account password.<br />
+                    email, "Your {0} Account".format(settings.WEBSITENAME), """
+<p>Here's the link to reset your {websitename} account password.<br />
 Click <a href="{hostprefix}/reset/{code}">this link</a> to reset your password,
 or copy and paste the following into your URL bar:<br />
 {hostprefix}/reset/{code} </p>
-""".format(tournamentname=settings.TOURNAMENTNAME,
+""".format(websitename=settings.WEBSITENAME,
            hostprefix=this_server(self.request), code=code))
                 self.render("message.html",
                             message = "Your password reset link has been sent")
@@ -283,7 +283,7 @@ class ResetPasswordLinkHandler(handler.BaseHandler):
                 self.render("message.html",
                     message = "The password has been reset. {}".format(
                         '<a href="{}">{}</a>'.format(nexturi, nexttask)
-                        if nexturi and nexttask and 
+                        if nexturi and nexttask and
                         len(nexturi) * len(nexttask) > 0 else
                         'You may now <a href="{proxyprefix}login">Login</a>'.format(
                             proxyprefix=settings.PROXYPREFIX)))

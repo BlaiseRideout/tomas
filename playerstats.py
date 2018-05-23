@@ -36,7 +36,6 @@ class PlayerStatsDataHandler(handler.BaseHandler):
                                for i in range(1, settings.LOWESTRANK + 1)]
         period_dict['rank_histogram'] = rank_histogram_list
 
-    @handler.tournament_handler_ajax
     def get(self, player):
         with db.getCur() as cur:
             name = player
@@ -62,7 +61,8 @@ class PlayerStatsDataHandler(handler.BaseHandler):
                                    error = "Couldn't find any scores for")
 
             cur.execute(
-                    "SELECT Scores2.Round, Scores2.Rank, ROUND(Scores2.Score * 100) / 100, Players.Name,"
+                    "SELECT Scores2.Round, Rounds.Number,"
+                    " Scores2.Rank, ROUND(Scores2.Score * 100) / 100, Players.Name, Players.Id,"
                     " Countries.Code, Countries.Flag_Image FROM Scores"
                     " JOIN Scores AS Scores2"
                     "  ON Scores.GameId = Scores2.GameId AND Scores.Round = Scores2.Round"
@@ -70,17 +70,20 @@ class PlayerStatsDataHandler(handler.BaseHandler):
                     "  ON Players.Id = Scores2.PlayerId"
                     " JOIN Countries"
                     "  ON Players.Country = Countries.Id"
+                    " JOIN Rounds"
+                    "  ON Rounds.Id = Scores2.Round"
                     " WHERE Scores.PlayerId = ? AND Scores2.PlayerId != ?"
                     " ORDER BY Scores2.Round, Scores2.Rank",
                     (playerID, db.getUnusedPointsPlayerID())
                 )
-            cols = ['rank', 'score', 'name', 'country', 'flag']
+            cols = ['rank', 'score', 'name', 'id', 'country', 'flag']
             playergames = []
             for row in cur.fetchall():
-                score = dict(zip(cols, row[1:]))
+                score = dict(zip(cols, row[2:]))
                 if len(playergames) == 0 or playergames[-1]['round'] != row[0]:
                     playergames += [{
                         'round': row[0],
+                        'number': row[1],
                         'scores': []
                     }]
                 playergames[-1]['scores'] += [score]
@@ -123,7 +126,6 @@ class PlayerStatsDataHandler(handler.BaseHandler):
             })
 
 class PlayerStatsHandler(handler.BaseHandler):
-    @handler.tournament_handler
     def get(self, player):
         HISTORY_COOKIE = "stats_history"
         with db.getCur() as cur:
@@ -138,9 +140,11 @@ class PlayerStatsHandler(handler.BaseHandler):
                 history = []
             else:
                 history = json.loads(history)
-            if player[1] in history:
-                history.remove(player[1])
-            history.insert(0, player[1])
+
+            player = list(player)
+            if player in history:
+                history.remove(player)
+            history.insert(0, player)
 
             history = history[0:settings.STATSHISTORYSIZE]
             self.set_secure_cookie(HISTORY_COOKIE, json.dumps(history))
