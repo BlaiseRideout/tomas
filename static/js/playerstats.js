@@ -13,7 +13,8 @@ $(function() {
 		$.getJSON(base + "playerstatsdata/" + player, function(data) {
 			if (data.status != 0) {
 				$.notify(data.error);
-			} else {
+			}
+			else {
 				data['base'] = base;
 				$("#playerstats").html(Mustache.render(statsTemplate, data));
 				d3.selectAll(".playerstatperiod").each(function(d, i) {
