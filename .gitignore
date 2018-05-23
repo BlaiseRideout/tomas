@@ -5,3 +5,5 @@ mysettings.py
 *~
 *.log
 venv
+Output/
+build/

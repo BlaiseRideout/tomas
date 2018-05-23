@@ -56,6 +56,11 @@ class Application(tornado.web.Application):
     def __init__(self, force=False):
         db.init(force=force)
 
+        if getattr(sys, 'frozen', False):
+            curdirname = os.path.dirname(sys.executable)
+        else:
+            curdirname = os.path.dirname(os.path.realpath(__file__))
+
         handlers = [
                 (r"/", tournament.TournamentListHandler),
                 (r"/newtournament", tournament.NewTournamentHandler),
@@ -97,8 +102,8 @@ class Application(tornado.web.Application):
                 (r"/reset/([^/]+)", login.ResetPasswordLinkHandler),
         ]
         app_settings = dict(
-                template_path = os.path.join(os.path.dirname(__file__), "templates"),
-                static_path = os.path.join(os.path.dirname(__file__), "static"),
+                template_path = os.path.join(curdirname, "templates"),
+                static_path = os.path.join(curdirname, "static"),
                 debug = True,
                 cookie_secret = cookie_secret,
                 login_url = "/login"
@@ -106,9 +111,8 @@ class Application(tornado.web.Application):
         tornado.web.Application.__init__(self, handlers, **app_settings)
 
 def periodicCleanup():
-    pass
-#    with db.getCur() as cur:
-#        cur.execute("DELETE FROM VerifyLinks WHERE Expires <= datetime('now')")
+    with db.getCur() as cur:
+        cur.execute("DELETE FROM VerifyLinks WHERE Expires <= datetime('now')")
 
 def main():
     default_socket = "/tmp/tomas.sock"

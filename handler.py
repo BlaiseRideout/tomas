@@ -29,6 +29,7 @@ class BaseHandler(tornado.web.RequestHandler):
             websitename = settings.WEBSITENAME,
             tournamentid = self.tournamentid,
             tournamentname = self.tournamentname,
+            SponsorLink = settings.SPONSORLINK,
             **kwargs
         )
 

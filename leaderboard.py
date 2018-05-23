@@ -11,13 +11,10 @@ def leaderData(tournamentid):
     query = """SELECT
          Players.Name, Countries.Code, Flag_Image, Type,
          COUNT(Scores.Id) AS GamesPlayed,
-         COALESCE(
-             ROUND(SUM(Scores.Score) * 1.0 / COUNT(Scores.Score) * 100) / 100
-             , 0) AS AvgScore,
+         COALESCE(ROUND(SUM(Scores.Score) * 100) / 100, 0) AS TotalPoints,
          COALESCE(PenaltyPoints.sum, 0) as Penalty,
-         COALESCE(
-             ROUND(SUM(Scores.Score) * 1.0 / COUNT(Scores.Score) * 100) / 100
-              + PenaltyPoints.sum, 0) as Total
+         COALESCE(ROUND((SUM(Scores.Score) + PenaltyPoints.sum) * 100) / 100,
+                  0) as Total
        FROM Players
        LEFT JOIN Scores ON Players.Id = Scores.PlayerId
        LEFT OUTER JOIN
@@ -32,7 +29,7 @@ def leaderData(tournamentid):
        GROUP BY Players.Id
        ORDER BY Type ASC, GamesPlayed DESC, Total DESC, Penalty DESC;"""
     fields = ['name', 'country', 'flag_image', 'type', 'games_played',
-              'score', 'penalty', 'total']
+              'points', 'penalty', 'total']
     with db.getCur() as cur:
         leaderboard = []
         last_total = None
@@ -67,8 +64,8 @@ class ScoreboardHandler(handler.BaseHandler):
            Players.Id, Players.Name, Countries.Code, Flag_Image, Type,
            Scores.Round, Scores.Rank, ROUND(Scores.Score * 100) / 100,
            COALESCE(SUM(Penalties.Penalty), 0),
-           COALESCE(ROUND(Scores.Score * 100) / 100, 0) +
-             COALESCE(SUM(Penalties.Penalty), 0)
+           COALESCE(ROUND((Scores.Score + COALESCE(SUM(Penalties.Penalty), 0))
+                          * 100) / 100, 0)
            FROM Scores
            LEFT JOIN Players ON Scores.PlayerId = Players.Id
            LEFT JOIN Countries ON Players.Country = Countries.Id
@@ -79,7 +76,7 @@ class ScoreboardHandler(handler.BaseHandler):
            ORDER BY Type ASC, Players.Name ASC
         """
         fields = ['id', 'name', 'country', 'flag_image', 'type',
-                  'round', 'rank', 'score', 'penalty', 'total']
+                  'round', 'rank', 'points', 'penalty', 'total']
         with db.getCur() as cur:
             scoreboard = {}
             rounds = []
@@ -94,7 +91,7 @@ class ScoreboardHandler(handler.BaseHandler):
                     scoreboard[rec['id']]['scores'] = {}
                 scoreboard[rec['id']]['scores'][rec['round']] = {
                         'rank':rec['rank'],
-                        'score': round(rec['score'], 1),
+                        'score': round(rec['points'], 1),
                         'penalty':rec['penalty'],
                         'total': round(rec['total'], 1)
                     }
