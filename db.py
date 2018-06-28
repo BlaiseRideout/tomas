@@ -65,9 +65,11 @@ schema = collections.OrderedDict({
         "Number INTEGER",
         "Ordering INTEGER",
         "Algorithm INTEGER",
-        "Seed TEXT",
-        "Cut TINYINT",
-        "SoftCut TINYINT",
+        "Seed TEXT DEFAULT ''",
+        "Cut TINYINT DEFAULT 0",
+        "SoftCut TINYINT DEFAULT 0",
+        "CutMobility TINYINT DEFAULT 0",
+        "CombineLastCut TINYINT DEFAULT 0",
         "CutSize INTEGER DEFAULT NULL",
         "Duplicates TINYINT DEFAULT 1",
         "Diversity TINYINT DEFAULT 1",
@@ -274,7 +276,7 @@ def check_table_schema(tablename, force=False, backupname="_backup"):
                     cur.execute(sql)
 
 def words(spec):
-    return re.findall(r'\w+', spec)
+    return re.findall(r'[\w\']+', spec)
 
 def missing_fields(table_fields, actual_fields):
     return [ field_spec for field_spec in table_fields if (

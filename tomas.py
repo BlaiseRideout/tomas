@@ -51,7 +51,6 @@ class MainHandler(handler.BaseHandler):
 
         self.render("index.html", no_user = no_user, tournaments = tournaments)
 
-
 class Application(tornado.web.Application):
     def __init__(self, force=False):
         db.init(force=force)

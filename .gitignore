@@ -7,3 +7,4 @@ mysettings.py
 venv
 Output/
 build/
+venv/

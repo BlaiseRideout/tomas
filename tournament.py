@@ -298,28 +298,25 @@ class DeleteRoundHandler(handler.BaseHandler):
 
 def getSettings(self, tournamentid):
     with db.getCur() as cur:
-        cur.execute("SELECT Id, Number, COALESCE(Ordering, 0), COALESCE(Algorithm, 0), Seed, Cut, SoftCut, CutSize,"
-                    "Duplicates, Diversity, UsePools, Winds, Games FROM Rounds WHERE Tournament = ?", (tournamentid,))
-        rounds = [
-                {
-                    "id": roundid,
-                    "number": number,
-                    "ordering": ordering,
-                    "orderingname": seating.ORDERINGS[ordering][0],
-                    "algorithm": algorithm,
-                    "algname": seating.ALGORITHMS[algorithm].name,
-                    "seed": seed or "",
-                    "cut": cut,
-                    "softcut": softcut,
-                    "cutsize": cutsize,
-                    "duplicates": duplicates,
-                    "diversity": diversity,
-                    "usepools": usepools,
-                    "winds": winds,
-                    "games": games
-                }
-                for roundid, number, ordering, algorithm, seed, cut, softcut, cutsize, duplicates, diversity, usepools, winds, games in cur.fetchall()
-            ]
+        cur.execute("""SELECT Id, Number, COALESCE(Ordering, 0), COALESCE(Algorithm, 0), Seed,
+                        Cut, SoftCut, CutSize, CutMobility, CombineLastCut,
+                        Duplicates, Diversity, UsePools, Winds, Games
+                    FROM Rounds WHERE Tournament = ?""", (tournamentid,))
+
+        cols = ["id", "number", "ordering", "algorithm", "seed",
+                "cut", "softcut", "cutsize", "cutmobility", "combinelastcut",
+                "duplicates", "diversity", "usepools", "winds", "games"]
+        rounds = []
+
+        for row in cur.fetchall():
+            roundDict = dict(zip(cols, row))
+
+            roundDict["orderingname"] = seating.ORDERINGS[roundDict["ordering"]][0],
+            roundDict["algname"] = seating.ALGORITHMS[roundDict["algorithm"]].name,
+            roundDict["seed"] = roundDict["seed"] or ""
+
+            rounds += [roundDict]
+
         return {'rounds':rounds,
                 'scoreperplayer':settings.SCOREPERPLAYER,
                 'unusedscoreincrement': settings.UNUSEDSCOREINCREMENT,

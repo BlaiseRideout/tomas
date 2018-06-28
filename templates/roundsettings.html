@@ -39,6 +39,24 @@
 
 		<br />
 
+		<input title="Allow players separated by this round's softcut to change positions in future rounds"
+					 type="checkbox"
+					 class="roundsetting"
+					 id="round{{ round['id'] }}-cutmobility"
+					 data-colname="CutMobility"{% if round['cutmobility'] %} checked{% end %} />
+		<label for="round{{ round['id'] }}-cutmobility">Cut mobility?</label>
+
+		<br />
+
+		<input title="If the number of players isn't divisible by the cutsize and this is checked, combines the last two cut groups. If it's not checked, then the last group is just left small."
+					 type="checkbox"
+					 class="roundsetting"
+					 id="round{{ round['id'] }}-combinelastcut"
+					 data-colname="CombineLastCut"{% if round['combinelastcut'] %} checked{% end %} />
+		<label for="round{{ round['id'] }}-combinelastcut">Combine last cut?</label>
+
+		<br />
+
 
 		<input type="checkbox" class="roundsetting" id="round{{ round['id'] }}-duplicates" data-colname="Duplicates" {% if round['duplicates'] %} checked{% end %}/>
 		<label for="round{{ round['id'] }}-duplicates">Fix duplicates</label>
