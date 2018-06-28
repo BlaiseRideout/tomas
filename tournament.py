@@ -165,7 +165,7 @@ class UploadPlayersHandler(handler.BaseHandler):
                     first = False
                     if hasheader:
                         colnames = [v.lower() for v in row]
-                        colnames += [c.lower() for c in PlayerColumns 
+                        colnames += [c.lower() for c in PlayerColumns
                                      if c.lower() not in colnames]
                         continue
                     if len(row) < 3:
@@ -183,9 +183,9 @@ class UploadPlayersHandler(handler.BaseHandler):
                     rowdict = dict(zip(
                         colnames, list(row) + [None] * len(colnames)))
                     if not (rowdict['name'] or
-                            (rowdict['number'] and 
-                             not rowdict['number'].isdigit()) or 
-                            (rowdict['type'] and 
+                            (rowdict['number'] and
+                             not rowdict['number'].isdigit()) or
+                            (rowdict['type'] and
                              not rowdict['type'] in db.playertypes)):
                         bad += 1
                         continue
@@ -200,7 +200,7 @@ class UploadPlayersHandler(handler.BaseHandler):
                         "   ?, ?, ?, ?);",
                         (rowdict['name'], rowdict['number'], rowdict['country'],
                          rowdict['country'], rowdict['country'],
-                         rowdict['association'], rowdict['pool'], 
+                         rowdict['association'], rowdict['pool'],
                          rowdict['type'], rowdict['wheel']))
                     good += 1
             return self.write({'status':"success",
@@ -232,27 +232,25 @@ class DeleteRoundHandler(handler.BaseHandler):
 
 def getSettings(self):
     with db.getCur() as cur:
-        cur.execute("SELECT Id, COALESCE(Ordering, 0), COALESCE(Algorithm, 0), Seed, Cut, SoftCut, CutSize,"
-                    "Duplicates, Diversity, UsePools, Winds, Games FROM Rounds")
-        rounds = [
-                {
-                    "id": roundid,
-                    "ordering": ordering,
-                    "orderingname": seating.ORDERINGS[ordering][0],
-                    "algorithm": algorithm,
-                    "algname": seating.ALGORITHMS[algorithm].name,
-                    "seed": seed or "",
-                    "cut": cut,
-                    "softcut": softcut,
-                    "cutsize": cutsize,
-                    "duplicates": duplicates,
-                    "diversity": diversity,
-                    "usepools": usepools,
-                    "winds": winds,
-                    "games": games
-                }
-                for roundid, ordering, algorithm, seed, cut, softcut, cutsize, duplicates, diversity, usepools, winds, games in cur.fetchall()
-            ]
+        cur.execute("""SELECT Id, COALESCE(Ordering, 0), COALESCE(Algorithm, 0), Seed,
+                        Cut, SoftCut, CutSize, CutMobility, CombineLastCut,
+                        Duplicates, Diversity, UsePools, Winds, Games
+                    FROM Rounds;""")
+        cols = ["id", "ordering", "algorithm", "seed",
+                "cut", "softcut", "cutsize", "cutmobility", "combinelastcut",
+                "duplicates", "diversity", "usepools", "winds", "games"]
+
+        rounds = []
+
+        for row in cur.fetchall():
+            roundDict = dict(zip(cols, row))
+
+            roundDict["orderingname"] = seating.ORDERINGS[roundDict["ordering"]][0],
+            roundDict["algname"] = seating.ALGORITHMS[roundDict["algorithm"]].name,
+            roundDict["seed"] = roundDict["seed"] or ""
+
+            rounds += [roundDict]
+
         return {'rounds':rounds,
                 'scoreperplayer':settings.SCOREPERPLAYER,
                 'unusedscoreincrement': settings.UNUSEDSCOREINCREMENT,

@@ -6,3 +6,4 @@ mysettings.py
 *.log
 Output/
 build/
+venv/

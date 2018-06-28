@@ -306,6 +306,7 @@ class SeatingHandler(handler.BaseHandler):
                             Seed,
                             Cut,
                             SoftCut,
+                            CombineLastCut,
                             CutSize,
                             Duplicates,
                             Diversity,
@@ -313,7 +314,7 @@ class SeatingHandler(handler.BaseHandler):
                              FROM Rounds WHERE Id = ?""",
                         (round,)
                     )
-                round, ordering, algorithm, seed, cut, softcut, cutsize, duplicates, diversity, usepools = cur.fetchone()
+                round, ordering, algorithm, seed, cut, softcut, combineLastCut, cutsize, duplicates, diversity, usepools = cur.fetchone()
                 cut = cut == 1
                 softcut = softcut == 1
                 duplicates = duplicates == 1
@@ -337,13 +338,13 @@ class SeatingHandler(handler.BaseHandler):
                            LEFT OUTER JOIN Scores ON
                              Players.Id = Scores.PlayerId AND Scores.Round < ?
                            LEFT OUTER JOIN Scores AS LastScore ON
-                             Players.Id = LastScore.PlayerId AND 
+                             Players.Id = LastScore.PlayerId AND
                              LastScore.Round = ? - 1 AND LastScore.Rank != 0
-                           LEFT OUTER JOIN 
-                             (SELECT Players.Id, 
+                           LEFT OUTER JOIN
+                             (SELECT Players.Id,
                                      COALESCE(SUM(Penalty), 0) as sum
                                 FROM Players
-                                  LEFT OUTER JOIN Scores 
+                                  LEFT OUTER JOIN Scores
                                     ON Players.Id = Scores.PlayerId AND
                                        Scores.Round < ?
                                   LEFT OUTER JOIN Penalties
@@ -358,7 +359,7 @@ class SeatingHandler(handler.BaseHandler):
                 players = []
                 for i, row in enumerate(cur.fetchall()):
                     player, country, pool, score, lastrank, penalty, total = row
-                    if ordering != 2 or lastrank:
+                    if ordering != 2 or lastrank or round == 1:
                         players += [{
                                         "Rank":i,
                                         "Id": player,
@@ -419,10 +420,16 @@ class SeatingHandler(handler.BaseHandler):
                             playerpool = pool + format(i, '04')
                             if not playerpool in pools:
                                 pools[playerpool] = []
-                            if not cut and (i + cutsize * 2 > len(players) and len(players) - (i + cutsize) < cutsize / 2):
+
+                            nextI = i + cutsize
+                            if (len(players) - nextI < cutsize and # If the next chunk wouldn't reach the cutsize,
+                                    not cut and                    #   and this is not a hard cut,
+                                    combineLastCut):               #   and we're combining smaller chunks
+                                pools[playerpool] += players[i:]
+                            elif nextI >= len(players):            # If this is the last chunk
                                 pools[playerpool] += players[i:]
                             else:
-                                pools[playerpool] += players[i:i + cutsize]
+                                pools[playerpool] += players[i:nextI]
 
                 if seed is not None and len(seed) > 0:
                     random.seed(seed)
