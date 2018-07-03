@@ -68,7 +68,7 @@ class NewTournamentHandler(handler.BaseHandler):
             cur.execute("INSERT INTO Tournaments(Name, Country, Owner) VALUES(?, ?, ?)",
                     (name, int(country), int(self.current_user)))
 
-        return self.redirect("/t/" + name)
+        return self.redirect("/t/" + name + "/tournament")
 
 class TournamentHandler(handler.BaseHandler):
     @handler.tournament_handler
