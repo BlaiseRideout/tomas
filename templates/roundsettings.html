@@ -1,6 +1,5 @@
 <script src="{{ proxyprefix.rstrip('/') + static_url('js/roundsettings.js') }}"
 	type="text/javascript" />
-<button id="addround">Add Round</button>
 {% for round in rounds %}
 	<div class="round" data-roundid="{{ round['id'] }}">
 		<h2>Round {{ round['number'] }}</h2>
@@ -85,4 +84,8 @@
 
 		<button class="deleteround">Delete Round {{ round['number'] }}</button>
 	</div>
+	<br />
+	<hr>
 {% end %}
+<br />
+<button id="addround">Add Round</button>
