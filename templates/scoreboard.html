@@ -18,7 +18,8 @@
 	</tr>
 	{% for row in scoreboard %}
 		<tr class="leaderbd_row" data-status="{{ row['type'] }}">
-			<td>{{ row['name'] }}</td>
+			<td><a href="{{ proxyprefix }}playerstats/{{ row['name'] }}">
+		        	{{ row['name'] }}</a></td>
 			<td>{{ row['country'] }}</td>
 			<td>{% raw row['flag_image'] %}</td>
 			<td>{{ row['type'] }}</td>
