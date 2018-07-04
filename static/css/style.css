@@ -159,8 +159,17 @@ button.clearplayercomplete {
 .unusedPointsEditor[data-scoreid=""] {
     display:none;
 }
+
+#currentUsers {
+	width: 90%;
+	margin: auto;
+}
+
 @media (max-width:600px) {
 	#tables > .table {
 		width:100%;
+	}
+	#currentUsers {
+		width: 100%;
 	}
 }

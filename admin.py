@@ -86,7 +86,7 @@ class ManageUsersHandler(handler.BaseHandler):
                         {'status':"success",
                          'redirect': "{}/reset/{}?nexturi={}&nexttask={}".format(
                              settings.PROXYPREFIX.rstrip('/'), code,
-                             url_escape('{}/?tab=users.html'.format(
+                             url_escape('{}/users.html'.format(
                                  settings.PROXYPREFIX.rstrip('/'))),
                              url_escape('Return to Users'))}))
                 elif action == 'update':
