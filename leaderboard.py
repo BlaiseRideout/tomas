@@ -140,6 +140,7 @@ def leaderData(tournamentid):
             leaderboard[player].update(zeroScores)
 
         leaderboard[player]['total'] += playerRound['points']
+        leaderboard[player]['total'] = round(leaderboard[player]['total'], 2)
         leaderboard[player]['games_played'] += playerRound['games_played']
 
         if player in penalties:
