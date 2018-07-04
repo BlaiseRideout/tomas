@@ -360,36 +360,37 @@ $(function() {
 	};
 
 	$("#tournament").tabs().find('li').click(function(ev) {
-	    var tabs = $(ev.target).parents('li'),
-		id = tabs.data('id'),
-		refresh = tabs.data('refresh');
+		var tabs = $(ev.target).parents('li'),
+			id = tabs.data('id'),
+			refresh = tabs.data('refresh');
 		if (id == 'players') {
 			return updatePlayers()
 		}
 		else if (id) {
 			console.log('Unexpected click event for data-id = ' + id)
 		};
-	    if (refresh) {
-		updateTournamentTab($("#tournament").tabs("option", "active"),
-				    refresh + 0);
-	    };
+		if (refresh) {
+			updateTournamentTab($("#tournament").tabs("option", "active"),
+				refresh + 0);
+		};
 	});
 
-        function updateTournamentTab(tabindex, refresh_interval) {
-	    var refreshTimer,
-		updater = function() {
-		    indexnow = $("#tournament").tabs("option", "active");
-		    if (indexnow == tabindex) {
-			/* console.log('Refresh tab index ' + tabindex); */
-			$("#tournament").tabs('load', tabindex);
-		    } else {
-			/* console.log('Clearing refresh for tab ' + tabindex); */
-			clearInterval(refreshTimer);
-		    }
-		};
-	    refreshTimer = setInterval(updater, refresh_interval);
+	function updateTournamentTab(tabindex, refresh_interval) {
+		var refreshTimer,
+			updater = function() {
+				indexnow = $("#tournament").tabs("option", "active");
+				if (indexnow == tabindex) {
+					/* console.log('Refresh tab index ' + tabindex); */
+					$("#tournament").tabs('load', tabindex);
+				}
+				else {
+					/* console.log('Clearing refresh for tab ' + tabindex); */
+					clearInterval(refreshTimer);
+				}
+			};
+		refreshTimer = setInterval(updater, refresh_interval);
 	};
-    
+
 	updatePlayers();
 	window.updateTab = function(callback) {
 		var current_index = $("#tournament").tabs("option", "active");
@@ -414,7 +415,7 @@ $(function() {
 		});
 	}
 
-    /* Start auto refresh for first tab if needed */
-    var refresh = $('#tournament').tabs().find('li').first().data('refresh');
-    if (refresh) updateTournamentTab(0, refresh + 0);
+	/* Start auto refresh for first tab if needed */
+	var refresh = $('#tournament').tabs().find('li').first().data('refresh');
+	if (refresh) updateTournamentTab(0, refresh + 0);
 });
