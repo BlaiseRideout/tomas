@@ -109,6 +109,7 @@ def leaderData(tournamentid):
                 'round', 'cut', 'cutmobility', 'cutsize', 'combineLastCut']
 
     zeroScores = {'total': 0,
+                    'points':0,
                     'games_played': 0,
                     'penalty': 0}
     with db.getCur() as cur:
@@ -139,8 +140,8 @@ def leaderData(tournamentid):
             leaderboard[player] = dict(playerRound)
             leaderboard[player].update(zeroScores)
 
+        leaderboard[player]['points'] += playerRound['points']
         leaderboard[player]['total'] += playerRound['points']
-        leaderboard[player]['total'] = round(leaderboard[player]['total'], 2)
         leaderboard[player]['games_played'] += playerRound['games_played']
 
         if player in penalties:
@@ -157,6 +158,8 @@ def leaderData(tournamentid):
             if rec['total'] != lastTotal:
                 place += 1
             lastTotal = rec['total']
+            rec['points'] = round(rec['points'], 2)
+            rec['total'] = round(rec['total'], 2)
         leaderboards += leaderboard
 
     return leaderboards
