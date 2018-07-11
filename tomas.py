@@ -52,8 +52,8 @@ class MainHandler(handler.BaseHandler):
         self.render("index.html", no_user = no_user, tournaments = tournaments)
 
 class Application(tornado.web.Application):
-    def __init__(self, force=False):
-        db.init(force=force)
+    def __init__(self, force=False, verbose=0):
+        db.init(force=force, verbose=verbose)
 
         if getattr(sys, 'frozen', False):
             curdirname = os.path.dirname(sys.executable)
@@ -128,10 +128,12 @@ def main():
              "  -f|--force    Force database schema updates without prompting",
              "                (default: {0})".format(force),
              "  -h|--help     show help information and exit",
+             "  -v|--verbose  Add verbosity in messages about database",
              "",
              "tornado options:",
              ]
     usage = __doc__ + "\n" + "\n".join(usage)
+    verbose = 0
     while i < len(sys.argv):
         if sys.argv[i].isdigit():
             if socket is None:
@@ -148,6 +150,10 @@ def main():
                 print(usage)  # and don't exit so tornado help will print
                 if sys.argv[i] == '-h':
                     sys.argv[i] = '--help' # tornado doesn't accept -h option
+            elif sys.argv[i] in ['-v', '--verbose']:
+                verbose += 1
+                del sys.argv[i]
+                continue
             else:
                 pass  # Leave tornado options in place for later parsing
         else:
@@ -171,7 +177,9 @@ def main():
         qm.init(settings.EMAILSERVER, settings.EMAILUSER, settings.EMAILPASSWORD, settings.EMAILPORT, True)
         qm.start()
 
-    http_server = tornado.httpserver.HTTPServer(Application(force=force), max_buffer_size=24*1024**3)
+    http_server = tornado.httpserver.HTTPServer(
+        Application(force=force, verbose=verbose),
+        max_buffer_size=24*1024**3)
     if isinstance(socket, int):
         http_server.add_sockets(tornado.netutil.bind_sockets(socket))
     else:
