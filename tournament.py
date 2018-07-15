@@ -181,31 +181,6 @@ class EditTournamentHandler(handler.BaseHandler):
                         message = "You are not authorized to edit or create "
                         "that tournament.")
 
-class NewTournamentHandler(handler.BaseHandler):
-    @tornado.web.authenticated
-    def get(self):
-        with db.getCur() as cur:
-            cur.execute("SELECT Id, Code, Flag_Image FROM Countries LIMIT 1")
-            default_country_id, default_country_code, default_flag_image = cur.fetchone()
-            return self.render("newtournament.html",
-                    default_country_id = default_country_id,
-                    default_country_code = default_country_code,
-                    default_flag_image = default_flag_image)
-
-    @tornado.web.authenticated
-    def post(self):
-        name = self.get_argument("name", None)
-        country = self.get_argument("country", None)
-        if name is None:
-            return self.render("newtournament.html", message="Please enter a tournament name")
-        if country is None:
-            return self.render("newtournament.html", message="Please pick a country")
-        with db.getCur() as cur:
-            cur.execute("INSERT INTO Tournaments(Name, Country, Owner) VALUES(?, ?, ?)",
-                    (name, int(country), int(self.current_user)))
-
-        return self.redirect("/t/" + name + "/tournament")
-
 class TournamentHandler(handler.BaseHandler):
     @handler.tournament_handler
     def get(self):
