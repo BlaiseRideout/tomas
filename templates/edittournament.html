@@ -1,0 +1,126 @@
+{% extends "template.html" %}
+{% block head %}
+<script src="{{ proxyprefix.rstrip('/') + static_url('js/script.js') }}"
+	type="text/javascript">
+</script>
+<script src="{{ proxyprefix.rstrip('/') + static_url('js/edittournament.js') }}"
+	type="text/javascript" />
+</script>
+{% end %}
+{% block title %}
+	{{ websitename }} - Edit Tournament Settings
+{% end %}
+{% block content %}
+Tournament Settings
+<div id="tournamentSettings" class="listing"
+     data-tournamentid="{{ tournament['Id'] or '' }}">
+  <table class="listing">
+    <tr>
+      <td class="attributelabel">Owner</td>
+      <td class="attributevalue" data-type="str"
+	  colspan=2>
+	{% if is_admin %}
+	<select id="ownerfield" data-colname="Owner" name="Owner" >
+	  {% for userId in users %}
+	    <option value="{{ userId }}"
+		    {% if tournament['Owner'] == userId %} selected {% end %}>
+	      {{ users[userId] }}
+	    </option>
+	  {% end %}
+	</select>
+	{% else %}
+	{{ tournament['OwnerName'] }}
+	{% end %}
+      </td>
+    </tr>
+    <tr>
+      <td class="attributelabel">Name</td>
+      <td class="attributevalue" data-type="str" colspan=2>
+	<input id="namefield" type="text" placeholder="Tournament Name"
+	       data-colname="Name"
+	       value="{{ tournament['Name'] if tournament['Name'] else '' }}"/>
+      </td>
+    </tr>
+    <tr>
+      <td class="attributelabel">Start Date</td>
+      <td class="attributevalue" data-type="date"
+	  colspan=2>
+	<input id="startfield" type="text" data-type="date" 
+	       data-colname="Start"
+	       value="{{ tournament['Start'] }}"/>
+      </td>
+    </tr>
+    <tr>
+      <td class="attributelabel">End Date</td>
+      <td class="attributevalue" data-type="date"
+	  colspan=2>
+	<input id="endfield" type="text" data-type="date" 
+	       data-colname="End"
+	       value="{{ tournament['End'] }}"/>
+      </td>
+    </tr>
+    <tr>
+      <td class="attributelabel">Location</td>
+      <td class="attributevalue" data-type="str"
+	  colspan=2>
+	<input id="locationfield" type="text" placeholder="Location"
+	       data-colname="Location"
+	       value="{{ tournament['Location'] if tournament['Location'] else '' }}"/>
+      </td>
+    </tr>
+    <tr>
+      <td class="attributelabel">Country</td>
+      <td class="attributevalue" data-type="str">
+	<span class="countryselect" data-colname="Country"
+	      data-value="{{ tournament['Country'] }}">
+			    {{ tournament['CountryCode'] }}
+	</span>
+	&nbsp;
+	<span class="countryname"> {{ tournament['CountryName'] }} </span>
+	&nbsp;
+      </td>
+      <td class="flag">
+	{% raw tournament['Flag_Image'] %}
+      </td>
+    </tr>
+    <tr>
+      <td class="attributelabel">Logo</td>
+      <td class="attributevalue" data-type="str"
+	  colspan=2>
+	<input id="logofield" type="text" placeholder="Logo"
+	       data-colname="Logo"
+	       value="{{ tournament['Logo'] if tournament['Logo'] else '' }}"/>
+      </td>
+    </tr>
+    <tr>
+      <td class="attributelabel">Link URL</td>
+      <td class="attributevalue" data-type="str"
+	  colspan=2>
+	<input id="linkURLfield" type="text" placeholder="Link URL"
+	       data-colname="LinkURL"
+	       value="{{ tournament['LinkURL'] if tournament['LinkURL'] else '' }}"/>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="3" class="deletetournament">
+	{% if tournament['Id'] %}
+	    <input type="button" class="button centerbutton"
+		   id="deletetournamentbutton"
+		   value="Delete Tournament" />
+	{% end %}
+      </td>
+    </tr>
+  </table>
+</div>
+<div class="playerslist">
+  {% if tournament['Players'] %}
+    Players in {{ tournament['Name'] if tournament['Name'] else '' }}
+    <br>
+    {% for player in tournament['Players'] %}
+    {{ player }}<br>
+    {% end %}
+  {% else %}
+    No Players (yet)
+  {% end %}  
+</div>
+{% end %}
