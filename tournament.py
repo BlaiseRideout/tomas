@@ -17,7 +17,6 @@ import settings
 log = logging.getLogger('WebServer')
 
 class TournamentListHandler(handler.BaseHandler):
-    @tornado.web.authenticated
     def get(self):
         rows = []
         tournaments = []
@@ -97,7 +96,7 @@ class EditTournamentHandler(handler.BaseHandler):
             tournament['CountryName'] = countries[tournament['Country']]['Name']
             tournament['Flag_Image'] = countries[tournament['Country']]['Flag_Image']
             
-            if tournament['Owner'] == self.current_user or self.get_is_admin():
+            if tournament['Owner'] == int(self.current_user) or self.get_is_admin():
                 return self.render(
                     "edittournament.html",
                     tournament=tournament, users=users)
@@ -116,12 +115,10 @@ class EditTournamentHandler(handler.BaseHandler):
         state = {}
         for f in tmt_fields:
             state[f] = self.get_argument(f, None)
-        if (self.get_is_admin() or state['Owner'] == self.current_user):
+        if self.get_is_admin() or int(state['Owner']) == int(self.current_user):
             msg = 'Created new tournament'
             if id:
                 msg = 'Updated tournament {}'.format(state['Id'])
-            # print(msg)
-            # pprint(state)
             if (id is None and state['Id'] in (None, '')):
                 with db.getCur() as cur:
                     try:
@@ -177,9 +174,9 @@ class EditTournamentHandler(handler.BaseHandler):
                                    'message': 'Inconsistent IDs {} and {}'.
                                    format(id, state['Id'])})
         else:
-            self.render("message.html",
-                        message = "You are not authorized to edit or create "
-                        "that tournament.")
+            self.write({'status': 'Error',
+                        'message': 'You are not authorized to edit or create '
+                        'that tournament.'})
 
 class TournamentHandler(handler.BaseHandler):
     @handler.tournament_handler

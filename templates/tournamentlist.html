@@ -58,7 +58,7 @@ set colheads = [
 			  <td>{{ tournament['Code'] }}</td>
 			  <td>{% raw tournament['Flag_Image'] %}</td>
 			  <td>{{ tournament['PlayerCount'] }}</td>
-			  <td>{% if is_admin or tournament['Owner'] == current_user %}
+			  <td>{% if is_admin or (isinstance(current_user, str) and tournament['Owner'] == int(current_user)) %}
 			    <a href="{{ proxyprefix }}edittournament/{{ tournament['Id'] }}">
 			      Edit</a>
 			    {% end %}
@@ -66,9 +66,11 @@ set colheads = [
 			</tr>
 			{% end %}
 		<tr>
+		  {% if current_user %} 
 		  <td colspan=7>
 		    <a href="/edittournament">Create New Tournament</a>
-		    </td>
+		  </td>
+		  {% end %}
 	</table>
 </div>
 {% end %}

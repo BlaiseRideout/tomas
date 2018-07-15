@@ -19,18 +19,20 @@ Tournament Settings
       <td class="attributelabel">Owner</td>
       <td class="attributevalue" data-type="str"
 	  colspan=2>
-	{% if is_admin %}
 	<select id="ownerfield" data-colname="Owner" name="Owner" >
-	  {% for userId in users %}
-	    <option value="{{ userId }}"
-		    {% if tournament['Owner'] == userId %} selected {% end %}>
-	      {{ users[userId] }}
-	    </option>
+	  {% if is_admin %}
+	    {% for userId in users %}
+	      <option value="{{ userId }}"
+		      {% if tournament['Owner'] == userId %} selected {% end %}>
+		{{ users[userId] }}
+	      </option>
+	    {% end %}
+	  {% else %}
+	      <option value="{{ tournament['Owner'] }}" selected>
+		{{ users[tournament['Owner']] }}
+	      </option>
 	  {% end %}
 	</select>
-	{% else %}
-	{{ tournament['OwnerName'] }}
-	{% end %}
       </td>
     </tr>
     <tr>
