@@ -6,6 +6,7 @@ import re
 import io
 import logging
 import datetime
+import sqlite3
 
 import tornado.web
 import handler
@@ -43,10 +44,11 @@ class TournamentListHandler(handler.BaseHandler):
 
 
 class EditTournamentHandler(handler.BaseHandler):
+    tmt_fields = db.table_field_names('Tournaments')
     @tornado.web.authenticated
     def get(self, id=None):
-        tmt_fields = db.table_field_names('Tournaments')
         ctry_fields = db.table_field_names('Countries')
+        tmt_fields = EditTournamentHandler.tmt_fields
         with db.getCur() as cur:
             cur.execute("SELECT {} FROM Countries".format(
                 ",".join(ctry_fields)))
@@ -108,8 +110,76 @@ class EditTournamentHandler(handler.BaseHandler):
                     next_url=settings.PROXYPREFIX)
 
     @tornado.web.authenticated
-    def post(self):
-        pass
+    def post(self, id=None):
+        tmt_fields = EditTournamentHandler.tmt_fields
+        tmt_attr_fields = [f for f in tmt_fields if f != 'Id']
+        state = {}
+        for f in tmt_fields:
+            state[f] = self.get_argument(f, None)
+        if (self.get_is_admin() or state['Owner'] == self.current_user):
+            msg = 'Created new tournament'
+            if id:
+                msg = 'Updated tournament {}'.format(state['Id'])
+            # print(msg)
+            # pprint(state)
+            if (id is None and state['Id'] in (None, '')):
+                with db.getCur() as cur:
+                    try:
+                        sql = "INSERT INTO Tournaments ({}) VALUES ({})".format(
+                            ', '.join(tmt_attr_fields),
+                            ', '.join(['?'] * len(tmt_attr_fields)))
+                        cur.execute(sql, [state[f] for f in tmt_attr_fields])
+                        print('Created tournament', cur.lastrowid)
+                        return self.write({
+                            'status': 'load', 
+                            'URL': settings.PROXYPREFIX.rstrip('/') + 
+                            'edittournament/{}'.format(cur.lastrowid)})
+                    except sqlite3.DatabaseError as e:
+                        print('Error creating tournament ({}): {}'
+                              .format(sql, e))
+                        return self.write({
+                            'status': 'Error', 
+                            'message': 'Unable to create tournament: {}'
+                            .format(e)})
+            elif id == state['Id']:
+                with db.getCur() as cur:
+                    try:
+                        for f in tmt_attr_fields:
+                            sql = ("UPDATE Tournaments SET {} = ?"
+                                   "  WHERE Id = ?").format(f)
+                            cur.execute(sql, (state[f], id))
+                        return self.write({'status': 'success', 'message': msg})
+                    except sqlite3.DatabaseError as e:
+                        print('Error updating tournament ({}): {}'.format(
+                            sql, e))
+                        return self.write({
+                            'status': 'Error', 
+                            'message': 'Unable to update tournament {}: {}'
+                            .format(id, e)})
+            elif id and int(state['Id']) < 0:
+                with db.getCur() as cur:
+                    try:
+                        sql = "DELETE FROM Tournaments WHERE Id = ?"
+                        cur.execute(sql, (id,))
+                        return self.write({
+                            'status': 'load',
+                            'message': 'Tournament Deleted',
+                            'URL': settings.PROXYPREFIX})
+                    except sqlite3.DatabaseError as e:
+                        print('Error deleting tournament ({}): {}'.format(
+                            sql, e))
+                        return self.write({
+                            'status': 'Error', 
+                            'message': 'Unable to update tournament {}: {}'
+                            .format(id, e)})
+            else:
+                return self.write({'status': 'Error',
+                                   'message': 'Inconsistent IDs {} and {}'.
+                                   format(id, state['Id'])})
+        else:
+            self.render("message.html",
+                        message = "You are not authorized to edit or create "
+                        "that tournament.")
 
 class NewTournamentHandler(handler.BaseHandler):
     @tornado.web.authenticated

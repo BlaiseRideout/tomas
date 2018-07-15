@@ -160,7 +160,7 @@ button.clearplayercomplete {
     display:none;
 }
 
-.listing {
+.listing, .centerbutton {
 	margin: auto;
 }
 
