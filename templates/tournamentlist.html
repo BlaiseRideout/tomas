@@ -23,14 +23,25 @@ set colheads = [
 		"Name": "Name"
 	},
 	{
+		"Name": "Dates"
+	},
+	{
+		"Name": "Location"
+	},
+	{
 		"Name": "Country",
 		"Attrs": "colspan=2"
-	}
+	},
+	{
+		"Name": "Players"
+	},
+	{
+		"Name": "Actions"
+	},
 ]
 %}
 <div id="tournamentlist">
-	<a href="/newtournament">Create New Tournament</a>
-	<h2>Your Tournaments</h2>
+	<h2>All Tournaments</h2>
 	<table class="tournamentlist">
 		<thead>
 			<tr>
@@ -41,30 +52,23 @@ set colheads = [
 		</thead>
 		{% for tournament in tournaments %}
 			<tr>
-				<td><a href="/t/{{ tournament['Name'] }}/tournament">{{ tournament['Name'] }}</a></td>
-				<td>{{ tournament['Code'] }}</td>
-				<td>{% raw tournament['Flag_Image'] %}</td>
+			  <td><a href="/t/{{ tournament['Name'] }}/tournament">{{ tournament['Name'] }}</a></td>
+			  <td>{{ tournament['Start'] }} - {{ tournament['End'] }}</td>
+			  <td>{{ tournament['Location'] if tournament['Location'] else '' }}</td>
+			  <td>{{ tournament['Code'] }}</td>
+			  <td>{% raw tournament['Flag_Image'] %}</td>
+			  <td>{{ tournament['PlayerCount'] }}</td>
+			  <td>{% if is_admin or tournament['Owner'] == current_user %}
+			    <a href="{{ proxyprefix }}edittournament/{{ tournament['Id'] }}">
+			      Edit</a>
+			    {% end %}
+			  </td>
 			</tr>
-		{% end %}
-	</table>
-	{% if is_admin and len(admintournaments) > 0 %}
-		<h2>All Tournaments</h2>
-		<table class="tourmantelist">
-			<thead>
-				<tr>
-					{% for colhead in colheads %}
-						<th{% raw " " + colhead["Attrs"] if "Attrs" in colhead else "" %}>{{ colhead['Name'] }}</th>
-					{% end %}
-				</tr>
-			</thead>
-			{% for tournament in admintournaments %}
-				<tr>
-					<td><a href="/t/{{ tournament['Id'] }}/tournament">{{ tournament['Name'] }}</a></td>
-					<td>{{ tournament['Code'] }}</td>
-					<td>{% raw tournament['Flag_Image'] %}</td>
-				</tr>
 			{% end %}
-		</table>
-	{% end %}
+		<tr>
+		  <td colspan=7>
+		    <a href="/edittournament">Create New Tournament</a>
+		    </td>
+	</table>
 </div>
 {% end %}

@@ -47,7 +47,12 @@ schema = {
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
         "Name TEXT",
         "Owner INTEGER",
+        "Start DATE DEFAULT CURRENT_DATE",
+        "End DATE DEFAULT CURRENT_DATE",
+        "Location TEXT",
         "Country INTEGER",
+        "Logo TEXT",
+        "LinkURL TEXT",
         "FOREIGN KEY(Owner) REFERENCES Users(Id) ON DELETE CASCADE",
         "FOREIGN KEY(Country) REFERENCES Countries(Id) ON DELETE CASCADE"
     ],
@@ -188,6 +193,14 @@ def make_backup():
     if not os.path.isdir(settings.DBBACKUPS):
         os.mkdir(settings.DBBACKUPS)
     shutil.copyfile(settings.DBFILE, backupdb)
+
+def words(spec):
+    return re.findall(r'\w+', spec)
+
+def table_field_names(tablename):
+    return [words(fs)[0] for fs in schema.get(tablename, []) 
+            if not words(fs)[0].upper() in [
+                    'FOREIGN', 'UNIQUE', 'CONSTRAINT', 'PRIMARY', 'CHECK']]
 
 _unusedPointsPlayer = None
 unusedPointsPlayerName = '!#*UnusedPointsPlayer*#!'

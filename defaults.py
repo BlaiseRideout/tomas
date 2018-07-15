@@ -54,6 +54,9 @@ LINKVALIDDAYS = 7
 #   STATSHISTORYSIZE is the number of players who will be displayed
 #   in the "Recently Viewed" section of the player stats page
 STATSHISTORYSIZE = 10
+#   DATEFORMAT is default date format to use when displaying dates.
+#   See dateformat.strftime() for more info on possible codes
+DATEFORMAT = "%Y-%m-%d"
 #   PROXYPREFIX is the URL prefix needed for users accessing this web server
 #   through a proxy server.  If this web server is being accessed directly,
 #   leave this as '/'.

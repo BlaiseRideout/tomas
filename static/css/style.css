@@ -160,6 +160,10 @@ button.clearplayercomplete {
     display:none;
 }
 
+.listing {
+	margin: auto;
+}
+
 #currentUsers {
 	width: 90%;
 	margin: auto;

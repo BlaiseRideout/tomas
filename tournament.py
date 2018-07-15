@@ -5,6 +5,7 @@ import csv
 import re
 import io
 import logging
+import datetime
 
 import tornado.web
 import handler
@@ -17,33 +18,98 @@ log = logging.getLogger('WebServer')
 class TournamentListHandler(handler.BaseHandler):
     @tornado.web.authenticated
     def get(self):
-        with db.getCur() as cur:
-            cur.execute("SELECT COUNT(*) FROM Users")
-            no_user = cur.fetchone()[0] == 0
-
         rows = []
         tournaments = []
         admintournaments = []
+        tmt_fields = db.table_field_names('Tournaments')
         with db.getCur() as cur:
-            columns = ["Tournaments.Id", "Tournaments.Name", "Code", "Flag_Image"]
-            columnnames = [col.split(".")[-1] for col in columns]
-            cur.execute("SELECT {columns} FROM Tournaments"
-                    " JOIN Countries ON Country = Countries.Id"
-                    " WHERE Owner = ?".format(
-                        columns=",".join(columns)),
-                    (self.current_user,))
-            tournaments = [dict(zip(columnnames, row)) for row in cur.fetchall()]
-            if self.get_is_admin():
-                cur.execute("SELECT {columns} FROM Tournaments"
-                        " JOIN Countries ON Country = Countries.Id"
-                        " WHERE Owner != ?".format(
-                        columns=",".join(columns)), (self.current_user,))
-                admintournaments = [dict(zip(columnnames, row)) for row in cur.fetchall()]
-
+            cur.execute("SELECT COUNT(*) FROM Users")
+            no_user = cur.fetchone()[0] == 0
+            columns = ["Tournaments.{}".format(f) for f in tmt_fields] + [
+                "Code", "Flag_Image"]
+            colnames = [col.split(".")[-1] for col in columns] + [
+                'PlayerCount']
+            cur.execute("SELECT {columns}, COUNT(DISTINCT PLayers.Id)"
+                        " FROM Tournaments"
+                        " JOIN Countries ON Tournaments.Country = Countries.Id"
+                        " LEFT OUTER JOIN Players"
+                        "   ON Tournaments.Id = Players.tournament"
+                        " GROUP BY Tournaments.Id"
+                        " ORDER BY End DESC".format(
+                        columns=",".join(columns)))
+            tournaments = [dict(zip(colnames, row)) for row in cur.fetchall()]
         return self.render("tournamentlist.html",
-                tournaments=tournaments,
-                admintournaments=admintournaments,
-                no_user=no_user)
+                tournaments=tournaments, no_user=no_user)
+
+
+class EditTournamentHandler(handler.BaseHandler):
+    @tornado.web.authenticated
+    def get(self, id=None):
+        tmt_fields = db.table_field_names('Tournaments')
+        ctry_fields = db.table_field_names('Countries')
+        with db.getCur() as cur:
+            cur.execute("SELECT {} FROM Countries".format(
+                ",".join(ctry_fields)))
+            ctry_mapping = [(row[0], dict(zip(ctry_fields, row)))
+                            for row in cur.fetchall()]
+            countries = dict(ctry_mapping)
+            def_country_id = ctry_mapping[0][1]["Id"]
+
+            cur.execute("SELECT Id, Email FROM Users ORDER BY Email")
+            users = dict(cur.fetchall())
+            if id:
+                cur.execute("SELECT {} FROM TOURNAMENTS WHERE Id = ?".format(
+                    ",".join(tmt_fields)), (id,))
+                results = cur.fetchall()
+                if len(results) == 0:
+                    return self.render(
+                        "message.html",
+                        message="Invalid tournament.",
+                        next="Return to Tournament List",
+                        next_url=settings.PROXYPREFIX)
+                elif len(results) > 1:
+                    return self.render(
+                        "message.html",
+                        message="ERROR multiple tournaments with ID {}."
+                        "  Contact site administrator.".format(id),
+                        next="Return to Tournament List",
+                        next_url=settings.PROXYPREFIX)
+
+                tournament = dict(zip(tmt_fields, results[0]))
+                cur.execute("SELECT Name FROM Players WHERE Tournament = ?"
+                            "  ORDER BY Name",
+                            (id, ))
+                tournament['Players'] = [row[0] for row in cur.fetchall()]
+            else:
+                tournament = dict(zip(tmt_fields, [None] * len(tmt_fields)))
+                today = datetime.date.today()
+                tomorrow = today + datetime.timedelta(days=1)
+                tournament['Start'] = today.strftime(settings.DATEFORMAT)
+                tournament['End'] = tomorrow.strftime(settings.DATEFORMAT)
+                tournament['Country'] = def_country_id
+                tournament['Owner'] = self.current_user
+                tournament['Players'] = []
+
+            tournament['OwnerName'] = users[int(tournament['Owner'])]
+            tournament['CountryCode'] = countries[tournament['Country']]['Code']
+            tournament['CountryName'] = countries[tournament['Country']]['Name']
+            tournament['Flag_Image'] = countries[tournament['Country']]['Flag_Image']
+            
+            if tournament['Owner'] == self.current_user or self.get_is_admin():
+                return self.render(
+                    "edittournament.html",
+                    tournament=tournament, users=users)
+            else:
+                return self.render(
+                    "message.html",
+                    message="ERROR only the tournament owner or administrators"
+                    " may edit tournament attributes".format(id),
+                    next="Return to Tournament List",
+                    next_url=settings.PROXYPREFIX)
+
+    @tornado.web.authenticated
+    def post(self):
+        pass
 
 class NewTournamentHandler(handler.BaseHandler):
     @tornado.web.authenticated
