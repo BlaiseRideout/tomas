@@ -70,6 +70,10 @@ PROXYPREFIX = '/'
 #   or
 #   SERVERPREFIX = 'http://myhost.com:8080'
 SERVERPREFIX = None
+#   DEVELOPERMODE is a flag that bypasses user authentication and makes
+#   every access be done as the first, administrative user.  Only set this
+#   to true when working on enhancing the code
+DEVELOPERMODE = False
 
 # EMAIL
 #   These settings are for the outbound email server that sends invites

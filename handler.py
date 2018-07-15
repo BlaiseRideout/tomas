@@ -9,12 +9,16 @@ class BaseHandler(tornado.web.RequestHandler):
     tournamentid = None
     tournamentname = None
     def get_current_user(self):
-        return "1"
-        return stringify(self.get_secure_cookie("user"))
+        if settings.DEVELOPERMODE:
+            return "1"
+        else:
+            return stringify(self.get_secure_cookie("user"))
 
     def get_is_admin(self):
-        return True
-        return stringify(self.get_secure_cookie("admin")) == "1"
+        if settings.DEVELOPERMODE:
+            return True
+        else:
+            return stringify(self.get_secure_cookie("admin")) == "1"
 
     def get_stylesheet(self):
         return stringify(self.get_secure_cookie("stylesheet"))
