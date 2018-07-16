@@ -181,7 +181,8 @@ class ScoreboardHandler(handler.BaseHandler):
     def get(self):
         query = """SELECT
            Players.Id, Players.Name, Countries.Code, Flag_Image, Type,
-           Rounds.Number, Scores.Rank, ROUND(Scores.Score * 100) / 100,
+           Rounds.Number, Rounds.Name, Scores.Rank,
+           ROUND(Scores.Score * 100) / 100,
            COALESCE(SUM(Penalties.Penalty), 0),
            COALESCE(ROUND((Scores.Score + COALESCE(SUM(Penalties.Penalty), 0))
                           * 100) / 100, 0)
@@ -196,15 +197,15 @@ class ScoreboardHandler(handler.BaseHandler):
            ORDER BY Type ASC, Players.Name ASC
         """
         fields = ['id', 'name', 'country', 'flag_image', 'type',
-                  'round', 'rank', 'points', 'penalty', 'total']
+                  'round', 'roundname', 'rank', 'points', 'penalty', 'total']
         with db.getCur() as cur:
             scoreboard = {}
             rounds = []
             cur.execute(query, (db.playertypecode['UnusedPoints'], self.tournamentid))
             for i, row in enumerate(cur.fetchall()):
                 rec = dict(zip(fields, row))
-                if rec['round'] not in rounds:
-                    rounds += [rec['round']]
+                if rec['round'] not in [r[0] for r in rounds]:
+                    rounds += [(rec['round'], rec['roundname'])]
                 if rec['id'] not in scoreboard:
                     scoreboard[rec['id']] = dict(zip(fields[0:5], row[0:5]))
                     scoreboard[rec['id']]['type'] = db.playertypes[int(rec['type'])]

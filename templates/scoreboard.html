@@ -2,7 +2,7 @@
 	<tr class="leaderbd_col_header">
 		<th colspan="4"></th>
 		{% for round in rounds %}
-			<th colspan="4">ROUND {{ round }}</th>
+			<th colspan="4">{{ round[1] }}</th>
 		{% end %}
 	</tr>
 	<tr class="leaderbd_col_header">
@@ -25,23 +25,23 @@
 			<td>{{ row['type'] }}</td>
 			{% for round in rounds %}
 				<td>
-					{% if round in row['scores'] %}
-						{{ row['scores'][round]['rank'] }}
+					{% if round[0] in row['scores'] %}
+						{{ row['scores'][round[0]]['rank'] }}
 					{% end %}
 				</td>
 				<td>
-					{% if round in row['scores'] %}
-						{{ row['scores'][round]['score'] }}
+					{% if round[0] in row['scores'] %}
+						{{ row['scores'][round[0]]['score'] }}
 					{% end %}
 				</td>
 				<td>
-					{% if round in row['scores'] %}
-						{{ row['scores'][round]['penalty'] }}
+					{% if round[0] in row['scores'] %}
+						{{ row['scores'][round[0]]['penalty'] }}
 					{% end %}
 				</td>
 				<td>
-					{% if round in row['scores'] %}
-						{{ row['scores'][round]['total'] }}
+					{% if round[0] in row['scores'] %}
+						{{ row['scores'][round[0]]['total'] }}
 					{% end %}
 				</td>
 			{% end %}
