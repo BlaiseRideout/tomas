@@ -1,0 +1,48 @@
+<script src="{{ proxyprefix.rstrip('/') + static_url('js/tourney.js') }}"
+	type="text/javascript" />
+{% for stage in stages %}
+  <div class="stage" data-stageid="{{ stage['Id'] }}">
+    <h2> {{ stage['Name'] }}</h2>
+
+    {% if stage['PreviousStage'] %}
+    Follows {{ stage['previousName'] }}
+    <br />
+    {% end %}
+    
+    <label for="stage{{ stage['Id'] }}-name">Name</label>
+    <input type="text" class="tourneyinput" id="stage{{ stage['Id'] }}-name" 
+	   data-colname="Name" value="{{ stage['Name'] }}"/>
+
+    <br />
+    <label for="stage{{ stage['Id'] }}-sortorder">Sort Order</label>
+    <input type="number" class="tourneyinput" id="stage{{ stage['Id'] }}-sortorder" 
+	   data-colname="SortOrder" value="{{ stage['SortOrder'] }}"/>
+
+    <br />
+    {% if stage['PreviousStage'] %} 
+    <label for="stage{{ stage['Id'] }}-ranks">Ranks</label>
+    {% end %}
+    <input type="number" class="tourneyinput" id="stage{{ stage['Id'] }}-ranks" 
+	   {% if not stage['PreviousStage'] %} hidden {% end %}
+	   data-colname="Ranks" value="{{ stage['Ranks'] }}"/>
+
+    <br />
+    {% if stage['PreviousStage'] %} 
+    <label for="stage{{ stage['Id'] }}-cumulative">Cumulative</label>
+    {% end %}
+    <input type="checkbox" class="tourneyinput" 
+	   id="stage{{ stage['Id'] }}-cumulative" 
+	   {% if not stage['PreviousStage'] %} hidden {% end %}
+	   data-colname="Cumulative" 
+	   {% if stage['Cumulative'] %} checked {% end %} />
+
+    <br />
+
+    <button class="deletestage" data-stageid="stage['Id']">
+      Delete stage {{ stage['Name'] }}</button>
+    <button class="addstage" data-stageid="stage['Id']">
+      Add successor stage</button>
+  </div>
+
+  <hr>
+{% end %}

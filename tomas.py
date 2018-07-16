@@ -77,6 +77,8 @@ class Application(tornado.web.Application):
                 (r"/t/([^/]*)/deleteround", tournament.DeleteRoundHandler),
                 (r"/t/([^/]*)/settings", tournament.SettingsHandler),
                 (r"/t/([^/]*)/settings.html", tournament.ShowSettingsHandler),
+                (r"/t/([^/]*)/tourney", tournament.TourneySettingsAjaxHandler),
+                (r"/t/([^/]*)/tourney.html", tournament.TourneySettingsHandler),
                 (r"/t/([^/]*)/associations", tournament.AssociationsHandler),
                 (r"/t/([^/]*)/seating", seating.SeatingHandler),
                 (r"/t/([^/]*)/swapseating", seating.SwapSeatingHandler),

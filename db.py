@@ -65,6 +65,17 @@ schema = {
         "IOC_Name TEXT",
         "Flag_Image TEXT"
     ],
+    'Stages': [
+        "Id INTEGER PRIMARY KEY AUTOINCREMENT",
+	"Tournament INTEGER NOT NULL",
+	"Name TEXT",
+	"SortOrder INTEGER NOT NULL DEFAULT 0",
+	"PreviousStage INTEGER",
+	"Ranks INTEGER",
+	"Cumulative TINYINT NOT NULL DEFAULT 0",
+	"FOREIGN KEY(Tournament) REFERENCES Tournaments(Id) ON DELETE CASCADE",
+	"FOREIGN KEY(PreviousStage) REFERENCES Stages(Id) ON DELETE CASCADE",
+    ],
     'Rounds': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
         "Tournament INTEGER",

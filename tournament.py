@@ -440,8 +440,8 @@ def getSettings(self, tournamentid):
         for row in cur.fetchall():
             roundDict = dict(zip(cols, row))
 
-            roundDict["orderingname"] = seating.ORDERINGS[roundDict["ordering"]][0],
-            roundDict["algname"] = seating.ALGORITHMS[roundDict["algorithm"]].name,
+            roundDict["orderingname"] = seating.ORDERINGS[roundDict["ordering"]][0]
+            roundDict["algname"] = seating.ALGORITHMS[roundDict["algorithm"]].name
             roundDict["seed"] = roundDict["seed"] or ""
 
             rounds += [roundDict]
@@ -486,6 +486,114 @@ class ShowSettingsHandler(handler.BaseHandler):
     def get(self):
         roundsettings = getSettings(self, self.tournamentid)
         return self.render("roundsettings.html", rounds=roundsettings['rounds'], cutsize=roundsettings['cutsize'])
+
+def getTourney(self, tournamentid):
+    stage_fields = db.table_field_names('Stages')
+    with db.getCur() as cur:
+        cur.execute("""SELECT {} FROM Stages WHERE Tournament = ?
+                       ORDER BY SortOrder, Id""".format(",".join(stage_fields)),
+                    (tournamentid,))
+        stages = dict((row[0], dict(zip(stage_fields, row))) 
+                      for row in cur.fetchall())
+        roots = [id for id in stages if not stages[id]['PreviousStage']]
+        if len(roots) > 1:
+            raise Exception("Tournament {} has multiple initial stages".format(
+                tournamentid))
+        elif len(roots) == 0 and len(stages) > 0:
+            raise Exception("Tournament {} has no initial stage but a cycle "
+                            "of others".format(tournamentid))
+        elif len(roots) == 0:
+            stage = {'Tournament': tournamentid,
+                     'Name': 'Round Robin',
+                     'SortOrder': 0,
+                     'PreviousStage': None,
+                     'Ranks': None,
+                     'Cumulative': 0,}
+            cur.execute("""INSERT INTO Stages ({}) VALUES ({})""".format(
+                ','.join(f for f in stage if stage[f] is not None),
+                ','.join(repr(stage[f]) for f in stage 
+                         if stage[f] is not None)))
+            stage['Id'] = cur.lastrowid
+            stages = {cur.lastrowid: stage}
+            roots = [cur.lastrowid]
+            
+        # List stages starting with root and then successor children, in order
+        stagelist = [stages[roots[0]]]
+        todo=stages.copy()
+        del todo[roots[0]]
+        while len(todo) > 0:
+            children = [id for id in stages 
+                        if stages[id]['PreviousStage'] in roots]
+            for child in sorted(children, key=lambda s: s['SortOrder']):
+                stages[child]['previousName'] = stages[
+                    stages[child]['PreviousStage']]['Name']
+                stagelist.append(stages[child])
+                del todo[child]
+                roots.append(child)
+                
+        cols = ["id", "number", "name", "ordering", "algorithm", "seed",
+                "cut", "softcut", "cutsize", "cutmobility", "combinelastcut",
+                "duplicates", "diversity", "usepools", "winds", "games"]
+        for stage in stagelist[:1]:
+            cur.execute("""SELECT Id, Number, Name, COALESCE(Ordering, 0),
+                             COALESCE(Algorithm, 0), Seed,
+                             Cut, SoftCut, CutSize, CutMobility, CombineLastCut,
+                             Duplicates, Diversity, UsePools, Winds, Games
+                           FROM Rounds WHERE Tournament = ?
+                           ORDER BY Number""", (tournamentid,))
+
+            stage['rounds'] = []
+
+            for row in cur.fetchall():
+                roundDict = dict(zip(cols, row))
+                roundDict["orderingname"] = seating.ORDERINGS[
+                    roundDict["ordering"]][0]
+                roundDict["algname"] = seating.ALGORITHMS[
+                    roundDict["algorithm"]].name
+                roundDict["seed"] = roundDict["seed"] or ""
+                stage['rounds'] += [roundDict]
+
+        cur.execute('SELECT COALESCE(ScorePerPlayer, {}) FROM Tournaments'
+                    ' WHERE Id = ?'.format(settings.DEFAULTSCOREPERPLAYER),
+                    (tournamentid,))
+        result = cur.fetchone()
+        if result is None:
+            return None
+        scorePerPlayer = result[0]
+        return {'stages': stagelist, 'scoreperplayer': scorePerPlayer,
+                'unusedscoreincrement': settings.UNUSEDSCOREINCREMENT,
+                'cutsize':settings.DEFAULTCUTSIZE}
+
+class TourneySettingsAjaxHandler(handler.BaseHandler):
+    @handler.tournament_handler_ajax
+    def get(self):
+        return self.write(getTourney(self, self.tournamentid))
+
+    @handler.tournament_handler_ajax
+    @handler.is_owner_ajax
+    def post(self):
+        stage = self.get_argument("stage", None)
+        if stage is None:
+            return self.write({'status':"error", 
+                               'message':"Please provide a stage"})
+        settings = self.get_argument("settings", None)
+        if settings is None:
+            return self.write({'status':"error",
+                               'message':"Please provide a settings object"})
+        settings = json.loads(settings)
+        # print(settings)
+        with db.getCur() as cur:
+            for colname, val in settings.items():
+                cur.execute("UPDATE Stages SET {} = ?"
+                            " WHERE Id = ? AND Tournament = ?".format(colname),
+                        (val, stage, self.tournamentid)) # TODO: fix SQL injection
+            return self.write({'status':"success"})
+
+class TourneySettingsHandler(handler.BaseHandler):
+    @handler.tournament_handler
+    def get(self):
+        settings = getTourney(self, self.tournamentid)
+        return self.render("tourney.html", **settings)
 
 class CountriesHandler(handler.BaseHandler):
     def get(self):
