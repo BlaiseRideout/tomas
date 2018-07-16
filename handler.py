@@ -47,12 +47,52 @@ def is_admin(func):
 
     return func_wrapper
 
+def is_owner(func):
+    def func_wrapper(self, *args, **kwargs):
+        if not self.get_is_admin():
+            with db.getCur() as cur:
+                cur.execute("SELECT Owner FROM Tournaments WHERE Id = ?",
+                            (self.tournamentid,))
+                owner = cur.fetchone()
+                if owner is None:
+                    self.render("message.html",
+                                message = "Tournament not found")
+                    return
+                if str(owner[0]) != self.current_user:
+                    self.render("message.html",
+                                message = "You must be the tournament owner or "
+                                "an admin to do that")
+                    return
+        func(self, *args, **kwargs)
+
+    return func_wrapper
+
 def is_admin_ajax(func):
     def func_wrapper(self, *args, **kwargs):
         if not self.get_is_admin():
             self.write('{"status":"error", "message":"You must be admin to do that"}')
         else:
             func(self, *args, **kwargs)
+
+    return func_wrapper
+
+def is_owner_ajax(func):
+    def func_wrapper(self, *args, **kwargs):
+        if not self.get_is_admin():
+            with db.getCur() as cur:
+                cur.execute("SELECT Owner FROM Tournaments WHERE Id = ?",
+                            (self.tournamentid,))
+                owner = cur.fetchone()
+                if owner is None:
+                    self.write('{"status":"error",'
+                               ' "message":"Tournament not found"}')
+                    return
+                if str(owner[0]) != self.current_user:
+                    self.write('{"status":"error",'
+                               ' "message":"You must be the tournament owner '
+                               'or an admin to do that"}')
+                    return
+        func(self, *args, **kwargs)
 
     return func_wrapper
 

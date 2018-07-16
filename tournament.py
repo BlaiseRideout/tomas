@@ -191,7 +191,6 @@ player_fields = ["id", "name", "number", "country", "countryid", "flag_image",
 
 def getPlayers(self, tournamentid):
     global player_fields
-    editable = self.get_is_admin()
     with db.getCur() as cur:
         cur.execute(
             "SELECT Players.Id, Players.Name, Number, Countries.Code,"
@@ -208,7 +207,12 @@ def getPlayers(self, tournamentid):
         rows = [dict(zip(player_fields, row)) for row in cur.fetchall()]
         for row in rows:
             row['type'] = db.playertypes[int(row['type'] or 0)]
-        return {'players':rows, 'editable': editable}
+        cur.execute("SELECT Owner FROM Tournaments WHERE Id = ?",
+                    (tournamentid,))
+        owner = cur.fetchone()[0]
+        editable = self.get_is_admin() or (self.current_user and 
+                                           self.current_user == str(owner))
+    return {'players':rows, 'editable': editable}
 
 class ShowPlayersHandler(handler.BaseHandler):
     @handler.tournament_handler
@@ -218,8 +222,8 @@ class ShowPlayersHandler(handler.BaseHandler):
                            players = data['players'])
 
 class DeletePlayerHandler(handler.BaseHandler):
-    @tornado.web.authenticated
     @handler.tournament_handler_ajax
+    @handler.is_owner_ajax
     def post(self):
         player = self.get_argument("player", None)
         if player is None:
@@ -239,8 +243,8 @@ class PlayersHandler(handler.BaseHandler):
     @handler.tournament_handler_ajax
     def get(self):
         return self.write(getPlayers(self, self.tournamentid))
-    @handler.is_admin_ajax
     @handler.tournament_handler_ajax
+    @handler.is_owner_ajax
     def post(self):
         global player_fields
         player = self.get_argument("player", None)
@@ -315,8 +319,8 @@ class DownloadPlayersHandler(handler.BaseHandler):
 
 
 class UploadPlayersHandler(handler.BaseHandler):
-    @handler.is_admin_ajax
     @handler.tournament_handler_ajax
+    @handler.is_owner_ajax
     def post(self):
         global PlayerColumns, CountriesColumns
         if 'file' not in self.request.files or len(self.request.files['file']) == 0:
@@ -329,11 +333,14 @@ class UploadPlayersHandler(handler.BaseHandler):
                 good = 0
                 bad = 0
                 first = True
+                unrecognized = []
                 for row in reader:
-                    hasheader = first and all(
-                        [v.lower() in colnames for v in row])
+                    hasheader = first and sum(
+                        1 if v.lower() in colnames else 0 for v in row) >= len(row) - 1
                     first = False
                     if hasheader:
+                        unrecognized = [v for v in row
+                                        if v.lower() not in colnames]
                         colnames = [v.lower() for v in row]
                         colnames += [c.lower() for c in PlayerColumns
                                      if c.lower() not in colnames]
@@ -373,19 +380,20 @@ class UploadPlayersHandler(handler.BaseHandler):
                          rowdict['association'], rowdict['pool'],
                          rowdict['type'], rowdict['wheel'], self.tournamentid))
                     good += 1
-            return self.write({'status':"success",
-                               'message':
-                               ("{0} player record(s) loaded, "
-                                "{1} player record(s) skipped").format(
-                                    good, bad)})
+            message = ("{} player record(s) loaded, "
+                       "{} player record(s) skipped").format(good,bad)
+            if unrecognized:
+                message += ", skipped column header(s): {}".format(
+                    ', '.join(unrecognized))
+            return self.write({'status':"success", 'message': message})
         except Exception as e:
             return self.write({'status':"error",
                     'message':"Invalid players file provided: " + str(e)})
 
 
 class AddRoundHandler(handler.BaseHandler):
-    @handler.is_admin_ajax
     @handler.tournament_handler_ajax
+    @handler.is_owner_ajax
     def post(self):
         with db.getCur() as cur:
             print(self.tournamentid)
@@ -394,8 +402,8 @@ class AddRoundHandler(handler.BaseHandler):
             return self.write({'status':"success"})
 
 class DeleteRoundHandler(handler.BaseHandler):
-    @handler.is_admin_ajax
     @handler.tournament_handler_ajax
+    @handler.is_owner_ajax
     def post(self):
         round = self.get_argument("round", None)
         if round is None:
@@ -435,8 +443,8 @@ class SettingsHandler(handler.BaseHandler):
     @handler.tournament_handler_ajax
     def get(self):
         return self.write(getSettings(self, self.tournamentid))
-    @handler.is_admin_ajax
     @handler.tournament_handler_ajax
+    @handler.is_owner_ajax
     def post(self):
         round = self.get_argument("round", None)
         if round is None:
