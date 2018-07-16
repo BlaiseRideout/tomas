@@ -207,11 +207,8 @@ def getPlayers(self, tournamentid):
         rows = [dict(zip(player_fields, row)) for row in cur.fetchall()]
         for row in rows:
             row['type'] = db.playertypes[int(row['type'] or 0)]
-        cur.execute("SELECT Owner FROM Tournaments WHERE Id = ?",
-                    (tournamentid,))
-        owner = cur.fetchone()[0]
         editable = self.get_is_admin() or (self.current_user and 
-                                           self.current_user == str(owner))
+                                           self.current_user == str(self.owner))
     return {'players':rows, 'editable': editable}
 
 class ShowPlayersHandler(handler.BaseHandler):

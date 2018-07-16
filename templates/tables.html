@@ -9,7 +9,7 @@
 	</ul>
 	{% for round in sorted(rounds, key=lambda r: r['round']) %}
 		<div class="round" data-round="{{ round['round'] }}" id="round-{{ round['round'] }}">
-		{% if is_admin and not round['has_scores'] %}
+		{% if (is_admin or (current_user and current_user == str(owner))) and not round['has_scores'] %}
 			<button class="genround">Generate</button><br />
 		{% end %}
 			{% if current_user %}

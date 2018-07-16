@@ -33,6 +33,7 @@ class BaseHandler(tornado.web.RequestHandler):
             websitename = settings.WEBSITENAME,
             tournamentid = self.tournamentid,
             tournamentname = self.tournamentname,
+            owner = getattr(self, 'owner', None),
             SponsorLink = settings.SPONSORLINK,
             **kwargs
         )
@@ -99,23 +100,26 @@ def is_owner_ajax(func):
 def tournament_handler(func):
     def func_wrapper(self, tournament, *args, **kwargs):
         with db.getCur() as cur:
-            cur.execute("SELECT Id, Name FROM Tournaments WHERE Name = ? OR Id = ?", (tournament, tournament))
+            cur.execute("SELECT Id, Name, Owner FROM Tournaments"
+                        " WHERE Name = ? OR Id = ?", (tournament, tournament))
             row = cur.fetchone()
             if row is None:
                 return self.render("message.html",
                             message = "Tournament not found")
-        self.tournamentid, self.tournamentname = row
+        self.tournamentid, self.tournamentname, self.owner = row
         return func(self, *args, **kwargs)
     return func_wrapper
 
 def tournament_handler_ajax(func):
     def func_wrapper(self, tournament, *args, **kwargs):
         with db.getCur() as cur:
-            cur.execute("SELECT Id, Name FROM Tournaments WHERE Name = ? OR Id = ?", (tournament,tournament))
+            cur.execute("SELECT Id, Name, Owner FROM Tournaments"
+                        " WHERE Name = ? OR Id = ?", (tournament,tournament))
             row = cur.fetchone()
             if row is None:
-                return self.write('{"status":"error", "message":"Tournament not found"}')
-        self.tournamentid, self.tournamentname = row
+                return self.write('{"status":"error", '
+                                  '"message":"Tournament not found"}')
+        self.tournamentid, self.tournamentname, self.owner = row
         return func(self, *args, **kwargs)
 
     return func_wrapper

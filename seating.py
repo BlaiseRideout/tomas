@@ -273,8 +273,8 @@ class ShowSeatingHandler(handler.BaseHandler):
                            unusedPointsPlayerID=db.getUnusedPointsPlayerID())
 
 class SwapSeatingHandler(handler.BaseHandler):
-    @handler.is_admin_ajax
     @handler.tournament_handler_ajax
+    @handler.is_owner_ajax
     def post(self):
         round = self.get_argument('round', None)
         left = self.get_argument('left', None)
@@ -306,8 +306,8 @@ class SeatingHandler(handler.BaseHandler):
     @handler.tournament_handler_ajax
     def get(self):
         return self.write(json.dumps({'rounds':getSeating(self.tournamentid)}))
-    @handler.is_admin
     @handler.tournament_handler_ajax
+    @handler.is_owner_ajax
     def post(self):
         round = self.get_argument('round', None)
         if round is not None:
