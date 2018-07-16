@@ -23,7 +23,7 @@ $(function() {
 				toSort.sort(compareFunc(sortkeys[template]['keys']));
 				templatedata[template][sortkeys[template]['table']] = toSort
 			}
-			console.log(templatedata[template]);
+			/* console.log(templatedata[template]); */
 			$(selector).html(Mustache.render(
 				templates[template], templatedata[template]));
 			if (typeof callback === "function")
