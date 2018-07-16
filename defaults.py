@@ -25,11 +25,11 @@ MAXSWAPDISTANCE = 10
 #   DUPLICATEIMPORTANCE is the factor by which duplicate resolution
 #   is prioritized over diversity resolution
 DUPLICATEIMPORTANCE = 4
-#   SCOREPERPLAYER sets the initial score each player has at the start of
-#   each round.  It is used to determine what the total raw scores should
-#   sum to at the end of each round and how to calculate points from those
-#   sums
-SCOREPERPLAYER = 30000
+#   DEFAULTSCOREPERPLAYER is the default initial score each player
+#   has at the start of each round.  It is used to determine what the total
+#   raw scores should sum to at the end of each round and how to calculate
+#   points from those sums.  It can be set for each tournament.
+DEFAULTSCOREPERPLAYER = 30000
 #   UNUSEDSCOREINCREMENT is smallest score amount that can be marked
 #   as unused at the end of game.  The unused score must be a multiple of
 #   this increment, typically 1000 for a riichi bet.

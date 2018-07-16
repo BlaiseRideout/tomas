@@ -58,6 +58,7 @@ class EditTournamentHandler(handler.BaseHandler):
 
             cur.execute("SELECT Id, Email FROM Users ORDER BY Email")
             users = dict(cur.fetchall())
+
             if id:
                 cur.execute("SELECT {} FROM TOURNAMENTS WHERE Id = ?".format(
                     ",".join(tmt_fields)), (id,))
@@ -81,6 +82,11 @@ class EditTournamentHandler(handler.BaseHandler):
                             "  ORDER BY Name",
                             (id, ))
                 tournament['Players'] = [row[0] for row in cur.fetchall()]
+                cur.execute("SELECT COUNT(Scores.Id) FROM Scores"
+                            "  JOIN Rounds ON Scores.Round = Rounds.Id"
+                            "  WHERE Rounds.Tournament = ?",
+                            (id,))
+                tournament['ScoreCount'] = cur.fetchone()[0]
             else:
                 tournament = dict(zip(tmt_fields, [None] * len(tmt_fields)))
                 today = datetime.date.today()
@@ -90,6 +96,10 @@ class EditTournamentHandler(handler.BaseHandler):
                 tournament['Country'] = def_country_id
                 tournament['Owner'] = self.current_user
                 tournament['Players'] = []
+                tournament['Location'] = ''
+                tournament['Logo'] = ''
+                tournament['ScorePerPlayer'] = settings.DEFAULTSCOREPERPLAYER
+                tournament['ScoreCount'] = 0
 
             tournament['OwnerName'] = users[int(tournament['Owner'])]
             tournament['CountryCode'] = countries[tournament['Country']]['Code']
@@ -436,8 +446,15 @@ def getSettings(self, tournamentid):
 
             rounds += [roundDict]
 
+        cur.execute('SELECT COALESCE(ScorePerPlayer, {}) FROM Tournaments'
+                    ' WHERE Id = ?'.format(settings.DEFAULTSCOREPERPLAYER),
+                    (tournamentid,))
+        result = cur.fetchone()
+        if result is None:
+            return None
+        scorePerPlayer = result[0]
         return {'rounds':rounds,
-                'scoreperplayer':settings.SCOREPERPLAYER,
+                'scoreperplayer': scorePerPlayer,
                 'unusedscoreincrement': settings.UNUSEDSCOREINCREMENT,
                 'cutsize':settings.DEFAULTCUTSIZE}
     return None

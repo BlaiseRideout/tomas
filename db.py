@@ -51,6 +51,7 @@ schema = {
         "End DATE DEFAULT CURRENT_DATE",
         "Location TEXT",
         "Country INTEGER",
+        "ScorePerPlayer INTEGER",
         "Logo TEXT",
         "LinkURL TEXT",
         "FOREIGN KEY(Owner) REFERENCES Users(Id) ON DELETE CASCADE",
@@ -227,7 +228,7 @@ def getUnusedPointsPlayerID():
             _unusedPointsPlayer = cur.lastrowid
     return _unusedPointsPlayer
 
-def updateGame(scores):
+def updateGame(scores, tournamentID):
     if scores is None:
         return {"status":"error", "message":"Please enter some scores"}
 
@@ -240,6 +241,15 @@ def updateGame(scores):
             gameID = None
             roundID = None
             unusedPointsIncluded = False
+            cur.execute('SELECT COALESCE(ScorePerPlayer, {}) FROM Tournaments'
+                        ' WHERE Id = ?'.format(settings.DEFAULTSCOREPERPLAYER),
+                        (tournamentID,))
+            result = cur.fetchone()
+            if result is None:
+                return {"status": "error",
+                        "message": "Cannot find tournament {}".format(
+                            tournamentID)}
+            scorePerPlayer = result[0]
             for score in scores:
                 total += score['rawscore']
 
@@ -269,10 +279,10 @@ def updateGame(scores):
             if len(scores) == 5 and not unusedPointsIncluded:
                 return {"status":"error",
                         "message":"Only 4 scores can be submitted per game"}
-            if total != 4 * settings.SCOREPERPLAYER:
+            if total != 4 * scorePerPlayer:
                 return {"status":"error",
                         "message":"Scores do not add up to {0}".format(
-                            4 * settings.SCOREPERPLAYER)}
+                            4 * scorePerPlayer)}
 
             identifiers = ['roundid', 'gameid', 'playerid']
             fields = ['rank', 'rawscore', 'score']

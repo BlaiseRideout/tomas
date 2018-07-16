@@ -86,6 +86,16 @@ Tournament Settings
       </td>
     </tr>
     <tr>
+      <td class="attributelabel">Starting Score Per Player</td>
+      <td class="attributevalue" data-type="str"
+	  colspan=2>
+	<input id="scoreperplayerfield" type="number" min="10000" max="50000"
+	       step="1000" data-colname="ScorePerPlayer"
+	       {% if tournament['ScoreCount'] > 0 %} disabled {% end %}
+	       value="{{ tournament['ScorePerPlayer'] if tournament['ScorePerPlayer'] else 30000 }}"/>
+      </td>
+    </tr>
+    <tr>
       <td class="attributelabel">Logo</td>
       <td class="attributevalue" data-type="str"
 	  colspan=2>

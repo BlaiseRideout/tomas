@@ -12,7 +12,7 @@ class EditGameHandler(handler.BaseHandler):
     def post(self):
         scores = self.get_argument('tablescores', None)
         scores = json.loads(scores)
-        self.write(json.dumps(db.updateGame(scores)))
+        self.write(json.dumps(db.updateGame(scores, self.tournamentid)))
 
 class EditPenaltiesHandler(handler.BaseHandler):
     @handler.tournament_handler_ajax
