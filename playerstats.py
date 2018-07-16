@@ -61,7 +61,7 @@ class PlayerStatsDataHandler(handler.BaseHandler):
                                    error = "Couldn't find any scores for")
 
             cur.execute(
-                    "SELECT Scores2.Round, Rounds.Number,"
+                    "SELECT Scores2.Round, Rounds.Number, Rounds.Name,"
                     " Scores2.Rank, ROUND(Scores2.Score * 100) / 100, Players.Name, Players.Id,"
                     " Countries.Code, Countries.Flag_Image FROM Scores"
                     " JOIN Scores AS Scores2"
@@ -79,18 +79,19 @@ class PlayerStatsDataHandler(handler.BaseHandler):
             cols = ['rank', 'score', 'name', 'id', 'country', 'flag']
             playergames = []
             for row in cur.fetchall():
-                score = dict(zip(cols, row[2:]))
+                score = dict(zip(cols, row[3:]))
                 if len(playergames) == 0 or playergames[-1]['round'] != row[0]:
                     playergames += [{
                         'round': row[0],
                         'number': row[1],
+                        'roundname': row[2],
                         'scores': []
                     }]
                 playergames[-1]['scores'] += [score]
 
             cur.execute(
-                    "SELECT Seating.Round, Rounds.Winds, Seating2.TableNum,"
-                    " Seating2.Wind, Players.Name,"
+                    "SELECT Seating.Round, Rounds.Name, Rounds.Winds,"
+                    " Seating2.TableNum, Seating2.Wind, Players.Name,"
                     " Countries.Code, Countries.Flag_Image FROM Seating"
                     " JOIN Seating AS Seating2"
                     "  ON Seating.TableNum = Seating2.TableNum AND Seating.Round = Seating2.Round"
@@ -106,7 +107,7 @@ class PlayerStatsDataHandler(handler.BaseHandler):
                     (playerID, playerID)
                 )
 
-            tablecols = ['round','showwinds', 'table']
+            tablecols = ['round', 'roundname', 'showwinds', 'table']
             cols = ['wind', 'name', 'country', 'flag']
             futuregames = []
             for row in cur.fetchall():

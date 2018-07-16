@@ -28,7 +28,7 @@
 {{ /playerstats }}
 {{ #playergames }}
 	<div class="game">
-		<h2>Round {{ number }} Scores</h2>
+		<h2>{{ roundname }} Scores</h2>
 		<table>
 			<tr><th>Rank</th><th>Name</th><th colspan="2">Country</th><th>Score</th></tr>
 			{{ #scores }}
@@ -45,7 +45,7 @@
 {{ /playergames }}
 {{ #futuregames }}
 	<div class="game">
-		<h2>Round {{ round }} Seating</h2>
+		<h2>{{ roundname }} Seating</h2>
 		<table>
 			<tr>
 				<th {{ #showwinds }}colspan="4"{{ /showwinds }}{{ ^showwinds }}colspan="3"{{ /showwinds }}>Table {{ table }}</th>
