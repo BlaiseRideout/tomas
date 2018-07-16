@@ -450,14 +450,15 @@ def standardize_create_table_sql(sql):
 
 def walk_tables(db_schema, func, verbose=0, ignore=[]):
     """Walk the tables in a datbase schema in their foreign key dependence
-    order.  The tables with no foreign key dependencies will come first.
-    Tables that only only depend on other tables that have no foreign keys
-    come next.  Continue until all tables are visited choosing only tables
-    whose foreign key tables have already been visited and that are not in
-    the ignore list.  Tables in the ingnore list are assumed to exist for
-    the purpose of making foreign keys.
-    The function should take 2 arguments, a table name and pragma record 
-    dictionary produced by parse_database_schema.
+    order.  The tables with no foreign key dependencies will come
+    first.  Tables that only only depend on other tables that have no
+    foreign keys or themselves come next.  Continue until all tables
+    are visited choosing only tables whose foreign key tables have
+    already been visited (or are self-referetial) and that are not in
+    the ignore list.  Tables in the ingnore list are assumed to exist
+    for the purpose of making foreign keys.  The function should take
+    2 arguments, a table name and pragma record dictionary produced by
+    parse_database_schema.
     """
     visited = [tbl.lower() for tbl in ignore]
     to_visit = collections.deque(
@@ -472,7 +473,8 @@ def walk_tables(db_schema, func, verbose=0, ignore=[]):
         pragma_dict = db_schema[table]
         fkeys = pragma_dict['fkey']
         count += 1
-        if any(fkey_rec.table.lower() not in visited for fkey_rec in fkeys):
+        if any(fkey_rec.table.lower() not in visited + [table.lower()] 
+               for fkey_rec in fkeys):
             if verbose > 2:
                 print(('Table {} has {} foreign key{} but not all visited yet;'
                        ' deferring.').format(
