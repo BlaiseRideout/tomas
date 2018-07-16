@@ -132,6 +132,7 @@ def getSeating(tournamentid, roundid = None):
         query = """
                 SELECT Rounds.Id,
                  Rounds.Number,
+                 Rounds.Name,
                  Rounds.Winds,
                  Seating.TableNum,
                  Seating.Wind,
@@ -174,16 +175,18 @@ def getSeating(tournamentid, roundid = None):
         cur.execute(query, bindings)
         rounds = {}
         for row in cur.fetchall():
-            (roundID, roundNum, winds, table, wind, playerid, name, country, flag, countryid,
-             scoreid, rank, rawscore, score, penalty)  = row
+            (roundID, roundNum, roundname, winds, table, wind, playerid, name,
+             country, flag, countryid, scoreid, rank, rawscore, score,
+             penalty)  = row
             if roundID is not None:
                 if not roundID in rounds:
                     rounds[roundID] = {
-                                'winds':winds,
-                                'number':roundNum,
-                                'tables':{},
-                                'has_scores': False
-                            }
+                        'winds':winds,
+                        'name':roundname,
+                        'number':roundNum,
+                        'tables':{},
+                        'has_scores': False
+                    }
                 if table is not None:
                     if not table in rounds[roundID]['tables']:
                         rounds[roundID]['tables'][table] = {
@@ -214,6 +217,7 @@ def getSeating(tournamentid, roundid = None):
                 {
                     'round':      roundID,
                     'number':     rounddict['number'],
+                    'name':       rounddict['name'],
                     'winds':      rounddict['winds'],
                     'has_scores': rounddict['has_scores'],
                     'tables':

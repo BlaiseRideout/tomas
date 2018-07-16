@@ -4,7 +4,7 @@
 <div id="seating">
 	<ul>
 		{% for round in sorted(rounds, key=lambda r: r['round']) %}
-				<li><a href="#round-{{ round['round'] }}">Round {{ round['number'] }}</a></li>
+				<li><a href="#round-{{ round['round'] }}">{{ round['name'] }}</a></li>
 		{% end %}
 	</ul>
 	{% for round in sorted(rounds, key=lambda r: r['round']) %}

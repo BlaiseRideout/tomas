@@ -2,10 +2,14 @@
 	type="text/javascript" />
 {% for round in rounds %}
 	<div class="round" data-roundid="{{ round['id'] }}">
-		<h2>Round {{ round['number'] }}</h2>
+		<h2> {{ '{name} ({number})'.format(**round) }}</h2>
 
 		<label for="round{{ round['id'] }}-ordering">Ordering</label>
 		<span id="round{{ round['id'] }}-ordering" class="orderingselect roundsetting" data-colname="Ordering" data-value="{{ round['ordering'] }}">{{ round['orderingname'] }}</span>
+
+		<br />
+		<label for="round{{ round['id'] }}-name">Name</label>
+		<input type="text" class="roundsetting" id="round{{ round['id'] }}-name" data-colname="Name" value="{{ round['name'] }}"/>
 
 		<br />
 		<label for="round{{ round['id'] }}-algorithm">Seating algorithm</label>

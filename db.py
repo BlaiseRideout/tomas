@@ -68,6 +68,7 @@ schema = {
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
         "Tournament INTEGER",
         "Number INTEGER",
+        "Name TEXT",
         "Ordering INTEGER",
         "Algorithm INTEGER",
         "Seed TEXT DEFAULT ''",

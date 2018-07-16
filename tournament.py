@@ -394,8 +394,12 @@ class AddRoundHandler(handler.BaseHandler):
     def post(self):
         with db.getCur() as cur:
             print(self.tournamentid)
-            cur.execute("INSERT INTO Rounds(Number, Tournament) "
-                "VALUES((SELECT COUNT(*) + 1 FROM Rounds WHERE Tournament = ?),?)", (self.tournamentid, self.tournamentid))
+            cur.execute(
+                "INSERT INTO Rounds(Number, Name, Tournament) "
+                "VALUES((SELECT COUNT(*) + 1 FROM Rounds WHERE Tournament = ?),"
+                "       'Round ' || (SELECT COUNT(*) + 1 FROM Rounds "
+                "                    WHERE Tournament = ?),"
+                "       ?)", (self.tournamentid,) * 3)
             return self.write({'status':"success"})
 
 class DeleteRoundHandler(handler.BaseHandler):
@@ -411,12 +415,14 @@ class DeleteRoundHandler(handler.BaseHandler):
 
 def getSettings(self, tournamentid):
     with db.getCur() as cur:
-        cur.execute("""SELECT Id, Number, COALESCE(Ordering, 0), COALESCE(Algorithm, 0), Seed,
+        cur.execute("""SELECT Id, Number, Name, COALESCE(Ordering, 0),
+                        COALESCE(Algorithm, 0), Seed,
                         Cut, SoftCut, CutSize, CutMobility, CombineLastCut,
                         Duplicates, Diversity, UsePools, Winds, Games
-                    FROM Rounds WHERE Tournament = ?""", (tournamentid,))
+                    FROM Rounds WHERE Tournament = ?
+                    ORDER BY Number""", (tournamentid,))
 
-        cols = ["id", "number", "ordering", "algorithm", "seed",
+        cols = ["id", "number", "name", "ordering", "algorithm", "seed",
                 "cut", "softcut", "cutsize", "cutmobility", "combinelastcut",
                 "duplicates", "diversity", "usepools", "winds", "games"]
         rounds = []
