@@ -57,8 +57,9 @@ class PlayerStatsDataHandler(handler.BaseHandler):
             self.populate_queries(cur, p)
             p['showstats'] = True
             if p['numgames'] == 0:
-                return self.render("playerstats.html", name=name,
-                                   error = "Couldn't find any scores for")
+                return self.render("playerstats.html",
+                                   player = {'Name':name},
+                                   error = "Couldn't find any scores for {}".format(name))
 
             cur.execute(
                     "SELECT Scores2.Round, Rounds.Number, Rounds.Name,"
@@ -131,28 +132,40 @@ class PlayerStatsHandler(handler.BaseHandler):
         HISTORY_COOKIE = "stats_history"
         with db.getCur() as cur:
             name = player
-            cur.execute("SELECT Id,Name FROM Players WHERE Id = ? OR Name = ?", (player, player))
+            cur.execute(
+                    """SELECT
+                            Players.Id, Players.Name, Players.Number, Countries.Code,
+                            Flag_Image, Association, Pool
+                        FROM Players
+                        LEFT OUTER JOIN Countries
+                          ON Countries.Id = Players.Country
+                        WHERE Players.Id = ? OR Players.Name = ?""", (player, player))
+
             player = cur.fetchone()
             if player is None or len(player) == 0:
-                return self.render("playerstats.html", name=name,
-                                   error = "Couldn't find player")
+                return self.render("playerstats.html",
+                                   player = {'Name':name},
+                                   error = "Couldn't find player {}".format(name))
+            cols = ["Id", "Name", "Number", "CountryCode",
+                    "Flag_Image", "Association", "Pool", "Type", "Wheel"]
+            player = dict(zip(cols, player))
+
             history = stringify(self.get_secure_cookie(HISTORY_COOKIE))
             if history is None:
                 history = []
             else:
                 history = json.loads(history)
 
-            player = list(player)
-            if player in history:
-                history.remove(player)
-            history.insert(0, player)
+            playerKey = [player['Id'], player['Name']]
+            if playerKey in history:
+                history.remove(playerKey)
+            history.insert(0, playerKey)
 
             history = history[0:settings.STATSHISTORYSIZE]
             self.set_secure_cookie(HISTORY_COOKIE, json.dumps(history))
 
-            player, name = player
-            self.render("playerstats.html",
+            return self.render("playerstats.html",
                         error = None,
-                        name = name,
+                        player = player,
                         history = history
-                )
+            )

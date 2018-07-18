@@ -1,6 +1,6 @@
 {% extends "template.html" %}
 
-{% block title %} - {{ name }}'s Stats{% end %}
+{% block title %} - {{ player['Name'] }}'s Stats{% end %}
 
 {% block head %}
 <link href="{{ proxyprefix.rstrip('/') + static_url("css/playerstats.css") }}"
@@ -14,17 +14,25 @@
 
 {% block content %}
   {% if error %}
-    <h1 id="message">{{ error }} {{ name }}</h1>
+    <h1 id="message">{{ error }}</h1>
   {% else %}
-    <h1 id="message">{{ name }}</h1>
+		<h1 id="message">{{ player['Name'] }}{% if player['Number'] is not None %} (#{{ player['Number'] }}){% end %}</h1>
+
+		<div id="country">Country: {{ player['CountryCode'] }} {% raw player ['Flag_Image'] %}</td>
+		{% if player['Association'] is not None %}
+			<div id="association">Association: {{ player['Association'] }}</td>
+		{% end %}
+		{% if player['Pool'] is not None %}
+			<div id="pool">Pool: {{ player['Pool'] }}</td>
+		{% end %}
     <div id="playerstats">
     </div>
     <br />
 		{% if history and len(history) > 0 %}
 			<div id="statshistory">
 				<h2>Recently Viewed</h2>
-				{% for player in history %}
-					<a href="{{ proxyprefix }}playerstats/{{ player[0] }}">{{ player[1] }}</a><br />
+				{% for historyPlayer in history %}
+					<a href="{{ proxyprefix }}playerstats/{{ historyPlayer[0] }}">{{ historyPlayer[1] }}</a><br />
 				{% end %}
 			</div>
 		{% end %}
