@@ -23,7 +23,7 @@
 		<li data-id="players"><a href="#players">Players</a></li>
 	  {% if is_admin or (current_user and current_user == str(owner)) %}
 		<li><a href="settings.html">Settings</a></li>
-		<li><a href="tourney.html">Tourney</a></li>
+{% comment <li><a href="tourney.html">Tourney</a></li>  %}
 	  {% end %}
 	</ul>
 	<div id="players">
