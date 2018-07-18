@@ -5,84 +5,161 @@
 		<h2> {{ '{name} ({number})'.format(**round) }}</h2>
 
 		<label for="round{{ round['id'] }}-ordering">Ordering</label>
-		<span id="round{{ round['id'] }}-ordering" class="orderingselect roundsetting" data-colname="Ordering" data-value="{{ round['ordering'] }}">{{ round['orderingname'] }}</span>
+		<span id="round{{ round['id'] }}-ordering"
+		      class="orderingselect roundsetting"
+		      data-colname="Ordering"
+		      data-value="{{ round['ordering'] }}">
+		  {{ round['orderingname'] }}
+		</span>
 
 		<br />
 		<label for="round{{ round['id'] }}-name">Name</label>
-		<input type="text" class="roundsetting" id="round{{ round['id'] }}-name" data-colname="Name" value="{{ round['name'] }}"/>
+		<input type="text"
+		       class="roundsetting"
+		       id="round{{ round['id'] }}-name"
+		       data-colname="Name"
+		       value="{{ round['name'] }}" />
 
 		<br />
 		<label for="round{{ round['id'] }}-algorithm">Seating algorithm</label>
-		<span id="round{{ round['id'] }}-algorithm" class="algorithmselect roundsetting" data-colname="Algorithm" data-value="{{ round['algorithm'] }}">{{ round['algname'] }}</span>
+		<span id="round{{ round['id'] }}-algorithm"
+		      class="algorithmselect roundsetting"
+		      data-colname="Algorithm"
+		      data-value="{{ round['algorithm'] }}">
+		  {{ round['algname'] }}
+		</span>
 
 		<br />
 
 		<label for="round{{ round['id'] }}-seed">Seed</label>
-		<input type="text" class="roundsetting" id="round{{ round['id'] }}-seed" data-colname="Seed" value="{{ round['seed'] }}"/>
+		<input type="text"
+		       class="roundsetting"
+		       id="round{{ round['id'] }}-seed"
+		       data-colname="Seed"
+		       value="{{ round['seed'] }}" />
 
 		<br />
 
 		<label for="round{{ round['id'] }}-games">Number of games</label>
-		<input type="number" class="roundsetting" id="round{{ round['id'] }}-games" data-colname="Games" value="{{ round['games'] }}"/>
+		<input type="number"
+		       class="roundsetting"
+		       id="round{{ round['id'] }}-games"
+		       data-colname="Games"
+		       value="{{ round['games'] }}" />
 
 		<br />
 
-		<input type="checkbox" class="roundsetting" id="round{{ round['id'] }}-pools" data-colname="UsePools"{% if round['usepools'] %} checked{% end %}/>
+		<input type="checkbox"
+		       class="roundsetting"
+		       id="round{{ round['id'] }}-pools"
+		       data-colname="UsePools"
+		       {% if round['usepools'] %}checked{% end %} />
 		<label for="round{{ round['id'] }}-pools">Use pools?</label>
 
 		<br />
 
-		<input type="checkbox" class="roundsetting" id="round{{ round['id'] }}-cut" data-colname="Cut"{% if round['cut'] %} checked{% end %}/>
+		<input type="checkbox"
+		       class="roundsetting"
+		       id="round{{ round['id'] }}-cut"
+		       data-colname="Cut"
+		       {% if round['cut'] %}checked{% end %} />
 		<label for="round{{ round['id'] }}-cut">Use cutoff?</label>
 
 		<br />
 
-		<input type="checkbox" class="roundsetting" id="round{{ round['id'] }}-softcut" data-colname="SoftCut"{% if round['softcut'] %} checked{% end %}/>
+		<input type="checkbox"
+		       class="roundsetting"
+		       id="round{{ round['id'] }}-softcut"
+		       data-colname="SoftCut"
+		       {% if round['softcut'] %}checked{% end %} />
 		<label for="round{{ round['id'] }}-softcut">Use softcut?</label>
 
 		<br />
 
 		<input title="Allow players separated by this round's softcut to change positions in future rounds"
-					 type="checkbox"
-					 class="roundsetting"
-					 id="round{{ round['id'] }}-cutmobility"
-					 data-colname="CutMobility"{% if round['cutmobility'] %} checked{% end %} />
+		       type="checkbox"
+		       class="roundsetting"
+		       id="round{{ round['id'] }}-cutmobility"
+		       data-colname="CutMobility"
+		       {% if round['cutmobility'] %}checked{% end %} />
 		<label for="round{{ round['id'] }}-cutmobility">Cut mobility?</label>
 
 		<br />
 
 		<input title="If the number of players isn't divisible by the cutsize and this is checked, combines the last two cut groups. If it's not checked, then the last group is just left small."
-					 type="checkbox"
-					 class="roundsetting"
-					 id="round{{ round['id'] }}-combinelastcut"
-					 data-colname="CombineLastCut"{% if round['combinelastcut'] %} checked{% end %} />
+		       type="checkbox"
+		       class="roundsetting"
+		       id="round{{ round['id'] }}-combinelastcut"
+		       data-colname="CombineLastCut"
+		       {% if round['combinelastcut'] %}checked{% end %} />
 		<label for="round{{ round['id'] }}-combinelastcut">Combine last cut?</label>
 
 		<br />
 
+		<label for="round{{ round['id'] }}-cutcount">Max cut count</label>
+		<input title="Maximum total number of cuts to make for this round. (or 0 for unlimited)"
+		       id="round{{ round['id'] }}-cutcount"
+		       type="number"
+		       step="1"
+		       min="0"
+		       class="roundsetting"
+		       data-colname="CutCount"
+		       value="{{ round['cutcount'] }}" />
 
-		<input type="checkbox" class="roundsetting" id="round{{ round['id'] }}-duplicates" data-colname="Duplicates" {% if round['duplicates'] %} checked{% end %}/>
+		<br />
+
+		<input type="checkbox"
+		       class="roundsetting"
+		       id="round{{ round['id'] }}-duplicates"
+		       data-colname="Duplicates"
+		       {% if round['duplicates'] %}checked{% end %} />
 		<label for="round{{ round['id'] }}-duplicates">Fix duplicates</label>
 
 		<br />
 
-		<input type="checkbox" class="roundsetting" id="round{{ round['id'] }}-diversity" data-colname="Diversity" {% if round['diversity'] %} checked{% end %}/>
+		<input type="checkbox"
+		       class="roundsetting"
+		       id="round{{ round['id'] }}-diversity"
+		       data-colname="Diversity"
+		       {% if round['diversity'] %}checked{% end %} />
 		<label for="round{{ round['id'] }}-diversity">Same country avoidance</label>
 
 		<br />
 
-		<input type="checkbox" class="roundsetting" id="round{{ round['id'] }}-winds" data-colname="Winds" {% if round['winds'] %} checked{% end %}/>
+		<input type="checkbox"
+		       class="roundsetting"
+		       id="round{{ round['id'] }}-winds"
+		       data-colname="Winds"
+		       {% if round['winds'] %}checked{% end %} />
 		<label for="round{{ round['id'] }}-winds">Assign winds</label>
 
 		<br />
 
-		<input type="checkbox" class="roundsetting" id="round{{ round['id'] }}-cutbox" data-colname="CutSize"{% if round['cutsize'] %} checked{% end %} data-checkvalue="{{ cutsize }}" data-updatefield="round{{ round['id'] }}-cutsize"/>
+		<input type="checkbox"
+		       class="roundsetting"
+		       id="round{{ round['id'] }}-cutbox"
+		       data-colname="CutSize"
+		       {% if round['cutsize'] %}checked{% end %}
+		       data-checkvalue="{{ cutsize }}"
+		       data-updatefield="round{{ round['id'] }}-cutsize"/>
 		<label for="round{{ round['id'] }}-cutbox">Override cutsize?</label>
 
 		<br />
 
 		<label for="round{{ round['id'] }}-cutsize">Cutsize</label>
-		<input type="number" step="4" min="4" class="roundsetting" id="round{{ round['id'] }}-cutsize" data-colname="CutSize" {% if round['cutsize'] %}value="{{ round['cutsize'] }}"{% else %}disabled value="{{ cutsize }}"{% end %} data-default="{{ cutsize }}"/>
+		<input type="number"
+		       step="4"
+		       min="4"
+		       class="roundsetting"
+		       id="round{{ round['id'] }}-cutsize"
+		       data-colname="CutSize"
+		       {% if round['cutsize'] %}
+		         value="{{ round['cutsize'] }}"
+		       {% else %}
+		         disabled
+		         value="{{ cutsize }}"
+		       {% end %}
+		       data-default="{{ cutsize }}" />
 
 		<br />
 

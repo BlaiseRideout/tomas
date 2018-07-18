@@ -50,32 +50,38 @@ def cutLeaderboards(leaderboards, playerRound):
     if playerRound is None:
         return leaderboards
 
-    cutsize = playerRound['cutsize']
+    cutSize = playerRound['cutSize']
 
-    if cutsize == 0:
-        cutsize = settings.DEFAULTCUTSIZE
+    if cutSize == 0:
+        cutSize = settings.DEFAULTCUTSIZE
 
     # If we should cut the leaderboards this round
     if (playerRound['cut'] is not None and
             playerRound['cut'] > 0 and
-            not playerRound['cutmobility']):
+            not playerRound['cutMobility']):
         old_leaderboards = leaderboards
         leaderboards = []
+        if playerRound['cutCount'] <= 0:
+            cutsMade = -math.inf
+        else:
+            cutsMade = 0
         for leaderboard in old_leaderboards:
-            if len(leaderboard) > cutsize:
+            if len(leaderboard) > cutSize and cutsMade < playerRound['cutCount']:
                 leaderboard = flattenLeaderboard(leaderboard)
-                for i in range(0, len(leaderboard), cutsize):
-                    nextI = i + cutsize
+                for i in range(0, len(leaderboard), cutSize):
+                    nextI = i + cutSize
 
-                    if (len(leaderboard) - nextI < cutsize and # If the next leaderboard wouldn't reach the cutsize,
-                            playerRound['combineLastCut']):    #   and we're combining smaller leaderboards
-                        subLeaderboard = leaderboard[i:]
-                    elif nextI >= len(leaderboard):            # If this is the last leaderboard
-                        subLeaderboard = leaderboard[i:]
+                    if (    nextI >= len(leaderboard)               # If this is the last leaderboard
+                            or
+                            (len(leaderboard) - nextI < cutSize and # If the next leaderboard wouldn't reach the cutSize,
+                                playerRound['combineLastCut'])      #   and we're combining smaller leaderboards
+                            or
+                            cutsMade >= playerRound['cutCount']):   # If we've reached our cutCount
+                        leaderboards += [dictifyLeaderboard(leaderboard[i:])]
+                        break
                     else:
-                        subLeaderboard = leaderboard[i:nextI]
-
-                    leaderboards += [dictifyLeaderboard(subLeaderboard)]
+                        leaderboards += [dictifyLeaderboard(leaderboard[i:nextI])]
+                        cutsMade += 1
             else:
                 leaderboards += [leaderboard]
 
@@ -87,7 +93,7 @@ def leaderData(tournamentid):
          COUNT(Scores.Id) AS GamesPlayed,
          COALESCE(ROUND(SUM(Scores.Score) * 100) / 100, 0) AS TotalPoints,
          COALESCE(Rounds.Id, 0), (Rounds.SoftCut + Rounds.Cut), Rounds.CutMobility,
-         COALESCE(Rounds.CutSize, 0), Rounds.CombineLastCut
+         COALESCE(Rounds.cutSize, 0), Rounds.CombineLastCut, Rounds.CutCount
        FROM Players
        LEFT JOIN Scores ON Players.Id = Scores.PlayerId
        LEFT JOIN Rounds ON Scores.Round = Rounds.Id
@@ -104,13 +110,14 @@ def leaderData(tournamentid):
        ORDER BY Rounds.Id ASC;"""
 
     fields = ['player', 'name', 'country', 'flag_image', 'type',
-                'games_played',
+                'gamesPlayed',
                 'points',
-                'round', 'cut', 'cutmobility', 'cutsize', 'combineLastCut']
+                'round', 'cut', 'cutMobility',
+                'cutSize', 'combineLastCut', 'cutCount']
 
     zeroScores = {'total': 0,
                     'points':0,
-                    'games_played': 0,
+                    'gamesPlayed': 0,
                     'penalty': 0}
     with db.getCur() as cur:
         cur.execute(query, (db.playertypecode['UnusedPoints'], tournamentid))
@@ -142,7 +149,7 @@ def leaderData(tournamentid):
 
         leaderboard[player]['points'] += playerRound['points']
         leaderboard[player]['total'] += playerRound['points']
-        leaderboard[player]['games_played'] += playerRound['games_played']
+        leaderboard[player]['gamesPlayed'] += playerRound['gamesPlayed']
 
         if player in penalties:
             leaderboard[player]['penalty'] += penalties[player]
@@ -159,7 +166,7 @@ def leaderData(tournamentid):
                 place += 1
             lastTotal = rec['total']
             rec['points'] = round(rec['points'], 2)
-            rec['total'] = round(rec['total'], 2)
+            rec['total'] = round(rec['total'] + rec['penalty'], 2)
         leaderboards += leaderboard
 
     return leaderboards
@@ -180,7 +187,7 @@ class ScoreboardHandler(handler.BaseHandler):
     @handler.tournament_handler
     def get(self):
         query = """SELECT
-           Players.Id, Players.Name, Countries.Code, Flag_Image, Type,
+           Players.Id, Players.Name, Countries.Code, flag_image, Type,
            Rounds.Number, Rounds.Name, Scores.Rank,
            ROUND(Scores.Score * 100) / 100,
            COALESCE(SUM(Penalties.Penalty), 0),

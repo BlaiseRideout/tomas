@@ -105,7 +105,7 @@ class EditTournamentHandler(handler.BaseHandler):
             tournament['CountryCode'] = countries[tournament['Country']]['Code']
             tournament['CountryName'] = countries[tournament['Country']]['Name']
             tournament['Flag_Image'] = countries[tournament['Country']]['Flag_Image']
-            
+
             if tournament['Owner'] == int(self.current_user) or self.get_is_admin():
                 return self.render(
                     "edittournament.html",
@@ -138,14 +138,14 @@ class EditTournamentHandler(handler.BaseHandler):
                         cur.execute(sql, [state[f] for f in tmt_attr_fields])
                         print('Created tournament', cur.lastrowid)
                         return self.write({
-                            'status': 'load', 
-                            'URL': settings.PROXYPREFIX.rstrip('/') + 
+                            'status': 'load',
+                            'URL': settings.PROXYPREFIX.rstrip('/') +
                             'edittournament/{}'.format(cur.lastrowid)})
                     except sqlite3.DatabaseError as e:
                         print('Error creating tournament ({}): {}'
                               .format(sql, e))
                         return self.write({
-                            'status': 'Error', 
+                            'status': 'Error',
                             'message': 'Unable to create tournament: {}'
                             .format(e)})
             elif id == state['Id']:
@@ -160,7 +160,7 @@ class EditTournamentHandler(handler.BaseHandler):
                         print('Error updating tournament ({}): {}'.format(
                             sql, e))
                         return self.write({
-                            'status': 'Error', 
+                            'status': 'Error',
                             'message': 'Unable to update tournament {}: {}'
                             .format(id, e)})
             elif id and int(state['Id']) < 0:
@@ -176,7 +176,7 @@ class EditTournamentHandler(handler.BaseHandler):
                         print('Error deleting tournament ({}): {}'.format(
                             sql, e))
                         return self.write({
-                            'status': 'Error', 
+                            'status': 'Error',
                             'message': 'Unable to update tournament {}: {}'
                             .format(id, e)})
             else:
@@ -217,7 +217,7 @@ def getPlayers(self, tournamentid):
         rows = [dict(zip(player_fields, row)) for row in cur.fetchall()]
         for row in rows:
             row['type'] = db.playertypes[int(row['type'] or 0)]
-        editable = self.get_is_admin() or (self.current_user and 
+        editable = self.get_is_admin() or (self.current_user and
                                            self.current_user == str(self.owner))
     return {'players':rows, 'editable': editable}
 
@@ -427,13 +427,15 @@ def getSettings(self, tournamentid):
     with db.getCur() as cur:
         cur.execute("""SELECT Id, Number, Name, COALESCE(Ordering, 0),
                         COALESCE(Algorithm, 0), Seed,
-                        Cut, SoftCut, CutSize, CutMobility, CombineLastCut,
+                        Cut, SoftCut, CutSize, CutMobility,
+                        CombineLastCut, CutCount,
                         Duplicates, Diversity, UsePools, Winds, Games
                     FROM Rounds WHERE Tournament = ?
                     ORDER BY Number""", (tournamentid,))
 
         cols = ["id", "number", "name", "ordering", "algorithm", "seed",
-                "cut", "softcut", "cutsize", "cutmobility", "combinelastcut",
+                "cut", "softcut", "cutsize", "cutmobility",
+                "combinelastcut", "cutcount",
                 "duplicates", "diversity", "usepools", "winds", "games"]
         rounds = []
 
@@ -493,7 +495,7 @@ def getTourney(self, tournamentid):
         cur.execute("""SELECT {} FROM Stages WHERE Tournament = ?
                        ORDER BY SortOrder, Id""".format(",".join(stage_fields)),
                     (tournamentid,))
-        stages = dict((row[0], dict(zip(stage_fields, row))) 
+        stages = dict((row[0], dict(zip(stage_fields, row)))
                       for row in cur.fetchall())
         roots = [id for id in stages if not stages[id]['PreviousStage']]
         if len(roots) > 1:
@@ -511,18 +513,18 @@ def getTourney(self, tournamentid):
                      'Cumulative': 0,}
             cur.execute("""INSERT INTO Stages ({}) VALUES ({})""".format(
                 ','.join(f for f in stage if stage[f] is not None),
-                ','.join(repr(stage[f]) for f in stage 
+                ','.join(repr(stage[f]) for f in stage
                          if stage[f] is not None)))
             stage['Id'] = cur.lastrowid
             stages = {cur.lastrowid: stage}
             roots = [cur.lastrowid]
-            
+
         # List stages starting with root and then successor children, in order
         stagelist = [stages[roots[0]]]
         todo=stages.copy()
         del todo[roots[0]]
         while len(todo) > 0:
-            children = [id for id in stages 
+            children = [id for id in stages
                         if stages[id]['PreviousStage'] in roots]
             for child in sorted(children, key=lambda s: s['SortOrder']):
                 stages[child]['previousName'] = stages[
@@ -530,7 +532,7 @@ def getTourney(self, tournamentid):
                 stagelist.append(stages[child])
                 del todo[child]
                 roots.append(child)
-                
+
         cols = ["id", "number", "name", "ordering", "algorithm", "seed",
                 "cut", "softcut", "cutsize", "cutmobility", "combinelastcut",
                 "duplicates", "diversity", "usepools", "winds", "games"]
@@ -574,7 +576,7 @@ class TourneySettingsAjaxHandler(handler.BaseHandler):
     def post(self):
         stage = self.get_argument("stage", None)
         if stage is None:
-            return self.write({'status':"error", 
+            return self.write({'status':"error",
                                'message':"Please provide a stage"})
         settings = self.get_argument("settings", None)
         if settings is None:

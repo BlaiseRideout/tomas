@@ -89,6 +89,7 @@ schema = {
         "CutMobility TINYINT DEFAULT 0",
         "CombineLastCut TINYINT DEFAULT 0",
         "CutSize INTEGER DEFAULT NULL",
+        "CutCount INTEGER DEFAULT NULL",
         "Duplicates TINYINT DEFAULT 1",
         "Diversity TINYINT DEFAULT 1",
         "UsePools TINYINT DEFAULT 1",
@@ -169,9 +170,9 @@ def init(force=False, dbfile=settings.DBFILE, verbose=0):
     desired_schema = parse_database_schema(schema)
     if not compare_and_prompt_to_upgrade_database(
             desired_schema, existing_schema, dbfile,
-            ordermatters=False, prompt_prefix='SCHEMA CHANGE: ', 
-            force_response='y' if force else None, 
-            backup_dir=settings.DBBACKUPS, 
+            ordermatters=False, prompt_prefix='SCHEMA CHANGE: ',
+            force_response='y' if force else None,
+            backup_dir=settings.DBBACKUPS,
             backup_prefix=settings.DBDATEFORMAT + '-', verbose=verbose):
         log.error('Database upgrade during initialization {}.'.format(
             'failed' if force else 'was either cancelled or failed'))
@@ -211,7 +212,7 @@ def words(spec):
     return re.findall(r'\w+', spec)
 
 def table_field_names(tablename):
-    return [words(fs)[0] for fs in schema.get(tablename, []) 
+    return [words(fs)[0] for fs in schema.get(tablename, [])
             if not words(fs)[0].upper() in [
                     'FOREIGN', 'UNIQUE', 'CONSTRAINT', 'PRIMARY', 'CHECK']]
 
