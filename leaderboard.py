@@ -157,31 +157,31 @@ def leaderData(tournamentid):
     place = 1
     old_leaderboards = leaderboards
     leaderboards = []
+    lastTotal = None
     for leaderboard in old_leaderboards:
-        lastTotal = None
         leaderboard = flattenLeaderboard(leaderboard)
         for rec in leaderboard:
-            rec['place'] = place
-            if rec['total'] != lastTotal:
+            if lastTotal is not None and rec['total'] != lastTotal:
                 place += 1
-            lastTotal = rec['total']
+            rec['place'] = place
             rec['points'] = round(rec['points'], 2)
             rec['total'] = round(rec['total'] + rec['penalty'], 2)
+            lastTotal = rec['total']
         leaderboards += leaderboard
 
-    return leaderboards
+    return (leaderboards, place == 1)
 
 class LeaderDataHandler(handler.BaseHandler):
     @handler.tournament_handler_ajax
     def get(self):
-        leaderboard = leaderData(self.tournamentid)
-        self.write(json.dumps({'leaderboard':leaderboard}))
+        leaderboard, allTied = leaderData(self.tournamentid)
+        self.write(json.dumps({'leaderboard':leaderboard,'allTied':allTied}))
 
 class LeaderboardHandler(handler.BaseHandler):
     @handler.tournament_handler
     def get(self):
-        leaderboard = leaderData(self.tournamentid)
-        self.render("leaderboard.html", leaderboard = leaderboard)
+        leaderboard, allTied = leaderData(self.tournamentid)
+        self.render("leaderboard.html", leaderboard = leaderboard, allTied = allTied)
 
 class ScoreboardHandler(handler.BaseHandler):
     @handler.tournament_handler

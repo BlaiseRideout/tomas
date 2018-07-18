@@ -41,7 +41,6 @@ class TournamentListHandler(handler.BaseHandler):
         return self.render("tournamentlist.html",
                 tournaments=tournaments, no_user=no_user)
 
-
 class EditTournamentHandler(handler.BaseHandler):
     tmt_fields = db.table_field_names('Tournaments')
     @tornado.web.authenticated
