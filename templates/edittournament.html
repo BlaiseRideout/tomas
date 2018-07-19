@@ -19,7 +19,7 @@ Tournament Settings
       <td class="attributelabel">Owner</td>
       <td class="attributevalue" data-type="str"
 	  colspan=2>
-	<select id="ownerfield" data-colname="Owner" name="Owner" >
+	<select id="ownerfield" data-colname="Owner">
 	  {% if is_admin %}
 	    {% for userId in users %}
 	      <option value="{{ userId }}"
@@ -73,10 +73,9 @@ Tournament Settings
     <tr>
       <td class="attributelabel">Country</td>
       <td class="attributevalue" data-type="str">
-	<span class="countryselect" data-colname="Country"
+	<select class="countryselect" data-colname="Country"
 	      data-value="{{ tournament['Country'] }}">
-			    {{ tournament['CountryCode'] }}
-	</span>
+	</select>
 	&nbsp;
 	<span class="countryname"> {{ tournament['CountryName'] }} </span>
 	&nbsp;

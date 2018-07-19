@@ -154,7 +154,7 @@ class EditTournamentHandler(handler.BaseHandler):
                             sql = ("UPDATE Tournaments SET {} = ?"
                                    "  WHERE Id = ?").format(f)
                             cur.execute(sql, (state[f], id))
-                        return self.write({'status': 'success', 'message': msg})
+                        return self.write({'status': 'success', 'message': ''})
                     except sqlite3.DatabaseError as e:
                         print('Error updating tournament ({}): {}'.format(
                             sql, e))

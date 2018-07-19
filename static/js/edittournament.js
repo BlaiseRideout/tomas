@@ -5,12 +5,13 @@ $(function() {
 		"changeMonth": true,
 		"changeYear": true
 	});
-	fillSelect("/countries", "span.countryselect", "Code", "Id", function() {
-		$(".countryselect").change(function() {
+	fillSelect("/countries", "select.countryselect", "Code", "Id", function() {
+		$(".countryselect").change(function(event) {
 			$(this).parent().next(".flag").html(
 				$(this).data("selectData")[$(this).val() - 1]["Flag_Image"]);
 			$(this).next(".countryname").text(
 				$(this).data("selectData")[$(this).val() - 1]["Name"]);
+			update_state(event);
 		});
 	});
 
@@ -45,19 +46,14 @@ $(function() {
 				};
 			});
 		state["Id"] = $("#tournamentSettings").data("tournamentid");
-		/*
-		console.log('State vector: {');
-		for (prop in state) {console.log('  ' + prop + ': ' + state[prop])};
-		console.log('}');
-		*/
 		return state;
 	};
 
 	function is_info_valid(state) {
-		var valid = true;
+		var invalid = [];
 		if (!state['Name']) {
 			$("input#namefield").removeClass("good").addClass("bad");
-			valid = false;
+		    invalid.push('Name');
 		}
 		else {
 			$("input#namefield").removeClass("bad").addClass("good");
@@ -72,18 +68,24 @@ $(function() {
 			}
 			else {
 				$(e).removeClass("good").addClass("bad");
-				valid = false;
+			    invalid.push($(e).data('colname'));
 			};
 		});
 		if ($("input#endfield").val() < $("input#startfield").val()) {
 			$("input#endfield").removeClass("good").addClass("bad");
-			valid = false;
+		    invalid.push($("input#endfield").data('colname'));
 		};
-		return valid
+	    if (invalid.length == 1) {
+		$.notify('Field ' + invalid[0] + ' is not valid', 'warn');
+	    } else if (invalid.length) {
+		$.notify('Fields ' + invalid.join(', ') + ' are not valid',
+			 'warn');
+	    };
+	    return invalid.length == 0;
 	};
 
 	/* Set up action handlers after loading */
-	$(":input").change(update_state);
+	$(":input").change(update_state).keyup(update_state);
 	$("#deletetournamentbutton").click(function(e) {
 		update_state(e, true)
 	});

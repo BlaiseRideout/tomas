@@ -162,6 +162,20 @@ button.clearplayercomplete {
 
 .listing, .centerbutton {
 	margin: auto;
+	vertical-align: middle;
+}
+
+.listing td {
+	padding-left: 5px;
+	padding-right: 5px;
+}
+
+.listing input {
+	margin-bottom: 0.75em;
+}
+
+.listing select {
+	margin-bottom: 0.75em;
 }
 
 #currentUsers {
