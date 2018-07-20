@@ -8,7 +8,7 @@
 </script>
 {% end %}
 {% block title %}
-	{{ websitename }} - Edit Tournament Settings
+	- Edit Tournament Settings
 {% end %}
 {% block content %}
 Tournament Settings
@@ -47,7 +47,7 @@ Tournament Settings
       <td class="attributelabel">Start Date</td>
       <td class="attributevalue" data-type="date"
 	  colspan=2>
-	<input id="startfield" type="text" data-type="date" 
+	<input id="startfield" type="text" data-type="date"
 	       data-colname="Start"
 	       value="{{ tournament['Start'] }}"/>
       </td>
@@ -56,7 +56,7 @@ Tournament Settings
       <td class="attributelabel">End Date</td>
       <td class="attributevalue" data-type="date"
 	  colspan=2>
-	<input id="endfield" type="text" data-type="date" 
+	<input id="endfield" type="text" data-type="date"
 	       data-colname="End"
 	       value="{{ tournament['End'] }}"/>
       </td>
@@ -132,6 +132,6 @@ Tournament Settings
     {% end %}
   {% else %}
     No Players (yet)
-  {% end %}  
+  {% end %}
 </div>
 {% end %}

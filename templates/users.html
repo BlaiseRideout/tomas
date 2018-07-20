@@ -4,7 +4,7 @@
 		type="text/javascript"></script>
 {% end %}
 {% block title %}
-	{{ websitename }} - Users
+	- Users
 {% end %}
 {% block content %}
 <div id="usersAndInvites">
@@ -32,16 +32,16 @@
 	  <label for="adminflag-{{ user['id'] }}">Admin</label>
 	</td>
 	<td class="actions">
-	    <input type="button" class="actionbutton resetpwdbutton" 
+	    <input type="button" class="actionbutton resetpwdbutton"
 		   id="resetuserpwd-{{ user['id'] }}" value="Reset Pwd" />
-	    <input type="button" class="actionbutton deluserbutton" 
+	    <input type="button" class="actionbutton deluserbutton"
 		   id="deleteuser-{{ user['id'] }}" value="Delete" />
 	</td>
     </tr>
     {% end %}
     <tr>
 	<td colspan="3" class="adduser">
-	    <input type="button" class="adduserbutton" value="Add user..." 
+	    <input type="button" class="adduserbutton" value="Add user..."
 		   id="adduser"/>
 	</td>
     </tr>
@@ -63,7 +63,7 @@
           <td class="expires"> {{ invite['expires'] }} </td>
           <td class="actions">
 	    <input type="button" id="dropinvite-{{ invite['id'] }}"
-		   class="actionbutton dropinvite" 
+		   class="actionbutton dropinvite"
                    value="Drop invite" />
         </tr>
       {% end %}
