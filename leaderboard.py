@@ -20,7 +20,10 @@ def findLeaderboard(leaderboards, player):
 def flattenLeaderboard(leaderboard):
     return sorted(
         leaderboard.values(),
-        key=operator.itemgetter('type', 'total'),
+        # key=operator.itemgetter('type', 'total'),
+        key=lambda r: (2 if r['type'] == 'Regular' else 
+                       1 if r['type'] == 'Inactive' else 0,
+                       r['total']),
         reverse=True
     )
 
