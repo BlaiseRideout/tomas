@@ -8,9 +8,9 @@ $(function() {
 	fillSelect("/countries", "select.countryselect", "Code", "Id", function() {
 		$(".countryselect").change(function(event) {
 			$(this).parent().next(".flag").html(
-				$(this).data("selectData")[$(this).val() - 1]["Flag_Image"]);
+				$(this).data("selectData")[this.selectedIndex]["Flag_Image"]);
 			$(this).next(".countryname").text(
-				$(this).data("selectData")[$(this).val() - 1]["Name"]);
+				$(this).data("selectData")[this.selectedIndex]["Name"]);
 			update_state(event);
 		});
 	});
