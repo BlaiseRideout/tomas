@@ -97,12 +97,6 @@ def leaderData(tournamentid):
        FROM Players
        LEFT JOIN Scores ON Players.Id = Scores.PlayerId
        LEFT JOIN Rounds ON Scores.Round = Rounds.Id
-       LEFT OUTER JOIN
-         (SELECT Players.Id, COALESCE(SUM(Penalty), 0) as sum FROM Players
-            LEFT OUTER JOIN Scores ON Players.Id = Scores.PlayerId
-            LEFT OUTER JOIN Penalties ON Scores.Id = Penalties.ScoreId
-                        GROUP BY Players.Id) AS PenaltyPoints
-         ON Players.Id = PenaltyPoints.Id
        LEFT JOIN Countries ON Players.Country = Countries.Id
        WHERE Players.Type != ?
        AND Players.Tournament = ?
@@ -153,6 +147,7 @@ def leaderData(tournamentid):
 
         if player in penalties:
             leaderboard[player]['penalty'] += penalties[player]
+            leaderboard[player]['total'] += penalties[player]
 
     place = 1
     old_leaderboards = leaderboards
@@ -165,7 +160,7 @@ def leaderData(tournamentid):
                 place += 1
             rec['place'] = place
             rec['points'] = round(rec['points'], 2)
-            rec['total'] = round(rec['total'] + rec['penalty'], 2)
+            rec['total'] = round(rec['total'], 2)
             lastTotal = rec['total']
         leaderboards += leaderboard
 
