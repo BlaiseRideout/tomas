@@ -293,7 +293,7 @@ class SwapSeatingHandler(handler.BaseHandler):
             return self.write(ret)
         with db.getCur() as cur:
             cur.execute(
-                """SELECT Id, Player
+                """SELECT Id, Player, TableNum, Wind
                     FROM Seating
                     WHERE Tournament = ?
                         AND Round = ?
@@ -303,7 +303,12 @@ class SwapSeatingHandler(handler.BaseHandler):
             rows = cur.fetchall()
             if len(rows) != 2:
                 ret["message"] = "Can't find those two players in that round"
-            else:
+            elif rows[0][2] == rows[1][2]:  # Same table: swap winds
+                cur.execute("UPDATE Seating SET Wind = ? WHERE Id = ?", (rows[0][3], rows[1][0]))
+                cur.execute("UPDATE Seating SET Wind = ? WHERE Id = ?", (rows[1][3], rows[0][0]))
+                ret["status"] = "success"
+                ret["message"] = "Swapped seats"
+            else:                           # Differnt table: swap player IDs
                 cur.execute("UPDATE Seating SET Player = ? WHERE Id = ?", (rows[0][1], rows[1][0]))
                 cur.execute("UPDATE Seating SET Player = ? WHERE Id = ?", (rows[1][1], rows[0][0]))
                 ret["status"] = "success"
