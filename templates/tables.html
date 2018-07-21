@@ -11,10 +11,8 @@
 		<div class="round" data-round="{{ round['round'] }}" id="round-{{ round['round'] }}">
 		{% if (is_admin or (current_user and current_user == str(owner))) and not round['has_scores'] %}
 			<button class="genround">Generate</button><br />
+			<button class="genscores">Randomize Scores</button><br />
 		{% end %}
-			{% if current_user %}
-				<button class="genscores">Randomize Scores</button><br />
-			{% end %}
 			<a href="seating.csv?round={{ round['round'] }}">Download as CSV</a>
 			<div class="roundstatus">
 				Players sitting with players they've played before: {{ round['duplicates'] }}<br />
