@@ -6,6 +6,7 @@ import operator
 import db
 import handler
 import settings
+import math
 
 
 def findLeaderboard(leaderboards, player):
@@ -96,7 +97,8 @@ def leaderData(tournamentid):
          COUNT(Scores.Id) AS GamesPlayed,
          COALESCE(ROUND(SUM(Scores.Score) * 100) / 100, 0) AS TotalPoints,
          COALESCE(Rounds.Id, 0), (Rounds.SoftCut + Rounds.Cut), Rounds.CutMobility,
-         COALESCE(Rounds.cutSize, 0), Rounds.CombineLastCut, Rounds.CutCount
+         COALESCE(Rounds.cutSize, 0), Rounds.CombineLastCut, 
+         COALESCE(Rounds.CutCount, 0)
        FROM Players
        LEFT JOIN Scores ON Players.Id = Scores.PlayerId
        LEFT JOIN Rounds ON Scores.Round = Rounds.Id
@@ -156,7 +158,7 @@ def leaderData(tournamentid):
     old_leaderboards = leaderboards
     leaderboards = []
     lastTotal = None
-    for leaderboard in old_leaderboards:
+    for Id, leaderboard in enumerate(old_leaderboards):
         leaderboard = flattenLeaderboard(leaderboard)
         for rec in leaderboard:
             if lastTotal is not None and rec['total'] != lastTotal:
@@ -165,6 +167,7 @@ def leaderData(tournamentid):
             rec['points'] = round(rec['points'], 2)
             rec['total'] = round(rec['total'], 2)
             lastTotal = rec['total']
+            rec['cutId'] = Id
         leaderboards += leaderboard
 
     return (leaderboards, place == 1)

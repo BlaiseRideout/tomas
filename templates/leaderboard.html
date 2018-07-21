@@ -3,6 +3,7 @@
 		{% if not allTied %}
 			<th>PLACE</th>
 		{% end %}
+		<th>CUT</th>	
 		<th>NAME</th>
 		<th colspan="2" >COUNTRY</th>
 		<th>GAMES</th>
@@ -15,7 +16,8 @@
 		<tr class="leaderbd_row" data-status="{{ row['type'] }}">
 			{% if not allTied %}
 				<td>{{ row['place'] }}</td>
-			{% end %}
+				{% end %}
+				<td> {{ row['cutId'] }} </td>
 			<td><a href="{{ proxyprefix }}playerstats/{{ row['player'] }}">{{ row['name'] }}</a></td>
 			<td>{{ row['country'] }}</td>
 			<td>{% raw row['flag_image'] %}</td>
