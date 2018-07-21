@@ -93,7 +93,7 @@ class EditTournamentHandler(handler.BaseHandler):
                 tournament['Start'] = today.strftime(settings.DATEFORMAT)
                 tournament['End'] = tomorrow.strftime(settings.DATEFORMAT)
                 tournament['Country'] = def_country_id
-                tournament['Owner'] = self.current_user
+                tournament['Owner'] = int(self.current_user)
                 tournament['Players'] = []
                 tournament['Location'] = ''
                 tournament['Logo'] = ''
