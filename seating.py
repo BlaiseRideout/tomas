@@ -206,9 +206,13 @@ def getSeating(tournamentid, roundid = None):
                         "score": round(score, 1) if isinstance(score, float) else score,
                         "penalty":penalty
                     }
-        cur.execute("SELECT Id, Round, GameId, RawScore FROM Scores"
-                    " WHERE PlayerId = ?",
-                    (db.getUnusedPointsPlayerID(),))
+        cur.execute("""SELECT Scores.Id, Rounds.Id, GameId, RawScore
+                         FROM Scores
+                         LEFT OUTER JOIN Rounds
+                           ON Rounds.Id = Scores.Round
+                           WHERE Scores.PlayerId = ? AND Rounds.Tournament = ?
+                           """,
+                    (db.getUnusedPointsPlayerID(), tournamentid))
         for Id, Round, GameId, RawScore in cur.fetchall():
             rounds[Round]['tables'][GameId]['unusedPoints'] = {
                 'scoreid': Id, 'rawscore': RawScore}
