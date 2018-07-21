@@ -116,6 +116,7 @@ Tournament Settings
       <td colspan="3" class="deletetournament">
 	{% if tournament['Id'] %}
 	    <input type="button" class="button centerbutton"
+		   data-tournamentid="{{ tournament['Id'] }}"
 		   id="deletetournamentbutton"
 		   value="Delete Tournament" />
 	{% end %}

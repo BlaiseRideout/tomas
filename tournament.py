@@ -47,6 +47,7 @@ class EditTournamentHandler(handler.BaseHandler):
     def get(self, id=None):
         ctry_fields = db.table_field_names('Countries')
         tmt_fields = EditTournamentHandler.tmt_fields
+        tmt_attr_fields = [f for f in tmt_fields if f != 'Id']
         with db.getCur() as cur:
             cur.execute("SELECT {} FROM Countries".format(
                 ",".join(ctry_fields)))
@@ -87,7 +88,7 @@ class EditTournamentHandler(handler.BaseHandler):
                             (id,))
                 tournament['ScoreCount'] = cur.fetchone()[0]
             else:
-                tournament = dict(zip(tmt_fields, [None] * len(tmt_fields)))
+                tournament = dict(zip(tmt_fields, [''] * len(tmt_fields)))
                 today = datetime.date.today()
                 tomorrow = today + datetime.timedelta(days=1)
                 tournament['Start'] = today.strftime(settings.DATEFORMAT)
@@ -95,10 +96,20 @@ class EditTournamentHandler(handler.BaseHandler):
                 tournament['Country'] = def_country_id
                 tournament['Owner'] = int(self.current_user)
                 tournament['Players'] = []
-                tournament['Location'] = ''
-                tournament['Logo'] = ''
                 tournament['ScorePerPlayer'] = settings.DEFAULTSCOREPERPLAYER
                 tournament['ScoreCount'] = 0
+                sql = "INSERT INTO Tournaments ({}) VALUES ({})".format(
+                    ', '.join(tmt_attr_fields),
+                    ', '.join(['?'] * len(tmt_attr_fields)))
+                try:
+                    cur.execute(sql, [tournament[f] for f in tmt_attr_fields])
+                    print('Created tournament', cur.lastrowid)
+                    tournament['Id'] = cur.lastrowid
+                except sqlite3.DatabaseError as e:
+                    print('Error creating tournament ({}): {}'.format(sql, e))
+                    return self.render(
+                        'message.html',
+                        message='Unable to create tournament: {}'.format(e))
 
             tournament['OwnerName'] = users[int(tournament['Owner'])]
             tournament['CountryCode'] = countries[tournament['Country']]['Code']
@@ -118,36 +129,15 @@ class EditTournamentHandler(handler.BaseHandler):
                     next_url=settings.PROXYPREFIX)
 
     @tornado.web.authenticated
-    def post(self, id=None):
+    def post(self, id):
         tmt_fields = EditTournamentHandler.tmt_fields
         tmt_attr_fields = [f for f in tmt_fields if f != 'Id']
         state = {}
         for f in tmt_fields:
             state[f] = self.get_argument(f, None)
         if self.get_is_admin() or int(state['Owner']) == int(self.current_user):
-            msg = 'Created new tournament'
-            if id:
-                msg = 'Updated tournament {}'.format(state['Id'])
-            if (id is None and state['Id'] in (None, '')):
-                with db.getCur() as cur:
-                    try:
-                        sql = "INSERT INTO Tournaments ({}) VALUES ({})".format(
-                            ', '.join(tmt_attr_fields),
-                            ', '.join(['?'] * len(tmt_attr_fields)))
-                        cur.execute(sql, [state[f] for f in tmt_attr_fields])
-                        print('Created tournament', cur.lastrowid)
-                        return self.write({
-                            'status': 'load',
-                            'URL': settings.PROXYPREFIX.rstrip('/') +
-                            'edittournament/{}'.format(cur.lastrowid)})
-                    except sqlite3.DatabaseError as e:
-                        print('Error creating tournament ({}): {}'
-                              .format(sql, e))
-                        return self.write({
-                            'status': 'Error',
-                            'message': 'Unable to create tournament: {}'
-                            .format(e)})
-            elif id == state['Id']:
+            msg = 'Updated tournament {}'.format(state['Id'])
+            if id == state['Id']:
                 with db.getCur() as cur:
                     try:
                         for f in tmt_attr_fields:

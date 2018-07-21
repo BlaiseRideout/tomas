@@ -21,7 +21,12 @@ $(function() {
 			state['Id'] = -1
 		}
 		if (is_info_valid(state) || del) {
-			$.post("", state,
+			var URLparts = window.location.toString().split('/'),
+				len = URLparts.length;
+			if (len = 0 || URLparts[len - 1] != $("#tournamentSettings").data("tournamentid")) {
+				URLparts.push($("#tournamentSettings").data("tournamentid"));
+			}
+			$.post(URLparts.join("/"), state,
 				function(data) {
 					if (data["message"])
 						$.notify(data["message"], data["status"]);
@@ -53,7 +58,7 @@ $(function() {
 		var invalid = [];
 		if (!state['Name']) {
 			$("input#namefield").removeClass("good").addClass("bad");
-		    invalid.push('Name');
+			invalid.push('Name');
 		}
 		else {
 			$("input#namefield").removeClass("bad").addClass("good");
@@ -68,20 +73,21 @@ $(function() {
 			}
 			else {
 				$(e).removeClass("good").addClass("bad");
-			    invalid.push($(e).data('colname'));
+				invalid.push($(e).data('colname'));
 			};
 		});
 		if ($("input#endfield").val() < $("input#startfield").val()) {
 			$("input#endfield").removeClass("good").addClass("bad");
-		    invalid.push($("input#endfield").data('colname'));
+			invalid.push($("input#endfield").data('colname'));
 		};
-	    if (invalid.length == 1) {
-		$.notify('Field ' + invalid[0] + ' is not valid', 'warn');
-	    } else if (invalid.length) {
-		$.notify('Fields ' + invalid.join(', ') + ' are not valid',
-			 'warn');
-	    };
-	    return invalid.length == 0;
+		if (invalid.length == 1) {
+			$.notify('Field ' + invalid[0] + ' is not valid', 'warn');
+		}
+		else if (invalid.length) {
+			$.notify('Fields ' + invalid.join(', ') + ' are not valid',
+				'warn');
+		};
+		return invalid.length == 0;
 	};
 
 	/* Set up action handlers after loading */
@@ -89,4 +95,8 @@ $(function() {
 	$("#deletetournamentbutton").click(function(e) {
 		update_state(e, true)
 	});
+	/* Set keyboard focus to tournament name if it's empty */
+	$("#namefield").filter(function() {
+		return $(this).val() == ''
+	}).focus();
 });
