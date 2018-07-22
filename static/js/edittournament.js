@@ -92,8 +92,22 @@ $(function() {
 
 	/* Set up action handlers after loading */
 	$(":input").change(update_state).keyup(update_state);
-	$("#deletetournamentbutton").click(function(e) {
-		update_state(e, true)
+    $("#deletetournamentbutton").click(function(e) {
+	$("#delete-tournament-confirmation").dialog({
+	    resizable: false,
+	    height: "auto",
+	    width: 400,
+	    modal: true,
+	    buttons: {
+		"Delete tournament": function() {
+		    $( this ).dialog( "close" );
+		    update_state(e, true)
+		},
+		Cancel: function() {
+		    $( this ).dialog( "close" );
+		}
+      }
+    });
 	});
 	/* Set keyboard focus to tournament name if it's empty */
 	$("#namefield").filter(function() {
