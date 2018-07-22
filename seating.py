@@ -276,7 +276,7 @@ class ShowSeatingHandler(handler.BaseHandler):
     @handler.tournament_handler
     def get(self):
         return self.render("tables.html", rounds = getSeating(self.tournamentid),
-                           umas_4_player=settings.UMAS[4],
+                           umas_4_player=settings.UMAS[4], winds=util.winds,
                            unusedPointsIncrement=settings.UNUSEDSCOREINCREMENT,
                            unusedPointsPlayerID=db.getUnusedPointsPlayerID())
 

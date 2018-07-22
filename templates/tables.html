@@ -48,7 +48,7 @@
 						</tr>
 					</thead>
 					<tbody class="table" data-tableid="{{ table['table'] }}" data-roundid="{{ round['round'] }}">
-						{% for player in table['players'] %}
+						{% for player in sorted(table['players'], key=lambda p: winds.index(p['wind'])) %}
 						<tr class="player{% if player['player']['id'] in round['diversityplayers'] or player['player']['id'] in round['duplicateplayers'] %} bad{% end %}" data-playerid="{{ player['player']['id'] }}" data-scoreid="{{ player['player']['scoreid'] }}">
 								{% if round['winds'] %}
 									<td class="windicator">{{ player['wind'] }}</td>
