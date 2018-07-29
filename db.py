@@ -118,6 +118,7 @@ schema = {
         "Player INTEGER",
         "TableNum INTEGER",
         "Wind TINYINT",
+        "CutName TEXT DEFAULT ''",
         "FOREIGN KEY(Tournament) REFERENCES Tournaments(Id) ON DELETE CASCADE",
         "FOREIGN KEY(Player) REFERENCES Players(Id) ON DELETE CASCADE",
         "FOREIGN KEY(Round) REFERENCES Rounds(Id) ON DELETE CASCADE"

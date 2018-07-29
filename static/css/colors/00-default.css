@@ -72,14 +72,18 @@ input[type="checkbox"].priority:checked + label {
 	background:#666;
 }
 
+.cut-separator {
+    color:	#afc;
+}
+
 .bad {
-    background: #511;
-    color:      #faa;
+    background:	#511;
+    color:	#faa;
 }
 
 .good {
-    background: #444;
-    color:      #eee;
+    background:	#444;
+    color:	#eee;
 }
 
 .rankpielegend {

@@ -8,6 +8,7 @@
 		{% end %}
 	</ul>
 	{% for round in sorted(rounds, key=lambda r: r['round']) %}
+		{% set last_cutName = None %}
 		<div class="round" data-round="{{ round['round'] }}" id="round-{{ round['round'] }}">
 		  {% if (is_admin or (current_user and current_user == str(owner))) %}
 		        {% if not round['has_scores'] %}
@@ -39,6 +40,11 @@
 				</thead>
 				{% for table in sorted(round['tables'], key=lambda t: t['table']) %}
 					<thead>
+					{% if table['cutName'] and table['cutName'] != last_cutName %}
+						<tr> <td class="cut-separator" colspan="17"> <br /><hr />CUT {{ table['cutName'] }} </td>
+						</tr>
+						{% set last_cutName = table['cutName'] %}
+					{% end %}
 						<tr>
 							<th colspan="4">TABLE {{ table['table'] }}</h3>
 							<th colspan="4" class="tabletotal">TOTAL {{ table['total'] }}</th>

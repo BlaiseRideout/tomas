@@ -1,4 +1,4 @@
-html, body {
+html, body, #tournament > ul, #seating > ul {
 	background:#e5efe5;
 	color:#363;
 }
@@ -34,7 +34,7 @@ table td {
 	background:#aca;
 }
 
-.ui-widget-content .ui-state-default {
+.ui-widget-content .ui-state-default, #tournament li {
 	background: #8a8;
 	color: #363;
 }
@@ -65,6 +65,10 @@ input[type="checkbox"].priority + label {
 }
 input[type="checkbox"].priority:checked + label {
 	background:#474;
+}
+
+.cut-separator {
+    color:	#67c;
 }
 
 .bad {

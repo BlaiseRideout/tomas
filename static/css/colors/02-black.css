@@ -1,4 +1,4 @@
-html, body {
+html, body, #tournament > ul, #seating > u {
 	background:black;
 	color:white;
 }
@@ -29,6 +29,11 @@ table th {
 	border-right:1px solid white;
 }
 
+.table > div, .timer {
+	border-bottom:1px solid white;
+	border-left: 1px solid white;
+	border-right:1px solid white;
+}
 table td {
 	border:1px solid white;
 	background:black;
@@ -53,6 +58,10 @@ table td {
 .ui-widget-content .ui-state-highlight {
 	background: #666;
 	color: #eee;
+}
+
+.cut-separator {
+    color:	#afc;
 }
 
 .bad {

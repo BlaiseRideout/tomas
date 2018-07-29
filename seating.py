@@ -134,6 +134,7 @@ def getSeating(tournamentid, roundid = None):
                  Rounds.Number,
                  Rounds.Name,
                  Rounds.Winds,
+                 Seating.CutName,
                  Seating.TableNum,
                  Seating.Wind,
                  Players.Id,
@@ -175,9 +176,9 @@ def getSeating(tournamentid, roundid = None):
         cur.execute(query, bindings)
         rounds = {}
         for row in cur.fetchall():
-            (roundID, roundNum, roundname, winds, table, wind, playerid, name,
-             country, flag, countryid, scoreid, rank, rawscore, score,
-             penalty)  = row
+            (roundID, roundNum, roundname, winds, cutName, table, wind,
+             playerid, name, country, flag, countryid, scoreid, rank, rawscore,
+             score, penalty)  = row
             if roundID is not None:
                 if not roundID in rounds:
                     rounds[roundID] = {
@@ -190,7 +191,8 @@ def getSeating(tournamentid, roundid = None):
                 if table is not None:
                     if not table in rounds[roundID]['tables']:
                         rounds[roundID]['tables'][table] = {
-                            'unusedPoints': {'scoreid': '', 'rawscore': 0}
+                            'unusedPoints': {'scoreid': '', 'rawscore': 0},
+                            'cutName': cutName,
                         }
                     if wind is not None and name is not None:
                         rounds[roundID]['has_scores'] |= rawscore > 0
@@ -228,6 +230,7 @@ def getSeating(tournamentid, roundid = None):
                         [
                             {
                                 'table':table,
+                                'cutName': players['cutName'],
                                 'players':
                                     [
                                         {
@@ -239,7 +242,7 @@ def getSeating(tournamentid, roundid = None):
                                     ],
                                 'unusedPoints': players['unusedPoints']
                             }
-                            for table, players in rounddict['tables'].items() if len(players) == 5
+                            for table, players in rounddict['tables'].items()
                         ]
                 }
                 for roundID, rounddict in rounds.items()
@@ -337,13 +340,14 @@ class SeatingHandler(handler.BaseHandler):
                             SoftCut,
                             CombineLastCut,
                             CutSize,
+                            CutCount,
                             Duplicates,
                             Diversity,
                             UsePools
                              FROM Rounds WHERE Id = ? AND Tournament = ?""",
                         (round, self.tournamentid)
                     )
-                round, ordering, algorithm, seed, cut, softcut, combineLastCut, cutsize, duplicates, diversity, usepools = cur.fetchone()
+                round, ordering, algorithm, seed, cut, softcut, combineLastCut, cutsize, cutcount, duplicates, diversity, usepools = cur.fetchone()
                 cut = cut == 1
                 softcut = softcut == 1
                 duplicates = duplicates == 1
@@ -417,6 +421,10 @@ class SeatingHandler(handler.BaseHandler):
                                     "Id":row[0]
                                 }]
 
+                # Assume no cuts
+                for player in pools[""]:
+                    player['cutName'] = ''
+                    
                 # Organize players into pools if enabled
                 if usepools:
                     playerpools = pools
@@ -447,12 +455,16 @@ class SeatingHandler(handler.BaseHandler):
                     for pool, players in playerpools.items():
                         if len(players) <= cutsize:
                             continue
-                        for i in range(0, cutsize if cut else len(players), cutsize):
+                        i = 0
+                        while i < (cutsize if cut else len(players)):
                             playerpool = pool + format(i, '04')
                             if not playerpool in pools:
                                 pools[playerpool] = []
 
-                            nextI = i + cutsize
+                            if not cutcount or i // cutsize < cutcount:
+                                nextI = min(len(players), i + cutsize)
+                            else:
+                                nextI = len(players)
                             if (len(players) - nextI < cutsize and # If the next chunk wouldn't reach the cutsize,
                                     not cut and                    #   and this is not a hard cut,
                                     combineLastCut):               #   and we're combining smaller chunks
@@ -461,6 +473,7 @@ class SeatingHandler(handler.BaseHandler):
                                 pools[playerpool] += players[i:]
                             else:
                                 pools[playerpool] += players[i:nextI]
+                            i = nextI
 
                 if seed is not None and len(seed) > 0:
                     random.seed(seed)
@@ -468,9 +481,11 @@ class SeatingHandler(handler.BaseHandler):
                 players = []
                 pools = list(pools.items())
                 pools.sort(key=itemgetter(0))
-                for pool in map(itemgetter(1), pools):
+                for poolname, pool in pools:
                     pool = ALGORITHMS[algorithm].seat(pool, round)
                     poolplayers, status = fixTables(pool, cur, duplicates, diversity, round)
+                    for player in poolplayers:
+                        player['cutName'] = poolname
                     players += poolplayers
 
                 random.seed()
@@ -478,13 +493,14 @@ class SeatingHandler(handler.BaseHandler):
                 if len(players) > 0:
                     bindings = []
                     for i, player in enumerate(players):
-                        bindings += [(self.tournamentid, round, player["Id"], int(i / 4) + 1, i % 4)]
+                        bindings += [(self.tournamentid, round, player["Id"], int(i / 4) + 1, i % 4, player['cutName'])]
                     cur.execute("DELETE FROM Seating WHERE Tournament = ? AND Round = ?", (self.tournamentid, round))
                     playerquery = ""
                     cur.executemany("""
                         INSERT INTO
-                            Seating (Tournament, Round, Player, TableNum, Wind)
-                            VALUES  (?,          ?,     ?,      ?,        ?)""",
+                            Seating (Tournament, Round, Player, TableNum,
+                                     Wind, CutName)
+                            VALUES  (?,          ?,     ?,      ?, ?, ?)""",
                         bindings
                     )
                     if ret["status"] != "warn":

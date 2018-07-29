@@ -12,12 +12,19 @@
 		<th>TOTAL</th>
 		<th>STATUS</th>
 	</tr>
+	{% set last_cutName = None %}
 	{% for row in leaderboard %}
+		{% if row['cutName'] and row['cutName'] != last_cutName %}
+		<tr>
+			<td class="cut-separator" colspan="22"> <hr> CUT {{ row['cutName'] }} </td>
+		</tr>
+		{% set last_cutName = row['cutName'] %}
+		{% end %}
+
 		<tr class="leaderbd_row" data-status="{{ row['type'] }}">
 			{% if not allTied %}
 				<td>{{ row['place'] }}</td>
 				{% end %}
-			{% comment <td> {{ row['cutId'] }} </td> %}
 			<td><a href="{{ proxyprefix }}playerstats/{{ row['player'] }}">{{ row['name'] }}</a></td>
 			<td>{{ row['country'] }}</td>
 			<td>{% raw row['flag_image'] %}</td>
