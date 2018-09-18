@@ -41,34 +41,23 @@ LinkURL fields are planned for future use to link tomas to other sites.
 
 Each tournament is grouped into stages - a series of games played where scores
 accumulate to determine rankings of the players.  Typically there are round
-robin stages followed by knock-out stages.  There can also be stages
-conducted in parallel with other stages.
+robin stages followed by knock-out stages.  Each stage is 1 or more rounds with
+identical characteristics for how players are seated and perhaps ranked.  These
+are represented by a record in the Rounds table whose Games field indicates
+how many games/rounds are played.  It's a little confusing to have a Rounds
+table where each record corresponds to multiplt rounds in the tournament; this
+is a historical artifact from when there was 1 round reecord per round and
+all of the rounds had to be entered individually.
 
-    'Stages': [
-        "Id INTEGER PRIMARY KEY AUTOINCREMENT",
-	"Tournament INTEGER NOT NULL",
-	"Name TEXT",
-	"Order INTEGER NOT NULL DEFAULT 0",
-	"PreviousStage INTEGER",
-	"Ranks INTEGER",
-	"Cumulative TINYINT NOT NULL DEFAULT 0",
-	"FOREIGN KEY(Tournament) REFERENCES Tournaments(Id) ON DELETE CASCADE",
-	"FOREIGN KEY(PreviousStage) REFERENCES Stages(Id) ON DELETE CASCADE",
-    ],
+The rounds of a tournament are sequentially numbered, starting with 1.  The
+Rounds record has a FirstNumber field that represents the first round number
+where it applies.  It should always be the case that
 
-The first stage of a tournament has a null PreviousStage field.  Subsequent
-stages have a foreign key to the Stages table for the previous stage.  This
-forms a tree of stages, rooted at the first stage.  The Ranks field
-determines how many players from the previous stage move on to this stage.  A
-positive number, N, for the Ranks field means that the top scoring N players
-from the previous stage will participate in this stage.  A negative number,
-N, for the Ranks field means that the lowest scoring N players from the
-previous stage will participate in this stage.  The Cumulative flag indicates
-that leaderboard scores for this stage should be the cumulative scores of
-this stage and its preceding stage, and so on until a stage with Cumulative =
-0 or the first stage is found.  The Order field determines the display order
-for this stage.  The display order is important for stages with a common parent
-stage.
+  RoundRec[i][FirstNumber] + RoundRec[i][Games] = RoundRec[i+1][FirstNumber]
+
+for 2 consecutive rounds in a tournament.  The RoundRec IDs may not be
+consecutive as in i, and i+1.  The order of the rounds can be determined
+by sorting on FirstNumber.
 
 Each stage of the tournment contains 1 or more Rounds.  They are sequenced
 by the Number field.  The rounds have a name which is typically "Round N"
