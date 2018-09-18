@@ -241,12 +241,24 @@ base_index_record = sqlite_index_record(None, None, 1, None, 0, '')
 # they only show up in the overall table SQL.
 base_record_prototype = {
     col_def_pattern: base_column_def_record,
+    col_unique_constraint_pattern: base_index_record._replace(origin='u'),
+    col_pk_constraint_pattern: base_index_record._replace(origin='pk'),
     fkey_constraint_pattern: base_fkey_record,
     table_pkey_constraint_pattern: base_index_record._replace(origin='pk'),
     table_unique_constraint_pattern: base_index_record._replace(origin='u'),
     table_check_constraint_pattern: base_index_record._replace(
         origin='c', unique=0),
 }
+
+# For table columns of integer types that are marked as PRIMARY KEY,
+# sqlite does not create an index pragma record for the uniqueness of
+# the field.  It does create an index pragma record with origin of
+# 'pk' for other types.  The function below returns true for type
+# names that sqlite maps to integers.  In other words, all types whose
+# 'affinity' is INTEGER.  See https://www.sqlite.org/datatype3.html
+# for "Type Affinity"
+def sqlite_integer_type_affinity(typename):
+    return "INT" in typename.upper()
 
 def get_sqlite_db_schema(DBfile='sample_sqlite.db'):
     "Create a database schema dictionary from an existing sqlite database"
@@ -511,10 +523,14 @@ def table_pragma_records(
         pragmas.extend(
             column_def_or_constraint_to_pragma_records(
                 spec, pragmas, tablename,
-                patterns_to_try=(column_def_patterns 
-                                 if len(pragmas) == 0 or 
-                                 isinstance(pragmas[-1], sqlite_column_record)
-                                 else []) + table_constraint_patterns,
+                # TODO: Find a better test to determine when all column def's
+                # have been processed and only table constraints remain in
+                # the table specification
+                # patterns_to_try=(column_def_patterns 
+                #                  if len(pragmas) == 0 or 
+                #                  isinstance(pragmas[-1], sqlite_column_record)
+                #                  else []) + table_constraint_patterns,
+                patterns_to_try=column_def_patterns + table_constraint_patterns,
                 throwexceptions=throwexceptions, printto=printto))
     return clean_table_pragmas(pragmas, tablename)
     
@@ -548,7 +564,8 @@ def column_def_or_constraint_to_pragma_records(
         if m and (m.start() == 0 or spec[0:m.start()].isspace()):
             if pattern in base_record_prototype and (
                 len(pragmas) == 0 or 
-                not isinstance(pragmas[-1], base_record_prototype[pattern])):
+                not isinstance(pragmas[-1], 
+                               type(base_record_prototype[pattern]))):
                 pragmas.append(
                     base_record_prototype[pattern]._replace(spec_line=spec_line))
             if len(pragmas) > 0:
@@ -619,7 +636,7 @@ def column_def_or_constraint_to_pragma_records(
                 if isinstance(pragma.seq, list):
                     for col in pragma.seq:
                         matching_col = [
-                            p for p in context if
+                            p for p in context + pragmas[:i] if
                             isinstance(p, sqlite_column_record) and
                             col.lower() == p.name.lower()]
                         if len(matching_col) != 1:
@@ -656,7 +673,7 @@ def update_pragma_record_stack_with_match(
     fields and manipulations between clauses.  The result is a revised stack
     for the current line.
     """
-    top_record = pragma_record_stack[-1]
+    top_record = pragma_record_stack.pop()
     if isinstance(top_record, sqlite_column_record):
         # Clean up values extracted via regexes
         for field in ['notnull', 'pk']:     # Coerce boolean fields to 0 or 1
@@ -665,7 +682,7 @@ def update_pragma_record_stack_with_match(
                 top_record = top_record._replace(**kwargs)
         if top_record.cid is None:
             max_cid = -1
-            for pragma in context + pragma_record_stack[:-1]:
+            for pragma in context + pragma_record_stack:
                 if isinstance(pragma, sqlite_column_record):
                     max_cid = max(max_cid, pragma.cid)
             top_record = top_record._replace(cid=max_cid + 1)
@@ -679,30 +696,30 @@ def update_pragma_record_stack_with_match(
             if kwargs['dflt_value'] != top_record.dflt_value:
                 top_record = top_record._replace(**kwargs)
         elif 'table' in pattern.groupindex and 'columns' in pattern.groupindex:
-            if len(pragma_record_stack) <= 1 or not isinstance(
-                    pragma_record_stack[-2], sqlite_fkey_record):
-                pragma_record_stack[-1:-1] = [
+            if len(pragma_record_stack) == 0 or not isinstance(
+                    pragma_record_stack[-1], sqlite_fkey_record):
+                pragma_record_stack.append(
                     base_fkey_record._replace(
                         table=match.group('table'),
                         from_=top_record.name,
                         to=words(match.group('columns')),
-                        spec_line=spec_line)]
+                        spec_line=spec_line))
         elif (('match' in pattern.groupindex or
                ('action' in pattern.groupindex and 
                 'reaction' in pattern.groupindex)
-               and len(pragma_record_stack) > 1 and 
-               isinstance(pragma_record_stack[-2], sqlite_fkey_record))):
+               and len(pragma_record_stack) > 0 and 
+               isinstance(pragma_record_stack[-1], sqlite_fkey_record))):
             if 'action' in pattern.groupindex and 'reaction' in pattern.groupindex:
                 reaction = ' '.join([x.upper() 
                                      for x in words(match.group('reaction'))])
                 if match.group('action').upper() == 'DELETE':
-                    pragma_record_stack[-2] = pragma_record_stack[-2]._replace(
+                    pragma_record_stack[-1] = pragma_record_stack[-1]._replace(
                         on_delete=reaction)
                 else:
-                    pragma_record_stack[-2] = pragma_record_stack[-2]._replace(
+                    pragma_record_stack[-1] = pragma_record_stack[-1]._replace(
                         on_update=reaction)
             elif 'match' in pattern.groupindex:
-                    pragma_record_stack[-2] = pragma_record_stack[-2]._replace(
+                    pragma_record_stack[-1] = pragma_record_stack[-1]._replace(
                         match=match.group('match'))
 
     elif isinstance(top_record, sqlite_fkey_record):
@@ -723,7 +740,19 @@ def update_pragma_record_stack_with_match(
         if 'columns' in pattern.groupindex and 'column1' in pattern.groupindex:
             clean_cols = words(match.group('columns'))
             top_record = top_record._replace(seq=clean_cols)
-    pragma_record_stack[-1] = top_record
+        elif (pattern is col_unique_constraint_pattern and 
+              len(pragma_record_stack) > 0 and
+              isinstance(pragma_record_stack[-1], sqlite_column_record)):
+            top_record = top_record._replace(seq=[pragma_record_stack[-1].name])
+        elif (pattern is col_pk_constraint_pattern and
+              isinstance(top_record, sqlite_index_record) and
+              top_record.origin == 'pk' and
+              len(pragma_record_stack) > 0 and
+              isinstance(pragma_record_stack[-1], sqlite_column_record) and
+              sqlite_integer_type_affinity(pragma_record_stack[-1].type)):
+            top_record = None
+    if top_record:
+        pragma_record_stack.append(top_record)
     return pragma_record_stack
 
 def record_differences(record1, record2, include=None, exclude=None,
@@ -887,13 +916,18 @@ def backup_db_and_migrate(
                 if table in done:
                     return
                 if verbose > 1:
-                    print('{} {} table'.format(
-                        'Creating new' if in_new else 'Preserving', table))
+                    print('{} {} table ...'.format(
+                        'Creating new' if in_new else 'Preserving', table),
+                          end='')
                 cur.execute(pd['sql'])
+                if verbose > 1:
+                    print(' Done.')
                 fields = [c.name for c in (
                     common_fields(pd['column'], old_db_schema[table]['column'])
                     if in_new and in_old else pd['column'])]
                 if in_old:
+                    if verbose > 1:
+                        print('Copying... ', end='')
                     cur.execute(
                         'INSERT INTO main.{0} ({1}) SELECT {1} FROM {2}.{0}'
                         .format(table, ','.join(fields), old_name))
