@@ -1,41 +1,37 @@
 #!/usr/bin/env python3
 
 __doc__ = """
-This collection of utilities compares actual SQLite tables to a
-description of their schema, and can create a new database with
-the new schema if it finds differences.
+This tool compares actual SQLite tables to a description of their
+schema, and can create a new database with the new schema if it finds
+differences.
 
-It does this by parsing the CREATE TABLE SQL accepted by SQLite to
-create records describing the table columns and their associated
-constraints.  It reads the pragma information from a SQLite database
-to determine the existing schema.  Then it compares the records and
-SQL describing fields, constraints, and indices to determine what
-parts of the schema match and what don't.  It is designed to be used
-with schema descriptions stored as lists of field descriptions and
-table constraints, one string per column/field or constraint.  See
-mytable_schema below for an example.  The list of strings forms a
-table specification that can be joined with commas to form a table
-definition.  The individual strings are very important since it is not
+sqlite_schema.py does this by parsing a version of the CREATE TABLE
+SQL as described in sqlite_parser.py that create records describing
+the table columns and their associated constraints.  The description
+language is an enahanced version of the SQLite version with extensions
+for renamed columns and associated indices.  The tool also reads the
+pragma information from a SQLite database using the sqlite_pragma.py
+utitilies to determine its schema.  Then it compares the pragma
+records and SQL describing fields, constraints, and indices to
+determine what parts of the schema match and what don't.
+
+The schema descriptions are stored as lists of field descriptions,
+table constraints, and index creation statements; one string per
+column/field, constraint, or index.  The list of strings forms a table
+specification that can be joined with commas to form a table
+definition, followed by optional index creation statements.  The
+individual strings are very important since sqlite_parser was not
 designed to parse complete CREATE TABLE statements; it needs the
 string boundaries to determine when a column definition or table
-constraint ends.  A group of table specifications is kept in a
-dictionary with a key for each table as in the database_spec below."""
+constraint ends.
 
-mytable_schema = [  # Example table specification in separate lines
-    'ID INTEGER PRIMARY KEY AUTOINCREMENT',
-    'Field1 TEXT NOT NULL',
-    'Field2 TEXT REFERENCES AnotherTable(ID) ON DELETE CASCADE',
-    'Field3 REAL',
-    'Field4 DATETIME DEFAULT CURRENT_TIMESTAMP',
-    'CONSTRAINT KeepItReal UNIQUE(Field3, Field4)',
-]
-anothertable_schema = [
-    'ID INTEGER PRIMARY KEY NOT NULL',
-    'Name TEXT',
-    "CHECK (Name != 'Voldemort')",
-]
-database_spec = {'MyTable': mytable_schema, 
-                 'AnotherTable': anothertable_schema}
+A column definition can have an optional suffix of the form:
+"[FORMERLY field1, field2]".  This is used when renaming
+columns. Without having this suffix, the mechanism that compares the
+schemas will drop the old field and create a new one instead of
+renaming an existing field that could have data in it.  The suffix is
+removed from the SQL actually used to create the table.
+"""
 
 import sys
 import os
@@ -46,310 +42,14 @@ import argparse
 import tempfile
 import datetime
 
-class sqliteCur():
-    con = None
-    cur = None
-    def __init__(self, DBfile="sample_sqlite.db", autoCommit=True):
-        self.__DBfile = DBfile
-        self.__autoCommit = autoCommit
-    def __enter__(self):
-        self.con = sqlite3.connect(self.__DBfile)
-        self.cur = self.con.cursor()
-        self.cur.execute("PRAGMA foreign_keys = 1;")
-        return self.cur
-    def __exit__(self, type, value, traceback):
-        if self.cur and self.con and not value:
-            self.cur.close()
-            if self.__autoCommit:
-               self.con.commit()
-            self.con.close()
-
-        return False
-
-# Below are the regular expressions used in the CREATE TABLE column defintion
-# and table constraint grammar for SQLite.
-# (see https://www.sqlite.org/lang_createtable.html)
-# These regex's cover most of the grammar, but are not 100% accurate.
-# The column definition starts off with the name of a field and an optional
-# data type.  Both of those names are arbitrary stings.  The regex below
-# has a Python do-not-match pattern (?!...) to avoid allowing the name of the
-# column to match a keyword that starts a table constraint definition that
-# occurs after the column definitions.
-col_def_pattern = re.compile(
-    r'\b(?!(CONSTRAINT|PRIMARY|FOREIGN|UNIQUE|CHECK)\b)(?P<name>\w+)\s+(?P<type>(?P<typename>\w+)(\s*\([+-]?\d+\s*(,\s*[+-]?\d+\s*)?\))?)?',
-    re.IGNORECASE)
-
-constraint_name_pattern = re.compile(
-    r'\b(CONSTRAINT\s+(?P<cname>\w+)\s*\b)?', re.IGNORECASE)
-
-col_pk_constraint_pattern = re.compile(
-    r'\bPRIMARY\s+(?P<pk>KEY)(\s+(ASC|DESC))?\b',
-    re.IGNORECASE)
-
-col_conflict_clause_pattern = re.compile(
-    r'\b(ON\s+CONFLICT\s+(?P<cresolution>\w+))?\b',
-    re.IGNORECASE)
-
-col_autoincrement_pattern = re.compile(
-    r'\b(?P<autoincrement>AUTOINCREMENT)?\b',
-    re.IGNORECASE)
-
-col_notnull_constraint_pattern = re.compile(
-    r'\b(?P<notnull>NOT\s+NULL)\b',
-    re.IGNORECASE)
-
-col_unique_constraint_pattern = re.compile(
-    r'\b(?P<unique>UNIQUE)\b',
-    re.IGNORECASE)
-
-col_check_constraint_pattern = re.compile( # Can't handle nested parentheses
-    r"\bCHECK\s*\((?P<checkexpr>[\w\s,'.+/*-]+)\)\s*\b",
-    re.IGNORECASE)
-
-col_default_constraint_pattern = re.compile(
-    r"\bDEFAULT\b\s*(?P<dflt_value>[+-]?\d+(\.\d*\b)?|'[^']*'|(TRUE|FALSE|NULL|CURRENT_(DATE|TIME|TIMESTAMP)\b)|\((?P<expr>[\w\s,'.+/*-]+)\))",
-    re.IGNORECASE)
-
-col_collate_constraint_pattern = re.compile(
-    r'\bCOLLATE\s+(?P<collate>\w+)\b',
-    re.IGNORECASE)
-
-fkey_constraint_pattern = re.compile(
-    r'\bFOREIGN\s+KEY\s*\((?P<columns>(?P<column1>\w+)(\s*,\s*\w+)*\s*)\)',
-    re.IGNORECASE)
-
-fkey_clause_ref_pattern = re.compile(
-    r'\bREFERENCES\s+(?P<table>\w+)\s*\((?P<columns>(?P<column1>\w+)(\s*,\s*\w+)*\s*)\)',
-    re.IGNORECASE)
-
-fkey_clause_conflict_pattern = re.compile(
-    r'\b((ON\s+(?P<action>DELETE|UPDATE|)\s+(?P<reaction>SET\s+(NULL|DEFAULT)|CASCADE|RESTRICT|NO\s+ACTION))|MATCH\s+(?P<match>\w+))\b',
-    re.IGNORECASE)
-
-fkey_clause_defer_pattern = re.compile(
-    r'\b(NOT\s+)?DEFERABLE(\s+INITIALLY\s+(DEFERRED|IMMEDIATE))?\b',
-    re.IGNORECASE)
-
-# This tree specifies sequences of regexes to try in parsing column
-# definitions.  Table constraints are in a separate tree, which can be
-# combined with this one.
-# Each node in the tree has the form (regex, repeat, next_tree)
-# The regex will be tested on the beginning of a string ignoring leading
-# whitespace.  If it succeeds, the next_tree of patterns will be tried.
-# If it fails, the next node is tried.
-# If repeat is true in a node, after trying the next_tree, this node
-# (and any successors) will be tried again until it fails or the string
-# is fully parsed.
-# The tree and next_tree are lists.  Each list is the children of a
-# a parent node. Failing a node in the tree moves on to
-# the next element of the list which is a sibling node in the tree.
-column_def_patterns = [
-    (col_def_pattern, False,
-     [(constraint_name_pattern, True,
-       [(col_pk_constraint_pattern, False, [
-            (col_conflict_clause_pattern, False, [
-                (col_autoincrement_pattern, False, [])
-            ]),
-       ]),
-        (col_notnull_constraint_pattern, False, [
-            (col_conflict_clause_pattern, False, []),
-        ]),
-        (col_unique_constraint_pattern, False, [
-            (col_conflict_clause_pattern, False, []),
-        ]),
-        (col_check_constraint_pattern, False, []),
-        (col_default_constraint_pattern, False, []),
-        (col_collate_constraint_pattern, False, []),
-        (fkey_clause_ref_pattern, False, [
-            (fkey_clause_conflict_pattern, True, []),
-            (fkey_clause_defer_pattern, False, []),
-        ]),
-       ]
-     ),
-     ]
-    ),
-]
-
-table_pkey_constraint_pattern = re.compile(
-    r'\bPRIMARY\s+KEY\s*\((?P<columns>(?P<column1>\w+)(\s*,\s*\w+)*\s*)\)',
-    re.IGNORECASE)
-
-table_unique_constraint_pattern = re.compile(
-    r'\bUNIQUE\s*\((?P<columns>(?P<column1>\w+)(\s*,\s*\w+)*\s*)\)',
-    re.IGNORECASE)
-
-# This can't handle nested parentheses well.
-table_check_constraint_pattern = re.compile( 
-    r"\bCHECK\s*\((?P<expr>[\w\s<!='>,%()*/+-]+)\)", 
-    re.IGNORECASE)
-
-# The tree for table constraints below is similar to that for column
-# definitions, except it will produce foreign key, primary key, uniqueness,
-# and check constraint records
-table_constraint_patterns = [
-    (constraint_name_pattern, False,
-     [(table_pkey_constraint_pattern, False,
-       [(col_conflict_clause_pattern, False, [])
-       ],
-     ),
-      (table_unique_constraint_pattern, False,
-       [(col_conflict_clause_pattern, False, [])
-       ],
-      ),
-      (table_check_constraint_pattern, False, []),
-      (fkey_constraint_pattern, False,
-        [(fkey_clause_ref_pattern, False, 
-          [(fkey_clause_conflict_pattern, True, []),
-           (fkey_clause_defer_pattern, False, []),
-          ]
-        ),
-        ]
-      ),
-     ]
-    ),
-]
-
-# Parsed table specifications produce records like those produced by the
-# SQLite's pragma commands (table_info, foreign_key_list, index_list)
-# These are defined as named tuples in Python.
-# The last field in each record, spec_line, holds the specification line
-# of text that generated the record (and will be None for records produced
-# from SQLite pragma commands).
-sqlite_column_record = collections.namedtuple(
-    'Column',
-    'cid, name, type, notnull, dflt_value, pk, spec_line'
-)
-sqlite_fkey_record = collections.namedtuple(
-    'Foreign_Key',
-    # SQLite uses the field name 'from' but that's a Python keyword
-    'id, seq, table, from_, to, on_update, on_delete, match, spec_line'
-)
-sqlite_index_record = collections.namedtuple(
-    'Index',
-    'seq, name, unique, origin, partial, spec_line'
-)
-# Make sample records with default values filled in
-base_column_def_record = sqlite_column_record(None, None, None, 0, None, 0, '')
-base_fkey_record = sqlite_fkey_record(
-    None, None, None, None, None, 'NO ACTION', 'NO ACTION', 'NONE', '')
-base_index_record = sqlite_index_record(None, None, 1, None, 0, '')
-
-# This dictionary is used to map regex's to the pragma record that needs
-# to be created when the parser discovers a match to the regex.
-# We create a pragma record for CHECK constraints even though SQLite
-# doesn't have a pragma command that shows records for check constraints;
-# they only show up in the overall table SQL.
-base_record_prototype = {
-    col_def_pattern: base_column_def_record,
-    col_unique_constraint_pattern: base_index_record._replace(origin='u'),
-    col_pk_constraint_pattern: base_index_record._replace(origin='pk'),
-    fkey_constraint_pattern: base_fkey_record,
-    table_pkey_constraint_pattern: base_index_record._replace(origin='pk'),
-    table_unique_constraint_pattern: base_index_record._replace(origin='u'),
-    table_check_constraint_pattern: base_index_record._replace(
-        origin='c', unique=0),
-}
-
-# For table columns of integer types that are marked as PRIMARY KEY,
-# sqlite does not create an index pragma record for the uniqueness of
-# the field.  It does create an index pragma record with origin of
-# 'pk' for other types.  The function below returns true for type
-# names that sqlite maps to integers.  In other words, all types whose
-# 'affinity' is INTEGER.  See https://www.sqlite.org/datatype3.html
-# for "Type Affinity"
-def sqlite_integer_type_affinity(typename):
-    return "INT" in typename.upper()
-
-def get_sqlite_db_schema(DBfile='sample_sqlite.db'):
-    "Create a database schema dictionary from an existing sqlite database"
-    db_schema = {}
-    with sqliteCur(DBfile=DBfile) as cur:
-        cur.execute(
-            "SELECT tbl_name, sql FROM SQLITE_MASTER"
-            "  WHERE type = 'table' AND tbl_name NOT LIKE 'sqlite_%'")
-        for row in cur.fetchall():
-            db_schema[row[0]] = row[1]
-    for table in db_schema:
-        sql = db_schema[table]
-        db_schema[table] = pragma_dict_from_pragma_records(
-            pragma_records_for_table(table, DBfile), sql)
-    return db_schema
-
-def pragma_records_for_table(tablename, DBfile='sample_sqlite.db'):
-    "Get pragma records for a particular table in a SQLite database"
-    records = []
-    with sqliteCur(DBfile=DBfile) as cur:
-        cur.execute("PRAGMA table_info('{0}')".format(tablename))
-        records = [extend_record_with_defaults(sqlite_column_record, row)
-                   for row in cur.fetchall()]
-        if records:
-            cur.execute("PRAGMA foreign_key_list('{0}')".format(tablename))
-            records.extend(extend_record_with_defaults(sqlite_fkey_record, row)
-                           for row in cur.fetchall())
-            cur.execute("PRAGMA index_list('{0}')".format(tablename))
-            records.extend(extend_record_with_defaults(sqlite_index_record, row)
-                           for row in cur.fetchall())
-    return records
-
-def extend_record_with_defaults(record_type, data, default=None):
-    record_fields = record_type._fields
-    record_len = len(record_fields)
-    data_len = len(data)
-    if data_len < record_len:
-        return record_type(*(data + (default,) * (record_len - data_len)))
-    record = record_type(*data[:len(record_fields)])
-    other_fields = {}
-    for i in range(len(data), len(record_fields)):
-        other_fields[record_fields[i]] = default
-    if other_fields:
-        record = record._replace(**other_fields)
-    return record
-
-def words(spec):
-    return re.findall(r'\w+', spec)
-
-def dict_by_col_name(pragmas):
-    "Dictionary keyed by lowercase version of column names defined in pragmas"
-    result = {}
-    for pragma in pragmas:
-        if isinstance(pragma, sqlite_column_record):
-            result[pragma.name.lower()] = pragma
-    return result
-
-def missing_fields(table_pragmas, actual_pragmas):
-    actual_cols = dict_by_col_name(actual_pragmas)
-    return [p for p in table_pragmas if 
-            isinstance(p, sqlite_column_record) and 
-            p.name.lower() not in actual_cols]
-
-def deleted_fields(table_pragmas, actual_pragmas):
-    return missing_fields(actual_pragmas, table_pragmas)
-
-def common_fields(table_pragmas, actual_pragmas):
-    actual_cols = dict_by_col_name(actual_pragmas)
-    return [p for p in table_pragmas if 
-            isinstance(p, sqlite_column_record) and 
-            p.name.lower() in actual_cols]
-
-def altered_fields(table_pragmas, actual_pragmas, ordermatters=False):
-    result = []
-    actual_cols = dict_by_col_name(actual_pragmas)
-    for col in table_pragmas:
-        if (isinstance(col, sqlite_column_record) and
-            col.name.lower() in actual_cols):
-            actual = actual_cols[col.name.lower()]
-            diff = record_differences(
-                col, actual, 
-                exclude=([] if ordermatters else ['cid']) + ['spec_line'])
-            if diff:
-                result.append((col, ["{} for field '{}'".format(d, col.name)
-                                     for d in diff]))
-    return result
+from sqlite_pragma import *
+from sqlite_parser import *
 
 std_create_table_pattern = re.compile(
     r'\s*CREATE TABLE \w+\((.*)\)\s*', re.IGNORECASE)
+single_quotes = re.compile(r"'[^']*'")
 
-def compare_constraints(new_table, old_table):
+def compare_constraints(new_table, old_table, rename={}):
     """Compare a new table's definition of constraints to that of an
     existing (old) table.  The new table has SQL snippets for each
     constraint (in the spec_line field of the pragma records), while
@@ -360,13 +60,29 @@ def compare_constraints(new_table, old_table):
     remains of the old table SQL to find any deleted constraints.
     Returns new constraints and deleted constraints as lists of pragma records
     (a modify is a new + a deleted constraint).
+    Note that new table specifications parsed by sqlite_parser may contain
+    pragma records for creating indices.  The CREATE INDEX statements are
+    not compared by compare_constraints; only those indices created by
+    primary key and unique constraints are compared here.
+    The rename dictionary maps old field names to new ones.
     """
-    old_sql = std_create_table_pattern.sub(
-        r'\1', standardize_create_table_sql(old_table['sql']))
+    old_sql = std_create_table_pattern.sub( # Get column def section of
+        r'\1',                 # create table statement
+        translate_old_field_names(
+            standardize_create_table_sql(old_table['table_sql']), rename))
     new_constraints = []
     deleted_constraints = []
-    for kind in ['column', 'fkey', 'index']:
-        for constraint in new_table[kind]:
+    for kind in ['column', 'fkey', 'index']: # Loop over constraint kinds in
+        for constraint in new_table[kind]: # order and loop over pragma records
+            if kind == 'fkey' or (
+                    kind == 'index' and constraint.origin != 'c'):
+                if len(old_table[kind]) == 0 or not any(
+                        len(record_differences(
+                            constraint, oldc, 
+                            exclude=('id', 'seq', 'spec_line'), 
+                            rename=rename)) == 0
+                        for oldc in old_table[kind]):
+                    new_constraints.append(constraint)
             if constraint.spec_line:
                 new_sql = standardize_create_table_sql(constraint.spec_line)
                 length = len(new_sql)
@@ -388,78 +104,52 @@ def compare_constraints(new_table, old_table):
                         pos -= 1
                         length += 1
                     old_sql = old_sql[:pos] + old_sql[pos + length:]
-                elif kind in ['fkey', 'index']:
-                    new_constraints.append(constraint)
-            elif kind in ['fkey', 'index']:
-                new_constraints.append(constraint)
                 
     # Parse remaining SQL for pragma records.
     # The constraints should be separated by commas, but we need to avoid
-    # splitting on commas embedded in parentheses
-    parentheticals = {}
-    for i, m in enumerate(re.finditer(r"'[^']*'", old_sql)):
-        parentheticals[i] = (m.start(), m.end(), m.group(0))
-    noparens = old_sql
-    for i in range(len(parentheticals) - 1, -1, -1):
-        start, end, string = parentheticals[i]
-        name = 'parenthetical{}'.format(i)
+    # splitting on commas embedded in singly quoted expressions
+    quoted = {}
+    for i, m in enumerate(single_quotes.finditer(old_sql)): # Find all pairs
+        quoted[i] = (m.start(), m.end(), m.group(0)) # of single quotes
+    noparens = old_sql             # Start with old sql
+    for i in range(len(quoted) - 1, -1, -1): # Go backwards through quoted
+        start, end, string = quoted[i]   # strings, replacing them with a
+        name = 'singlequoted{}'.format(i) # format variable name 
         noparens = noparens[0:start] + '{' + name + '}' + noparens[end:]
-        parentheticals[name] = string
-    parts = [part.format(**parentheticals) for part in noparens.split(',')]
+        quoted[name] = string      # Keep a dictionary to translate back
+    parts = [part.format(**quoted) for part in noparens.split(',')]
     for pragma in table_pragma_records(
             parts, 'unknown_constraints', throwexceptions=False, printto=None):
         if isinstance(pragma, (sqlite_fkey_record, sqlite_index_record)):
             deleted_constraints.append(pragma)
     return new_constraints, deleted_constraints
-    
-def parse_database_schema(
-        database_spec, throwexceptions=True, printto=sys.stderr):
-    """Parse all the table specifications in a database specification.
-    Return a dictionary with a key for each table name.  The key's value
-    is a dictionary with the keys: column, fkey, index, and sql.  The column
-    key's value is all the column pragma records for the table (in order).
-    Similarly, the fkey and index values hold the foreign key and index
-    pragma records.  The sql key holds the CREATE TABLE SQL command that
-    is used to create the table from the specification.
+
+parenthetical_expression = re.compile(r'\(.+\)')
+word = re.compile(r'\w+')
+
+def translate_old_field_names(old_sql, rename={}, only_within_parens=True):
+    """Translate all references to old field names into their renamed
+    counterparts in a table or index creation SQL statement.
+    This translation could translate some non-field names since it
+    does not fully parse the SQL.
+    When only_within_parens is true, it only translates field names
+    within the outermost parentheses
     """
-    db_schema  = {}
-    for table in database_spec:
-        pragma_records = table_pragma_records(
-            database_spec[table], table, throwexceptions=throwexceptions,
-            printto=printto)
-        db_schema[table] = pragma_dict_from_pragma_records(
-            pragma_records, 
-            create_table_sql_from_spec(table, database_spec[table]))
-    return db_schema
-
-def pragma_dict_from_pragma_records(pragma_records, sql):
-    return {
-        'column': [p for p in pragma_records 
-                   if isinstance(p, sqlite_column_record)],
-        'fkey': [p for p in pragma_records 
-                 if isinstance(p, sqlite_fkey_record)],
-        'index': [p for p in pragma_records 
-                  if isinstance(p, sqlite_index_record)],
-        'sql': sql,
-    }
-
-def create_table_sql_from_spec(table, table_spec):
-    return 'CREATE TABLE {}({})'.format(table, ', '.join(table_spec))
-
-multi_whitespace = re.compile(r'\s\s+')
-sql_delims = re.compile(r'\s*([,()])\s*')
-temp_declaration = re.compile(r'^CREATE(\sTEMP(ORARY)?)\sTABLE',
-                              re.IGNORECASE)
-dbname_declaration = re.compile(r'^CREATE\sTABLE\s(\w+)\.', re.IGNORECASE)
-
-def standardize_create_table_sql(sql):
-    "Standardize create table SQL whitespace usage"
-    return dbname_declaration.sub(
-        'CREATE TABLE ',
-        temp_declaration.sub(
-            'CREATE TABLE',
-            sql_delims.sub(r'\1', multi_whitespace.sub(' ', sql))))
-
+    paren_match = parenthetical_expression.search(old_sql)
+    if only_within_parens and paren_match:
+        return (old_sql[:paren_match.start()] + '(' +
+                translate_old_field_names(
+                    old_sql[paren_match.start()  + 1:paren_match.end() - 1],
+                    rename, False) +
+                ')' + old_sql[paren_match.end():])
+    result = ''
+    last = 0
+    for match in word.finditer(old_sql):
+        result += old_sql[last:match.start()] + rename.get(
+            match.group(), match.group())
+        last = match.end()
+    return result + old_sql[last:]
+        
 def walk_tables(db_schema, func, verbose=0, ignore=[]):
     """Walk the tables in a datbase schema in their foreign key dependence
     order.  The tables with no foreign key dependencies will come
@@ -504,329 +194,32 @@ def walk_tables(db_schema, func, verbose=0, ignore=[]):
                  len(to_visit), len(db_schema), count, to_visit))
     elif verbose > 2:
         print('Walk complete')
-    
-def table_pragma_records(
-        table_spec, tablename='',
-        patterns_to_try = column_def_patterns + table_constraint_patterns,
-        throwexceptions=True, printto=sys.stderr):
-    """Parse a table specification that is a list of strings with exactly
-    one column definition or one table constraint specification per string.
-    The tablename should be the name of the table in SQLite and will be
-    used in naming constraints.
-    The patterns_to_try is the grammar to use in parsing (in the form of a
-    tree of regex tuples).
-    If grammar errors are found, they can either cause exceptions, or be
-    printed to a file (or be silently ignored if printto is None).
-    """
-    pragmas = []
-    for spec in table_spec:
-        pragmas.extend(
-            column_def_or_constraint_to_pragma_records(
-                spec, pragmas, tablename,
-                # TODO: Find a better test to determine when all column def's
-                # have been processed and only table constraints remain in
-                # the table specification
-                # patterns_to_try=(column_def_patterns 
-                #                  if len(pragmas) == 0 or 
-                #                  isinstance(pragmas[-1], sqlite_column_record)
-                #                  else []) + table_constraint_patterns,
-                patterns_to_try=column_def_patterns + table_constraint_patterns,
-                throwexceptions=throwexceptions, printto=printto))
-    return clean_table_pragmas(pragmas, tablename)
-    
-def column_def_or_constraint_to_pragma_records(
-        spec, context=[], tablename='',
-        patterns_to_try = column_def_patterns + table_constraint_patterns,
-        throwexceptions=True, printto=sys.stderr):
-    """Parse a single column definition or table constraint within a table.
-    The context variable should have all the pragma records that have been
-    parsed before this line, so references to columns that are defined
-    earlier can be resolved.  Some pragma records in the context can be
-    modified by later constraints such as PRIMARY KEY constraints.
-    """
-    global base_record_prototype
-    # Walk the tree of patterns, find matching regex's,
-    # Create corresponding records while inserting values into named fields
-    # as regex's match
-    # Return a list of pragma records built from the spec
-    pragmas = []
-    stack = []
-    indices = 0
-    past_indices = 0
-    pk_counter = 1
-    spec_line = spec
-    for p in context:
-        if isinstance(p, sqlite_index_record):
-            past_indices += 1
-    while patterns_to_try and len(spec) > 0:
-        pattern, repeat, next_patterns = patterns_to_try[0]
-        m = pattern.search(spec)  # Look for match at beginning of string
-        if m and (m.start() == 0 or spec[0:m.start()].isspace()):
-            if pattern in base_record_prototype and (
-                len(pragmas) == 0 or 
-                not isinstance(pragmas[-1], 
-                               type(base_record_prototype[pattern]))):
-                pragmas.append(
-                    base_record_prototype[pattern]._replace(spec_line=spec_line))
-            if len(pragmas) > 0:
-                for field in pattern.groupindex:
-                    if (m.group(field) is not None and
-                        field in pragmas[-1]._fields):
-                        kwargs = {field: m.group(field)}
-                        pragmas[-1] = pragmas[-1]._replace(**kwargs)
-                # Handle special case matches
-                pragmas = update_pragma_record_stack_with_match(
-                    context, pragmas, pattern, m, spec_line)
-            if repeat:
-                state = (patterns_to_try, len(spec))
-                if state not in stack:
-                    stack.append(state)
-            patterns_to_try = next_patterns
-            spec = spec[m.end():]
-        else:
-            patterns_to_try = patterns_to_try[1:]
-        if len(patterns_to_try) == 0 and stack and stack[-1][1] > len(spec):
-            patterns_to_try, l = stack.pop()
-    result = []
-    if len(spec) > 0 and not spec.isspace():
-        msg = 'Unable to parse this part of the column definition: "{}"'.format(
-            spec)
-        if throwexceptions:
-            raise Exception(msg)
-        else:
-            if printto:
-                print(msg, file=printto)
-    else:
-        # After first pass through specifications to build pragmas,
-        # clean up pragmas where multiple columns were specified
-        # and fix constraint names
-        for i, pragma in enumerate(pragmas):
-            if isinstance(pragma, sqlite_column_record):
-                result.append(pragma)
-            elif isinstance(pragma, sqlite_fkey_record):
-                if (isinstance(pragma.from_, str) and i+1 < len(pragmas) and
-                    isinstance(pragmas[i+1], sqlite_column_record) and
-                    pragma.from_ == pragmas[i+1].name):
-                    if len(pragma.to) > 1:
-                        msg = (('Foreign key refers to multiple columns '
-                                '{} in table {} for field {}').format(
-                                    pragma.to, pragma.table, pragma.from_))
-                        if throwexceptions:
-                            raise Exception(msg)
-                        elif printto:
-                            print(msg, file=printto)
-                    else:
-                        pragma = pragma._replace(to=pragma.to[0])
-                    result.append(pragma)
-                elif isinstance(pragma.from_, list):
-                    if not (isinstance(pragma.to, list) and
-                            len(pragma.from_) == len(pragma.to)):
-                        msg = (('Foreign key constraint has mismatched number '
-                                'of keys, {} vs. {} in table {}').format(
-                                    pragma.from_, pragma.to, pragma.table))
-                        if throwexceptions:
-                            raise Exception(msg)
-                        elif printto:
-                            print(msg, file=printto)
-                    else:
-                        for i in range(len(pragma.from_)):
-                            result.append(pragma._replace(
-                                from_=pragma.from_[i], to=pragma.to[i]))
-            elif isinstance(pragma, sqlite_index_record):
-                if isinstance(pragma.seq, list):
-                    for col in pragma.seq:
-                        matching_col = [
-                            p for p in context + pragmas[:i] if
-                            isinstance(p, sqlite_column_record) and
-                            col.lower() == p.name.lower()]
-                        if len(matching_col) != 1:
-                            msg = ('{} constraint clause mentions {} which has '
-                                   '{} matches among the fields of {}').format(
-                                       'UNIQUE' if pragma.origin == 'u' else
-                                       'PRIMARY KEY',
-                                       col, len(matching_col), tablename)
-                            if throwexceptions:
-                                raise Exception(msg)
-                            elif printto:
-                                print(msg, file=printto)
-                        elif pragma.origin == 'pk': # Force PK flag to true
-                            pk_field = matching_col[0]
-                            pos = context.index(pk_field)
-                            context[pos] = pk_field._replace(pk=pk_counter)
-                            pk_counter += 1
-                pragma = pragma._replace(
-                    seq=past_indices + indices,
-                    name='sqlite_autoindex_{}_{}'.format(
-                        tablename, past_indices + indices + 1))
-                result.append(pragma)
-                indices += 1
-    return result
-
-def update_pragma_record_stack_with_match(
-        context, pragma_record_stack, pattern, match, spec_line):
-    """During parsing, the context and pragma record stack holds all the
-    pragma records generated by the different clauses found so far in a
-    specification. The context holds the list up to the current line in
-    in the specification while pragma_record_stack holds just those pragma
-    records from the current line. 
-    This routine handles all the special value conversions for particular
-    fields and manipulations between clauses.  The result is a revised stack
-    for the current line.
-    """
-    top_record = pragma_record_stack.pop()
-    if isinstance(top_record, sqlite_column_record):
-        # Clean up values extracted via regexes
-        for field in ['notnull', 'pk']:     # Coerce boolean fields to 0 or 1
-            if field in pattern.groupindex:
-                kwargs = {field: 1 if len(match.group(field)) > 0 else 0}
-                top_record = top_record._replace(**kwargs)
-        if top_record.cid is None:
-            max_cid = -1
-            for pragma in context + pragma_record_stack:
-                if isinstance(pragma, sqlite_column_record):
-                    max_cid = max(max_cid, pragma.cid)
-            top_record = top_record._replace(cid=max_cid + 1)
-        if 'dflt_value' in pattern.groupindex:
-            val = match.group('dflt_value')
-            kwargs = {'dflt_value': val}
-            if val.upper() == 'NULL':
-                kwargs['dflt_value'] = None
-            elif val[0] == '(' and val[-1] == ')':
-                kwargs['dflt_value'] = val[1:-1]
-            if kwargs['dflt_value'] != top_record.dflt_value:
-                top_record = top_record._replace(**kwargs)
-        elif 'table' in pattern.groupindex and 'columns' in pattern.groupindex:
-            if len(pragma_record_stack) == 0 or not isinstance(
-                    pragma_record_stack[-1], sqlite_fkey_record):
-                pragma_record_stack.append(
-                    base_fkey_record._replace(
-                        table=match.group('table'),
-                        from_=top_record.name,
-                        to=words(match.group('columns')),
-                        spec_line=spec_line))
-        elif (('match' in pattern.groupindex or
-               ('action' in pattern.groupindex and 
-                'reaction' in pattern.groupindex)
-               and len(pragma_record_stack) > 0 and 
-               isinstance(pragma_record_stack[-1], sqlite_fkey_record))):
-            if 'action' in pattern.groupindex and 'reaction' in pattern.groupindex:
-                reaction = ' '.join([x.upper() 
-                                     for x in words(match.group('reaction'))])
-                if match.group('action').upper() == 'DELETE':
-                    pragma_record_stack[-1] = pragma_record_stack[-1]._replace(
-                        on_delete=reaction)
-                else:
-                    pragma_record_stack[-1] = pragma_record_stack[-1]._replace(
-                        on_update=reaction)
-            elif 'match' in pattern.groupindex:
-                    pragma_record_stack[-1] = pragma_record_stack[-1]._replace(
-                        match=match.group('match'))
-
-    elif isinstance(top_record, sqlite_fkey_record):
-        if 'columns' in pattern.groupindex and 'column1' in pattern.groupindex:
-            clean_cols = words(match.group('columns'))
-            if pattern == fkey_constraint_pattern:
-                top_record = top_record._replace(from_=clean_cols)
-            elif pattern == fkey_clause_ref_pattern:
-                top_record = top_record._replace(to=clean_cols)
-        elif 'action' in pattern.groupindex and 'reaction' in pattern.groupindex:
-            reaction = ' '.join([x.upper() 
-                                 for x in words(match.group('reaction'))])
-            if match.group('action').upper() == 'DELETE':
-                top_record = top_record._replace(on_delete=reaction)
-            else:
-                top_record = top_record._replace(on_update=reaction)
-    elif isinstance(top_record, sqlite_index_record):
-        if 'columns' in pattern.groupindex and 'column1' in pattern.groupindex:
-            clean_cols = words(match.group('columns'))
-            top_record = top_record._replace(seq=clean_cols)
-        elif (pattern is col_unique_constraint_pattern and 
-              len(pragma_record_stack) > 0 and
-              isinstance(pragma_record_stack[-1], sqlite_column_record)):
-            top_record = top_record._replace(seq=[pragma_record_stack[-1].name])
-        elif (pattern is col_pk_constraint_pattern and
-              isinstance(top_record, sqlite_index_record) and
-              top_record.origin == 'pk' and
-              len(pragma_record_stack) > 0 and
-              isinstance(pragma_record_stack[-1], sqlite_column_record) and
-              sqlite_integer_type_affinity(pragma_record_stack[-1].type)):
-            top_record = None
-    if top_record:
-        pragma_record_stack.append(top_record)
-    return pragma_record_stack
-
-def record_differences(record1, record2, include=None, exclude=None,
-                       exactfields=False):
-    """Compare records by comparing some or all fields, ignoring case
-    of fields with string values. Ignore missing fields if exactfields is
-    false. Record types must be the same, otherwise the string 'record types
-    differ is returned'
-    Returns a list of strings describing field differences.  The list is
-    empty if no differences were found.
-    """
-    if not type(record1) == type(record2):
-        return ['Record types differ']
-    result = []
-    fields = set(include if include else record1._fields)
-    if exactfields:
-        fields |= set(record2._fields)
-    if exclude:
-        fields -= set(exclude)
-    for field in fields:
-        in1 = field in record1._fields
-        in2 = field in record2._fields
-        if not (in1 and in2):
-            if exactfields:
-                if in1:
-                    result.append("Field '{}' in first but not second".format(
-                        field))
-                else:
-                    result.append("Field '{}' in second but not first".format(
-                        field))
-        else:
-            v1 = getattr(record1, field)
-            v2 = getattr(record2, field)
-            str1 = isinstance(v1, str)
-            str2 = isinstance(v2, str)
-            if ((v1.lower() != v2.lower()) if (str1 and str2) else v1 != v2):
-                result.append("Field '{}' differs".format(field))
-    return result
-
-def clean_table_pragmas(pragmas, tablename=''):
-    "Adjust table pragmas after all columns and constraints are defined"
-    return pragmas
-
-def pprint_table_pragmas(pragma_dict, indent='', tablename=''):
-    for kind in ['Column', 'FKey', 'Index']:
-        print(indent, '{} pragmas:'.format(kind))
-        for pragma in pragma_dict[kind.lower()]:
-            print(indent, '  {', end='')
-            fields = pragma._fields
-            for field in fields:
-                if field == 'spec_line':
-                    print('\n{}    {}: {!r}, '.format(
-                        indent, field, pragma[fields.index(field)]),
-                          end='}\n')
-                else:
-                    print('{}: {!r}, '.format(
-                        field, pragma[fields.index(field)]),
-                          end='')
 
 def compare_db_schema(new_schema, old_schema, verbose=0, ordermatters=False):
     """Compare 2 database schema's table by table.  Returns a dictionary
     with the following key: value pairs - 
     same: list of tables that are the same in both
     new_tables: list of tables in the new_schema that don't appear in the old
-    dropped_tables: list of tables in the old but not in the new_schema
+    drop_tables: list of tables in the old but not in the new_schema
     add_fields: list of tables where only new fields are added
-    different: list of tables with more complex differences or dropped fields
+    renamed_fields: dictionary of tables where old field names must be
+      mapped to new field names (dictionary of dictionaries: outer dictionary
+      maps table name to inner dictionary, inner dictionary maps old name to
+      new name)
+    different_table: list of tables with more complex differences
+    add_index: list of tables with indices to add
+    drop_index: list of tables with indices to drop
     """
     result = {
-        'same': [],
+        'same_tables': [],
         'new_tables': [],
-        'dropped_tables': [],
+        'drop_tables': [],
         'add_fields': [],
-        'different': [],
+        'renamed_fields': {},
+        'different_table': [],
+        'add_index': [],
+        'drop_index': [],
+        'different_index': [],
     }
     sep = '=' * 16
     for table in new_schema:
@@ -836,63 +229,215 @@ def compare_db_schema(new_schema, old_schema, verbose=0, ordermatters=False):
             if verbose > 1:
                 print(sep, 'Comparing schemas for table', table, sep)
             kind = compare_table_schema(new_schema[table], old_schema[table],
-                                        ordermatters=ordermatters,
+                                        table, ordermatters=ordermatters,
                                         verbose=verbose)
-            if kind == 'add_fields':
-                result['add_fields'].append(table)
-            elif kind == 'same':
-                result['same'].append(table)
-            else:
-                result['different'].append(table)
+            index_kind = compare_table_indices(
+                new_schema[table], old_schema[table], table, verbose=verbose)
+            categorized = False
+            for k in [kind, index_kind]:
+                if k in ('add_fields', 'same', 'different_table', 
+                         'add_index', 'drop_index', 'different_index'):
+                    result['same_tables' if k == 'same' else k].append(table)
+                    categorized = True
+            if isinstance(kind, dict):
+                result['renamed_fields'][table] = kind
+                categorized = True
+            if not categorized:
+                raise Exception(
+                    'Unknown difference types "{}, {}" for table {}'.format(
+                        str(kind), str(index_kind), table))
     for table in old_schema:
         if table not in new_schema:
-            result['dropped_tables'].append(table)
+            result['drop_tables'].append(table)
     return result
 
-def compare_table_schema(new_table, old_table, ordermatters=False, verbose=0):
-    """Compare 2 tables described by their pragma dictionaries.
-    Return 'same' if they are same, 'add_fields' if the new table has just
-    added some fields to the table, or 'differ' if they differ in some
-    other way.
+def compare_table_schema(
+        new_table, old_table, tablename, ordermatters=False, verbose=0):
+    """Compare 2 tables described by their pragma dictionaries.  Return
+    'same' if they are same, 'add_fields' if the new table has just
+    added some fields to the table, a dictionary mapping old field
+    names to new ones if the new table only renames some fields, or
+    'different_table' if they differ in some other way.
     """
-    if new_table['sql'] and old_table['sql']:
-        new = standardize_create_table_sql(new_table['sql']).lower()
-        old = standardize_create_table_sql(old_table['sql']).lower()
+    if new_table['table_sql'] and old_table['table_sql']:
+        new = standardize_create_table_sql(new_table['table_sql']).lower()
+        old = standardize_create_table_sql(old_table['table_sql']).lower()
         if new == old:
             if verbose > 1:
-                print('SQL for tables is equivalent')
+                print('SQL for creating table {} is equivalent'.format(
+                    tablename))
             return 'same'
         if verbose > 1:
-            print('SQL for tables differs')
+            print('SQL for creating table {} differs'.format(tablename))
             if verbose > 2:
-                print('  SQL for new:\n    ', new_table['sql'],
-                      '\n  SQL for old:\n    ', old_table['sql'])
+                print('  SQL for new:\n    ', new_table['table_sql'],
+                      '\n  SQL for old:\n    ', old_table['table_sql'])
     elif verbose > 1:
-        print('SQL for one or both tables is missing')
+        print('SQL for one or both versions of table {} is missing'.format(
+            tablename))
         
-    fields_to_add = missing_fields(new_table['column'], old_table['column'])
-    deleted = deleted_fields(new_table['column'], old_table['column'])
-    altered = altered_fields(new_table['column'], old_table['column'],
-                             ordermatters)
+    actual_cols =  dict_by_col_name(old_table['column'])
+    fields_to_rename = renamed_fields(new_table['column'], old_table['column'],
+                                      actual_cols=actual_cols)
+    fields_to_add = missing_fields(
+        new_table['column'], old_table['column'], actual_cols=actual_cols,
+        rename=fields_to_rename)
+    deleted = deleted_fields(
+        new_table['column'], old_table['column'], rename=fields_to_rename)
+    altered = altered_fields(
+        new_table['column'], old_table['column'], ordermatters,
+        actual_cols=actual_cols, rename=fields_to_rename)
     constraints_to_add, constraints_deleted = compare_constraints(
-        new_table, old_table)
-    changed = len(fields_to_add + deleted + altered + 
-                  constraints_to_add + constraints_deleted) > 0
+        new_table, old_table, rename=fields_to_rename)
+    changed = len(fields_to_rename) + len(
+        fields_to_add + deleted + altered + constraints_to_add +
+        constraints_deleted) > 0
     if changed and verbose > 1:
         print('Pragma records have {}changed'.format('' if changed else 'not '))
-        for name, value in [('Fields to add', fields_to_add),
+        for name, value in [('Fields to rename', fields_to_rename),
+                            ('Fields to add', fields_to_add),
                             ('Deleted fields', deleted),
                             ('Altered fields', altered),
                             ('Added constraints', constraints_to_add),
                             ('Deleted constraints', constraints_deleted)]:
             print('  {}:'.format(name))
             for r in value:
-                print('   ', r)
+                print('   ', r,
+                      '-> {}'.format(value[r]) if isinstance(value, dict)
+                      else '')
     return 'same' if not changed else (
         'add_fields' if len(fields_to_add) > 0 and
         len(deleted + altered + constraints_to_add + constraints_deleted) == 0
-        else 'differ')
+        else fields_to_rename if len(fields_to_rename) > 0 and
+        len(deleted + altered + constraints_to_add + constraints_deleted) == 0
+        else 'different_table')
 
+def renamed_fields(table_pragmas, actual_pragmas, actual_cols=None):
+    """Return a mapping of columns in actual_pragmas whose name matches
+    a former name of a column in table_pragmas."""
+    if actual_cols is None:
+        actual_cols = dict_by_col_name(actual_pragmas)
+    result = {}
+    for p in table_pragmas:
+        name = p.name.lower()
+        if isinstance(p, sqlite_column_record) and name not in actual_cols:
+            for f in actual_pragmas:
+                if f.name.lower() in p.formerly:
+                    result[f.name.lower()] = name
+                    result[f.name] = p.name
+                    break
+    return result
+
+def missing_fields(table_pragmas, actual_pragmas, actual_cols=None, rename={}):
+    if actual_cols is None:
+        actual_cols = dict_by_col_name(actual_pragmas)
+    return [p for p in table_pragmas if 
+            isinstance(p, sqlite_column_record) and 
+            p.name.lower() not in actual_cols and
+            p.name.lower() not in rename.values()]
+
+def common_fields(table_pragmas, actual_pragmas, actual_cols=None, rename={}):
+    if actual_cols is None:
+        actual_cols = dict_by_col_name(actual_pragmas)
+    return [p for p in table_pragmas if 
+            isinstance(p, sqlite_column_record) and 
+            p.name.lower() in actual_cols]
+
+def deleted_fields(table_pragmas, actual_pragmas, rename={}):
+    return [p for p in actual_pragmas if 
+            isinstance(p, sqlite_column_record) and
+            p.name.lower() not in rename and
+            p.name.lower() not in [f.name.lower() for f in table_pragmas
+                                   if isinstance(f, sqlite_column_record)]]
+
+def altered_fields(
+        table_pragmas, actual_pragmas, ordermatters=False, actual_cols=None,
+        rename={}):
+    if actual_cols is None:
+        actual_cols = dict_by_col_name(actual_pragmas)
+    result = []
+    for col in table_pragmas:
+        new_column = col.name.lower()
+        if isinstance(col, sqlite_column_record):
+            renamed = False
+            if new_column in actual_cols:
+                actual = actual_cols[new_column]
+            elif new_column in rename.values():
+                for old_column in rename:
+                    if rename[old_column] == new_column:
+                        actual = actual_cols[old_column]
+                        renamed = True
+                        break
+            else:   # This is an added column, not altered
+                break
+            diff = record_differences(
+                col, actual, rename=rename,
+                exclude=([] if ordermatters else ['cid']) + (
+                    ['name'] if renamed else []) + ['formerly', 'spec_line'])
+            if diff:
+                result.append((col, ["{} for field '{}'".format(d, col.name)
+                                     for d in diff]))
+    return result
+
+def compare_table_indices(new_table, old_table, tablename, verbose=0):
+    """Compare the indices for 2 tables described by their pragma
+    dictionaries.  This compares only the indices built from CREATE
+    INDEX statements, not the ones automatically built by SQLite for
+    primary keys or UNIQUE constraints.  Return 'same_index' if they are
+    same, 'add_index' if the new table has some added indices,
+    'drop_index' if the new table drops an index, or 'different_index' when
+    they differ in some other way.
+    """
+    indices_to_add = missing_indices(new_table, old_table)
+    indices_to_drop = deleted_indices(new_table, old_table)
+    indices_to_change = altered_indices(new_table, old_table, verbose=verbose)
+    differ = len(indices_to_change) > 0 or (
+        len(indices_to_add) > 0 and len(indices_to_drop) > 0)
+    if verbose > 1:
+        print('Indices for table {}'.format(tablename), 
+              'differ' if differ else
+              'have been added' if len(indices_to_add) > 0 else
+              'have been dropped' if len(indices_to_drop) > 0 else
+              'are the same')
+        if verbose > 2 and len(indices_to_add + indices_to_drop +
+                               indices_to_change) > 0:
+            print('  to add:', indices_to_add,
+                  '\n  to drop:', indices_to_drop,
+                  '\n  altered:', indices_to_change)
+    return ('different_index' if differ else 
+            'add_index' if len(indices_to_add) > 0 else
+            'drop_index' if len(indices_to_drop) > 0 else
+            'same_index')
+
+def missing_indices(new_table, old_table):
+    return [ni for ni in new_table['index']
+            if ni.origin == 'c' and ni.name.lower() not in
+            [oi.name.lower() for oi in old_table['index'] if oi.origin == 'c']]
+
+def deleted_indices(new_table, old_table):
+    return [oi for oi in old_table['index']
+            if oi.origin == 'c' and oi.name.lower() not in
+            [ni.name.lower() for ni in new_table['index'] if ni.origin == 'c']]
+
+def altered_indices(new_table, old_table, verbose=0):
+    new_indices = [p for p in new_table['index'] if p.origin == 'c']
+    old_indices = [p for p in old_table['index'] if p.origin == 'c']
+    old_index_dict = dict([(oi.name.lower(), oi) for oi in old_indices])
+    result = []
+    for new_index in new_indices:
+        if new_index.name.lower() in old_index_dict:
+            diff = record_differences(
+                new_index, old_index_dict[new_index.name.lower()],
+                exclude = ['seq'])
+            if diff:
+                result.append(
+                    (new_index, ["{} for index '{}'".format(d, new_index.name)
+                                 for d in diff]))
+                if verbose > 1:
+                    print('Index {} was altered: {}'.format(
+                        new_index.name, diff))
+    return result
+    
 def backup_db_and_migrate(
         new_db_schema, old_db_schema, dbfile, backup_dir, backup_prefix, 
         preserve_unspecified=True, verbose=0):
@@ -912,25 +457,47 @@ def backup_db_and_migrate(
             done = []
             def copy_table(table, pd):
                 in_new = table in new_db_schema
+                new_cols = new_db_schema[table]['column'] if in_new else []
                 in_old = table in old_db_schema
+                old_cols = old_db_schema[table]['column'] if in_old else []
                 if table in done:
                     return
-                if verbose > 1:
-                    print('{} {} table ...'.format(
-                        'Creating new' if in_new else 'Preserving', table),
-                          end='')
-                cur.execute(pd['sql'])
-                if verbose > 1:
-                    print(' Done.')
-                fields = [c.name for c in (
-                    common_fields(pd['column'], old_db_schema[table]['column'])
-                    if in_new and in_old else pd['column'])]
-                if in_old:
+                rename = {}
+                if in_new and in_old:
+                    old_dict = dict_by_col_name(old_cols)
+                    rename = renamed_fields(new_cols, old_cols, old_dict)
+                    for name in [n for n in rename if n not in old_dict]:
+                            del rename[name]  # Remove case variations
+                if in_new:
                     if verbose > 1:
-                        print('Copying... ', end='')
+                        print('{} {} table ...'.format(
+                            'Creating new' if in_new else 'Preserving', table))
+                        if len(rename) > 0:
+                            print('Renaming fields as follows:')
+                            for name in rename:
+                                print(' ', name, '->', rename[name])
+                    cur.execute(pd['table_sql'])
+                    if verbose > 1:
+                        print(' {} Done.'.format(table))
+                    if pd['index_sqls']:
+                        if verbose > 1:
+                            print('Creating indices for {}'.format(table))
+                        for index_name in pd['index_sqls']:
+                            cur.execute(pd['index_sqls'][index_name])
+                old_col_names = [c.name for c in
+                    (common_fields(pd['column'], old_cols)
+                     if in_new and in_old else pd['column'])]
+                new_col_names = old_col_names + list() # copy of names
+                for name in rename:
+                    old_col_names.append(name)
+                    new_col_names.append(rename[name])
+                if in_old and in_new:
+                    if verbose > 1:
+                        print('Copying old data... ', end='')
                     cur.execute(
-                        'INSERT INTO main.{0} ({1}) SELECT {1} FROM {2}.{0}'
-                        .format(table, ','.join(fields), old_name))
+                        'INSERT INTO main.{0} ({1}) SELECT {2} FROM {3}.{0}'
+                        .format(table, ','.join(new_col_names), 
+                                ','.join(old_col_names), old_name))
                     if verbose > 1:
                         print('Copied {} row{} into {}'.format(
                             cur.rowcount, '' if cur.rowcount == 1 else 's',
@@ -959,32 +526,66 @@ def backup_db_and_migrate(
               e)
         return False
 
-def upgrade_database(new_db_schema, old_db_schema, dbfile, verbose=0):
-    """Try upgrading database to create new tables and adding fields.
+def upgrade_database(new_db_schema, old_db_schema, delta, dbfile, verbose=0):
+    """Try upgrading database to create new tables, adding fields, and
+    renaming fields.
     This method ignores any tables with more complex changes.
     Return True for success, false otherwise."""
     try:
         with sqliteCur(DBfile=dbfile) as cur:
             def alter_table(table, pd):
                 if table in old_db_schema:
-                    new_fields = missing_fields(
-                        pd['column'], old_db_schema[table]['column'])
+                    rename = {}
+                    if table in delta['renamed_fields']:
+                        rename = delta['renamed_fields'][table]
+                        old_cols = [
+                            p.name for p in old_db_schema[table]['column']
+                            if p.name in rename]
+                        if verbose > 1:
+                            print('Altering {} table to rename column{} {}'
+                                  .format(table,
+                                          '' if len(old_cols) == 1 else 's',
+                                          old_cols))
+                        for field in old_cols:
+                            cur.execute(
+                                'ALTER TABLE {} RENAME COLUMN {} TO {}'
+                                .format(table, field, rename[field]))
+                    new_fields = [
+                        p for p in missing_fields(
+                            pd['column'], old_db_schema[table]['column'])
+                        if p.name not in rename.values()]
                     if new_fields and verbose > 1:
-                        print('Altering {} table'.format(table))
+                        print('Altering {} table to add field{} {}'.format(
+                            table, '' if len(new_fields) == 1 else 's',
+                            new_fields))
                     for field in new_fields:
                         if verbose > 2:
                             print('Adding column {}'.format(field.name))
                         cur.execute('ALTER TABLE {} ADD COLUMN {}'.format(
                             table, field.spec_line))
+                    for kind in ['drop', 'add']:
+                        if table in delta[kind + '_index']:
+                            indices = (deleted_indices(pd, old_db_schema[table])
+                                       if kind == 'drop' else
+                                       missing_indices(pd, old_db_schema[table]))
+                            if indices and verbose > 1:
+                                print('{} {} table ind{} {}'.format(
+                                    kind.capitalize(), table,
+                                    'ex' if len(indices) == 1 else 'ices',
+                                    indices))
+                            for idx in indices:
+                                cur.execute(
+                                    'DROP INDEX {}'.format(idx.name) 
+                                    if kind == 'drop' else
+                                    idx.spec_line)
                 else:
                     if verbose > 1:
                         print('Creating new {} table'.format(table))
-                    cur.execute(pd['sql'])
+                    cur.execute(pd['table_sql'])
             walk_tables(new_db_schema, alter_table, verbose=verbose)
         return True
     except sqlite3.DatabaseError as e:
-        print('Error while trying to add column or create table in {}:'.format(
-            dbfile), e)
+        print('Error while trying to update {} in place:'.format(dbfile), e)
         return False
 
 def create_database(db_schema, dbfile, verbose=0):
@@ -996,7 +597,7 @@ def create_database(db_schema, dbfile, verbose=0):
             def create_table(table, pd):
                 if verbose > 1:
                     print('Creating new {} table'.format(table))
-                cur.execute(pd['sql'])
+                cur.execute(pd['table_sql'])
             walk_tables(db_schema, create_table, verbose=verbose)
         if verbose > 0:
             print('Created empty database in {}'.format(dbfile))
@@ -1041,7 +642,7 @@ def compare_and_prompt_to_upgrade_database(
     current local time and placed before the database file name in naming
     any backup files.
     If preserve_unspecified is True, tables in the actual database that
-    are not in the desired database schema will be migrated.  Tables
+    are not in the desired database schema will be migrated unchanged.  Tables
     are only dropped if migration is performed and preserve_unspecifed is
     false (not if tables are simply altered in the existing database).
     With higher verbosity levels, more debugging information is printed.
@@ -1054,64 +655,52 @@ def compare_and_prompt_to_upgrade_database(
     delta = compare_db_schema(desired_db_schema, actual_db_schema, 
                               verbose=verbose, ordermatters=ordermatters)
     if verbose > 0:
-        print('Tables whose schema matches the one in {}:'.format(dbfile))
-        for table in delta['same']:
-            print(' ', table)
-        print('New tables:')
-        for table in delta['new_tables']:
-            print(' ', table)
-        print('Dropped tables:')
-        for table in delta['dropped_tables']:
-            print(' ', table)
-        print('Tables with only added fields:')
-        for table in delta['add_fields']:
-            print(' ', table)
-        print('Tables with other differences:')
-        for table in delta['different']:
-            print(' ', table)
-    total_changed_tables = len(
-        delta['new_tables'] + delta['add_fields'] + delta['different'] +
-        ([] if preserve_unspecified else delta['dropped_tables']))
-    migrate_only_changes = len(
-        delta['different'] + 
-        ([] if preserve_unspecified else delta['dropped_tables']))
+        print("="*20, 'Database Schema Difference Summary', "="*20)
+        for k in sorted(delta.keys()):
+            print('{}:'.format(k))
+            for table in delta[k]:
+                print(' ', table)
+    simple_change_keys = [key for key in delta if key.split('_')[0] in 
+                          ('new', 'add', 'renamed')]
+    simple_changes = sum(len(delta[k]) for k in simple_change_keys)
+    migrate_only_changes = sum(len(delta[k]) for k in
+                               ['different_table', 'different_index'] + 
+                               ([] if preserve_unspecified else
+                                ['drop_tables', 'drop_index']))
 
     # If there are no changes or the forced response is no upgrade,
     # then no more work needs to be done
-    if (total_changed_tables == 0 or
+    if (simple_changes + migrate_only_changes == 0 or
         interpret_response(force_response, response_dict) is False):
         return True
     
-    # Here, there are some schema changes needed.  Try altering the existing
+    # Here, there are some desired schema changes.  Try altering the existing
     # database if conditions are right
     if migrate_only_changes == 0:
+        description = ',\n'.join('{}: {}'.format(
+            kind.replace('_', ' ').capitalize(), delta[kind])
+                                 for kind in simple_change_keys if delta[kind])
         resp = interpret_response(force_response, response_dict)
         while resp is None:
             resp = interpret_response(
-                input('{}Would you like try altering these tables: {}? [y/n] '
-                      .format(prompt_prefix, ', '.join(delta['new_tables'] +
-                                                       delta['add_fields']))),
+                input('{}Would you like to try changing tables as follows:\n'
+                      '{}? [y/n] '.format(prompt_prefix, description)),
                 response_dict)
             if resp is None:
                 print('Unrecognized response.  Please answer yes or no.')
         if resp and upgrade_database(
-                desired_db_schema, actual_db_schema, dbfile, verbose=verbose):
+                desired_db_schema, actual_db_schema, delta, dbfile,
+                verbose=verbose):
             if verbose > 0:
-                if delta['new_tables']:
-                    print('Created tables: {}'.format(
-                        ', '.join(delta['new_tables'])))
-                if delta['add_fields']:
-                    print('Added fields to: {}'.format(
-                        ', '.join(delta['add_fields'])))
-            total_changed_tables -= len(
-                    delta['new_tables'] + delta['add_fields'])
+                print('Successfully performed', description)
+            simple_changes = 0
         else:
             if resp and verbose > 0:
                 print('Altering database failed')
                 
     # Here, we check again if there are remaining schema changes.  If so,
     # try migrating the database, backing up the existing one if it works
-    if total_changed_tables + migrate_only_changes > 0:
+    if simple_changes + migrate_only_changes > 0:
         resp = interpret_response(force_response, response_dict)
         dbexists = os.path.exists(dbfile)
         while resp is None:
@@ -1174,8 +763,8 @@ if __name__ == '__main__':
         help='File containing schema specification in Python dictionary '
         'format.  Each key in the dictionary is a table name and its value '
         'is a list of strings with one string per column definition or table '
-        'constraint.  If none specified, it uses the built-in MyTable '
-        'specication.')
+        'constraint, or index createion statement.  '
+        'If none specified, it uses the built-in MyTable specification.')
     parser.add_argument(
         '-o', '--order-matters', default=False, action='store_true',
         help='Pay attention to column ordering in tables when comparing.')
@@ -1200,8 +789,9 @@ if __name__ == '__main__':
         "using Python's datetime.strftime on the current local time.  "
         "The prefix goes before the input database's filename")
     parser.add_argument(
-        '-d', '--drop-unused-tables', default=False, action='store_true',
-        help='Drop any tables not mentioned in the schema when upgrading.')
+        '-d', '--drop-unused', default=False, action='store_true',
+        help='Drop any tables and indices not mentioned in the schema '
+        'when upgrading.')
     parser.add_argument(
         '-v', '--verbose', action='count', default=0,
         help='Add verbose comments.')
@@ -1228,7 +818,7 @@ if __name__ == '__main__':
     tablesep = '--<' + '=' * 15 + '>--'
     if args.verbose > 0:
         print(linesep)
-        print('Database specification:')
+        print('Text of desired database specification:')
         for table in database_spec:
             print('  Table specification ', tablesep, table, tablesep)
             for spec in database_spec[table]:
@@ -1238,11 +828,13 @@ if __name__ == '__main__':
     desired_db_schema = parse_database_schema(database_spec)
 
     if args.verbose > 2:
-        print('Parsed pragma records for database:')
+        print('Parsed pragma records for database in {}:'.format(
+            args.schema or 'sqlite_parser.py'))
         walk_tables(desired_db_schema,
                     lambda table, pragma_dict:
-                    (print('  New table', tablesep, table, tablesep),
-                     pprint_table_pragmas(pragma_dict, indent='    ')),
+                    (print('  Desired table', tablesep, table, tablesep),
+                     pprint_table_pragmas(pragma_dict, indent='    ',
+                                          tablename=table)),
                     verbose=args.verbose)
         print(linesep)
                 
@@ -1259,7 +851,8 @@ if __name__ == '__main__':
             walk_tables(actual_db_schema,
                         lambda table, pragma_dict:
                         (print('  Existing table', tablesep, table, tablesep),
-                         pprint_table_pragmas(pragma_dict, indent='    ')),
+                         pprint_table_pragmas(pragma_dict, indent='    ',
+                                              tablename=table)),
                         verbose=args.verbose)
             print(linesep)
             
@@ -1272,7 +865,7 @@ if __name__ == '__main__':
             if not backup_db_and_migrate(
                     desired_db_schema, actual_db_schema, args.database,
                     args.backup_dir, args.backup_file_prefix,
-                    preserve_unspecified=not args.drop_unused_tables,
+                    preserve_unspecified=not args.drop_unused,
                     verbose=args.verbose):
                 sys.exit(-1)
         else:
@@ -1285,6 +878,6 @@ if __name__ == '__main__':
                     force_response=args.force_response,
                     backup_dir=args.backup_dir, 
                     backup_prefix=args.backup_file_prefix,
-                    preserve_unspecified=not args.drop_unused_tables,
+                    preserve_unspecified=not args.drop_unused,
                     verbose=args.verbose):
                 sys.exit(-1)
