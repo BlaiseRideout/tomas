@@ -2,6 +2,7 @@
 
 import random
 import string
+import re
 from quemail import QueMail, Email
 
 import settings
@@ -41,5 +42,13 @@ def stringify(x):
     else:
         return str(x)
 
+def prettyWords(text):
+    result = []
+    _ = [result.extend(breakCamelCase(w)) for w in text.split('_') if w != '']
+    return ' '.join(result)
 
+capword = re.compile(r'[A-Z]?[a-z-]*')
+def breakCamelCase(words):
+    return [m.group(0) for m in capword.finditer(words) if m.group(0) != '']
+    
 winds = "東南西北"
