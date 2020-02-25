@@ -32,6 +32,7 @@ import login
 import seating
 import scores
 import leaderboard
+import players
 import playerstats
 import tournament
 import preferences
@@ -87,6 +88,7 @@ class Application(tornado.web.Application):
                 (r"/t/([^/]*)/scoreboard", leaderboard.ScoreboardHandler),
                 (r"/t/([^/]*)/leaderboard", leaderboard.LeaderDataHandler),
                 (r"/t/([^/]*)/leaderboard.html", leaderboard.LeaderboardHandler),
+                (r"/players/(.*)", players.PlayersListHandler),
                 (r"/playerstats/(.*)", playerstats.PlayerStatsHandler),
                 (r"/playerstatsdata/(.*)", playerstats.PlayerStatsDataHandler),
                 (r"/t/([^/]*)/scores", scores.EditGameHandler),

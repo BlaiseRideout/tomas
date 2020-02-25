@@ -493,7 +493,8 @@ def backup_db_and_migrate(
                     new_col_names.append(rename[name])
                 if in_old and in_new:
                     if verbose > 1:
-                        print('Copying old data... ', end='')
+                        print('Copying old data from {} ... '.format(table),
+                              end='')
                     cur.execute(
                         'INSERT INTO main.{0} ({1}) SELECT {2} FROM {3}.{0}'
                         .format(table, ','.join(new_col_names), 
@@ -598,6 +599,11 @@ def create_database(db_schema, dbfile, verbose=0):
                 if verbose > 1:
                     print('Creating new {} table'.format(table))
                 cur.execute(pd['table_sql'])
+                if pd['index_sqls']:
+                    if verbose > 1:
+                        print('Creating indices for {}'.format(table))
+                    for index_name in pd['index_sqls']:
+                        cur.execute(pd['index_sqls'][index_name])
             walk_tables(db_schema, create_table, verbose=verbose)
         if verbose > 0:
             print('Created empty database in {}'.format(dbfile))
