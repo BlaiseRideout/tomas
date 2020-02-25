@@ -99,22 +99,16 @@ schema = {
     ],
     'Players': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
+        "Tournament INTEGER",
         "Name TEXT NOT NULL",
+        "Number INTEGER",
         "Country INTEGER",
         "Association TEXT",
-	"BirthYear INTEGER",
-        "FOREIGN KEY(Country) REFERENCES Countries(Id) ON DELETE CASCADE",
-    ],
-    'Compete': [
-        "Id INTEGER PRIMARY KEY AUTOINCREMENT",
-        "Player INTEGER",
-        "Tournament INTEGER",
-        "Number INTEGER",
         "Pool TEXT",
         "Wheel TINYINT DEFAULT 0",
         "Type TINYINT DEFAULT 0",
-        "FOREIGN KEY(Player) REFERENCES Players(Id) ON DELETE CASCADE",
         "FOREIGN KEY(Tournament) REFERENCES Tournaments(Id) ON DELETE CASCADE",
+        "FOREIGN KEY(Country) REFERENCES Countries(Id) ON DELETE CASCADE",
         "CONSTRAINT NumberInTournament UNIQUE(Number, Tournament)"
     ],
     'Seating': [
