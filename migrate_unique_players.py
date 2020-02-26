@@ -85,6 +85,7 @@ schema_spec = {
         "Country INTEGER",
         "Association TEXT",
 	"BirthYear INTEGER",
+	"ReplacedBy INTEGER",
         "FOREIGN KEY(Country) REFERENCES Countries(Id) ON DELETE CASCADE",
     ],
     'Compete': [
