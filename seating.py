@@ -373,6 +373,7 @@ class SeatingHandler(handler.BaseHandler):
                            LEFT OUTER JOIN Scores AS LastScore ON
                              Players.Id = LastScore.PlayerId AND
                              LastScore.Round = ? - 1 AND LastScore.Rank != 0
+                           LEFT JOIN Compete ON Compete.Player = Players.Id
                            LEFT OUTER JOIN
                              (SELECT Players.Id,
                                      COALESCE(SUM(Penalty), 0) as sum
@@ -384,8 +385,8 @@ class SeatingHandler(handler.BaseHandler):
                                     ON Scores.Id = Penalties.ScoreId
                                 GROUP BY Players.Id) AS PenaltyPoints
                              ON Players.Id = PenaltyPoints.Id
-                         WHERE Players.Type = 0
-                         AND Players.Tournament = ?
+                         WHERE Compete.Type = 0
+                         AND Tournament = ?
                          GROUP BY Players.Id
                     """
                 query += ORDERINGS[ordering][1]
@@ -408,9 +409,10 @@ class SeatingHandler(handler.BaseHandler):
                         SELECT
                         Players.Id
                          FROM Players
-                           LEFT OUTER JOIN Countries ON Players.Country = Countries.Id
-                         WHERE Players.Type = 2
-                         AND Players.Tournament = ?
+                           LEFT JOIN Countries ON Players.Country = Countries.Id
+                           LEFT JOIN Compete ON Compete.Player = Players.Id
+                         WHERE Compete.Type = 2
+                         AND Tournament = ?
                          GROUP BY Players.Id
                     """
                 cur.execute(query, (self.tournamentid,))

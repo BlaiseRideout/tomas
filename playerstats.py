@@ -39,7 +39,8 @@ class PlayerStatsDataHandler(handler.BaseHandler):
     def get(self, player):
         with db.getCur() as cur:
             name = player
-            cur.execute("SELECT Id,Name FROM Players WHERE Id = ? OR Name = ?", (player, player))
+            cur.execute("SELECT Id,Name FROM Players WHERE Id = ? OR Name = ?",
+                        (player, player))
             player = cur.fetchone()
             if player is None or len(player) == 0:
                 self.write(json.dumps({'status': 1,
@@ -134,11 +135,12 @@ class PlayerStatsHandler(handler.BaseHandler):
             name = player
             cur.execute(
                     """SELECT
-                            Players.Id, Players.Name, Players.Number, Countries.Code,
-                            Flag_Image, Association, Pool
+                            Players.Id, Players.Name, Number, 
+                            Countries.Code, Flag_Image, Association, Pool
                         FROM Players
                         LEFT OUTER JOIN Countries
                           ON Countries.Id = Players.Country
+                        LEFT JOIN Compete ON Compete.Player = Players.Id
                         WHERE Players.Id = ? OR Players.Name = ?""", (player, player))
 
             player = cur.fetchone()

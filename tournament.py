@@ -29,11 +29,10 @@ class TournamentListHandler(handler.BaseHandler):
                 "Code", "Flag_Image"]
             colnames = [col.split(".")[-1] for col in columns] + [
                 'PlayerCount']
-            cur.execute("SELECT {columns}, COUNT(DISTINCT PLayers.Id)"
+            cur.execute("SELECT {columns}, COUNT(DISTINCT Compete.PLayer)"
                         " FROM Tournaments"
+                        " JOIN Compete on Compete.Tournament = Tournaments.Id"
                         " JOIN Countries ON Tournaments.Country = Countries.Id"
-                        " LEFT OUTER JOIN Players"
-                        "   ON Tournaments.Id = Players.tournament"
                         " GROUP BY Tournaments.Id"
                         " ORDER BY End DESC".format(
                         columns=",".join(columns)))
@@ -78,7 +77,9 @@ class EditTournamentHandler(handler.BaseHandler):
                         next_url=settings.PROXYPREFIX)
 
                 tournament = dict(zip(tmt_fields, results[0]))
-                cur.execute("SELECT Name FROM Players WHERE Tournament = ?"
+                cur.execute("SELECT Name FROM Players"
+                            " JOIN Compete on Compete.Player = Players.Id"
+                            " WHERE Tournament = ?"
                             "  ORDER BY Name",
                             (id, ))
                 tournament['Players'] = [row[0] for row in cur.fetchall()]
@@ -197,12 +198,12 @@ def getPlayers(self, tournamentid):
             " FROM Players"
             " LEFT OUTER JOIN Countries"
             "   ON Countries.Id = Players.Country"
+            " LEFT JOIN Compete ON Compete.Player = Players.Id"
             " INNER JOIN Tournaments"
-            "   ON Tournaments.Id = Players.Tournament"
-            " WHERE Players.Type != ?"
-            " AND Tournaments.Id = ?"
+            "   ON Tournaments.Id = Compete.Tournament"
+            " WHERE Tournaments.Id = ?"
             " ORDER BY Players.Name asc",
-            (db.playertypecode['UnusedPoints'], tournamentid))
+            (tournamentid,))
         rows = [dict(zip(player_fields, row)) for row in cur.fetchall()]
         for row in rows:
             row['type'] = db.playertypes[int(row['type'] or 0)]
@@ -223,17 +224,21 @@ class DeletePlayerHandler(handler.BaseHandler):
     def post(self):
         player = self.get_argument("player", None)
         if player is None:
-            return self.write({'status':"error", 'message':"Please provide a player"})
+            return self.write({'status':"error",
+                               'message':"Please provide a player"})
         try:
             with db.getCur() as cur:
                 if player == "all":
-                    cur.execute("DELETE FROM Players WHERE Tournament = ?", (self.tournamentid,))
+                    cur.execute("DELETE FROM Compete WHERE Tournament = ?",
+                                (self.tournamentid,))
                 else:
-                    cur.execute("DELETE FROM Players WHERE Id = ? AND Tournament = ?", (player, self.tournamentid))
+                    cur.execute("DELETE FROM Compete WHERE Player = ?"
+                                " AND Tournament = ?",
+                                (player, self.tournamentid))
                 return self.write({'status':"success"})
         except:
             return self.write({'status':"error",
-                 'message':"Couldn't delete player"})
+                 'message':"Couldn't delete player from tournament"})
 
 class PlayersHandler(handler.BaseHandler):
     @handler.tournament_handler_ajax
@@ -301,6 +306,7 @@ class DownloadPlayersHandler(handler.BaseHandler):
             cur.execute(
                 ("SELECT {colnames} FROM Players "
                  " LEFT OUTER JOIN Countries ON Countries.Id = Players.Country"
+                 " LEFT JOIN Compete ON Compete.Player = Players.Id"
                  " WHERE Tournament = ?")
                 .format(colnames=', '.join(colnames)), (self.tournamentid,))
             output = io.StringIO()
@@ -599,6 +605,7 @@ class AssociationsHandler(handler.BaseHandler):
     def get(self):
         with db.getCur() as cur:
             cur.execute("SELECT DISTINCT Association FROM Players"
+                        " LEFT JOIN Compete ON Compete.Player = Players.Id"
                         " WHERE Association IS NOT null"
                         "       AND length(Association) > 0"
                         "       AND Tournament = ?", (self.tournamentid,))

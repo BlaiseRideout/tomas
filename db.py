@@ -99,16 +99,23 @@ schema = {
     ],
     'Players': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
-        "Tournament INTEGER",
         "Name TEXT NOT NULL",
-        "Number INTEGER",
         "Country INTEGER",
         "Association TEXT",
+	"BirthYear INTEGER",
+	"ReplacedBy INTEGER",
+        "FOREIGN KEY(Country) REFERENCES Countries(Id) ON DELETE CASCADE",
+    ],
+    'Compete': [
+        "Id INTEGER PRIMARY KEY AUTOINCREMENT",
+        "Player INTEGER",
+        "Tournament INTEGER",
+        "Number INTEGER",
         "Pool TEXT",
         "Wheel TINYINT DEFAULT 0",
         "Type TINYINT DEFAULT 0",
+        "FOREIGN KEY(Player) REFERENCES Players(Id) ON DELETE CASCADE",
         "FOREIGN KEY(Tournament) REFERENCES Tournaments(Id) ON DELETE CASCADE",
-        "FOREIGN KEY(Country) REFERENCES Countries(Id) ON DELETE CASCADE",
         "CONSTRAINT NumberInTournament UNIQUE(Number, Tournament)"
     ],
     'Seating': [
@@ -163,7 +170,7 @@ schema = {
 }
 
 # Decode table for Players.Type values
-playertypes = ['Regular', 'Inactive', 'Substitute', 'UnusedPoints']
+playertypes = ['Regular', 'Inactive', 'Substitute']
 playertypecode = dict([(val, i) for i, val in enumerate(playertypes)])
 
 def init(force=False, dbfile=settings.DBFILE, verbose=0):
@@ -227,8 +234,9 @@ def getUnusedPointsPlayerID():
     if _unusedPointsPlayer:
         return _unusedPointsPlayer
     with getCur() as cur:
-        cur.execute("SELECT Id from Players WHERE Name = ? AND Type = ?",
-                    (unusedPointsPlayerName, playertypecode['UnusedPoints']))
+        cur.execute("SELECT Id from Players WHERE Name = ?"
+                    " AND ReplacedBy ISNULL OR ReplacedBy = Id",
+                    (unusedPointsPlayerName,))
         result = cur.fetchall()
         if len(result) > 1:
             raise Exception("More than 1 player defined for unused points")
@@ -236,9 +244,11 @@ def getUnusedPointsPlayerID():
             _unusedPointsPlayer = result[0][0]
         else:
             cur.execute(
-                "INSERT INTO Players (Name, Type) VALUES (?, ?)",
-                (unusedPointsPlayerName, playertypecode['UnusedPoints']))
+                "INSERT INTO Players (Name) VALUES (?, ?)",
+                (unusedPointsPlayerName,))
             _unusedPointsPlayer = cur.lastrowid
+            cur.execute("UPDATE Players SET ReplacedBy = ? WHERE Id = ?",
+                        (_unusedPointsPlayer, _unusedPointsPlayer))
     return _unusedPointsPlayer
 
 def updateGame(scores, tournamentID):

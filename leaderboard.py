@@ -82,14 +82,14 @@ def leaderData(tournamentid):
          Rounds.CombineLastCut, COALESCE(Rounds.CutCount, 0),
          COALESCE(Seating.CutName, ?)
        FROM Players
+       LEFT JOIN Compete ON Players.Id = Compete.Player
        LEFT JOIN Scores ON Players.Id = Scores.PlayerId
        LEFT JOIN Rounds ON Scores.Round = Rounds.Id
        LEFT JOIN Seating ON Scores.Round = Seating.Round AND 
             Players.Id = Seating.Player AND 
-            Players.Tournament = Seating.Tournament 
+            Compete.Tournament = Seating.Tournament 
        LEFT JOIN Countries ON Players.Country = Countries.Id
-       WHERE Players.Type != ?
-       AND Players.Tournament = ?
+       WHERE Compete.Tournament = ?
        GROUP BY Players.Id, Rounds.Id
        ORDER BY Rounds.Id ASC, Type ASC;"""
 
@@ -102,8 +102,7 @@ def leaderData(tournamentid):
               'cutName']
 
     with db.getCur() as cur:
-        cur.execute(
-            query, (notplayed, db.playertypecode['UnusedPoints'], tournamentid))
+        cur.execute(query, (notplayed, tournamentid))
         rows = cur.fetchall()
     scores = [dict(zip(fields, row)) for row in rows]
 
@@ -184,10 +183,10 @@ class ScoreboardHandler(handler.BaseHandler):
            FROM Scores
            LEFT JOIN Rounds ON Scores.Round = Rounds.Id
            LEFT JOIN Players ON Scores.PlayerId = Players.Id
+           LEFT JOIN Compete ON Players.Id = Compete.Player
            LEFT JOIN Countries ON Players.Country = Countries.Id
            LEFT OUTER JOIN Penalties ON Scores.Id = Penalties.ScoreId
-           WHERE Players.Type != ?
-           AND Players.Tournament = ?
+           WHERE Compete.Tournament = ?
            GROUP BY Scores.Id
            ORDER BY Type ASC, Players.Name ASC
         """
@@ -196,7 +195,7 @@ class ScoreboardHandler(handler.BaseHandler):
         with db.getCur() as cur:
             scoreboard = {}
             rounds = []
-            cur.execute(query, (db.playertypecode['UnusedPoints'], self.tournamentid))
+            cur.execute(query, (self.tournamentid,))
             for i, row in enumerate(cur.fetchall()):
                 rec = dict(zip(fields, row))
                 if rec['round'] not in [r[0] for r in rounds]:
