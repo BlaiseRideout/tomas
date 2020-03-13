@@ -1,47 +1,48 @@
 {% extends "template.html" %}
 {% block head %}
-<style type="text/css">
-.playerlist {
-	width:100%;
-}
-table.playerlist tr > *:nth-of-type(2) {
-	width:3em;
-}
-table.playerlist tr > *:nth-of-type(3) {
-	width:1em;
-}
-</style>
+{% end %}
+{% block title %}
+	Tournament Players
 {% end %}
 {% block content %}
+    <h2>All Players</h2>
+    <div id="jsGrid">
+    </div>
 
-<div id="playerlist">
-	<h2>All Players</h2>
-	<table class="playerlist">
-		<thead>
-			<tr>
-				{% for colhead in colheads %}
-				<th{% raw " " + colhead["Attrs"] if "Attrs" in colhead else "" %}>
-				  {{ colhead['Name'] }}</th>
-				{% end %}
-			</tr>
-		</thead>
-		{% for player in players %}
-			<tr>
-			  <td><a href="/t/{{ player['Name'] }}/tournament">{{ player['Name'] }}</a>
-			    {% if is_admin %}
-			    &nbsp;
-			    <a href="{{ proxyprefix }}editplayer/{{ player['Id'] }}">
-			      ✎</a>
-			    {% end %}
-			  </td>
-			  <td>{{ player['Association'] }}</td>
-			  <td>{{ player['BirthYear'] }}</td>
-			  <td>{{ player['Country'] }}</td>
-			  <td>{% raw player['Flag_Image'] %}</td>
-			  <td>{{ player['Tournaments'] }}</td>
-			  <td>{{ player['Latest'] }}</td>
-			</tr>
-			{% end %}
-	</table>
-</div>
+    <script>
+      var playerObjs = [
+      {% for player in players %}
+      { "Id": {{ player['Id'] }},
+        "Name": "{{ player['Name'] }}",
+        "Association": "{{ player['Association'] }}",
+        "Country": "{{ player['Country'] }}",
+        "Tournaments": "{{ player['Tournaments'] }}",
+        "Latest": "{{ player['Latest'] }}",
+      },
+      {% end %}
+      ];
+     
+      $("#jsGrid").jsGrid({
+        width: "100%",
+        height: "auto",
+     
+        inserting: true,
+        editing: true,
+        sorting: true,
+        paging: true,
+        filtering: true,
+     
+        data: playerObjs,
+     
+        fields: [
+                { name: "Id", type: "number", width: 5, visible: false },
+                { name: "Name", type: "text", width: 150, validate: "required"},
+                { name: "Association", type: "text", width: 40 },
+                { name: "Country", type: "text", width: 40 },
+                { name: "Tournaments", type: "number", width: 40 },
+                { name: "Latest", type: "text", width: 60 },
+                { type: "control" }
+            ]
+        });
+    </script>
 {% end %}
