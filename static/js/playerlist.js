@@ -27,13 +27,13 @@ $(function() {
 	controller: gridController,
      
         fields: [
-                { name: "Id", type: "number", width: 5, visible: false },
-                { name: "Name", type: "text", width: 150, validate: "required"},
-                { name: "Association", type: "text", width: 40 },
-                { name: "Country", type: "text", width: 40 },
-                { name: "Tournaments", type: "number", width: 40 },
-                { name: "Latest", type: "text", width: 60 },
-                { type: "control" }
-            ]
+            { name: "Id", type: "number", width: 5, visible: false },
+            { name: "Name", type: "text", width: 150, validate: "required"},
+            { name: "Association", type: "text", width: 40 },
+            { name: "Country", type: "text", width: 40 },
+            { name: "Tournaments", type: "number", width: 40, editing: false },
+            { name: "Latest", type: "text", width: 60, editing: false },
+            { type: "control" }
+        ]
         });
 });
