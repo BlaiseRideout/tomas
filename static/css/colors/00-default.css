@@ -38,7 +38,7 @@ table td {
     background: #333;
 }
 
-.jsgrid-alt-row > .jsgrid-cell {
+.jsgrid-nodata-row > .jsgrid-cell, .jsgrid-alt-row > .jsgrid-cell {
     background: #111;
 }
 

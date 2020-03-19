@@ -1,48 +1,14 @@
 {% extends "template.html" %}
 {% block head %}
+<script src="{{ proxyprefix.rstrip('/') + static_url("js/playerlist.js") }}"
+	type="text/javascript"></script>
 {% end %}
 {% block title %}
-	Tournament Players
+	All Tournament Players
 {% end %}
 {% block content %}
-    <h2>All Players</h2>
-    <div id="jsGrid">
+    <h2>All Tournment Players</h2>
+    <div id="playersGrid">
     </div>
 
-    <script>
-      var playerObjs = [
-      {% for player in players %}
-      { "Id": {{ player['Id'] }},
-        "Name": "{{ player['Name'] }}",
-        "Association": "{{ player['Association'] }}",
-        "Country": "{{ player['Country'] }}",
-        "Tournaments": "{{ player['Tournaments'] }}",
-        "Latest": "{{ player['Latest'] }}",
-      },
-      {% end %}
-      ];
-     
-      $("#jsGrid").jsGrid({
-        width: "100%",
-        height: "auto",
-     
-        inserting: true,
-        editing: true,
-        sorting: true,
-        paging: true,
-        filtering: true,
-     
-        data: playerObjs,
-     
-        fields: [
-                { name: "Id", type: "number", width: 5, visible: false },
-                { name: "Name", type: "text", width: 150, validate: "required"},
-                { name: "Association", type: "text", width: 40 },
-                { name: "Country", type: "text", width: 40 },
-                { name: "Tournaments", type: "number", width: 40 },
-                { name: "Latest", type: "text", width: 60 },
-                { type: "control" }
-            ]
-        });
-    </script>
 {% end %}
