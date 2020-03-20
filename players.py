@@ -32,9 +32,7 @@ def playerColumns():
         
 class PlayersHandler(handler.BaseHandler):
     def get(self, rest=''):
-        columns, colnames, colheads = playerColumns()
-        return self.render(
-            "playerlist.html", players=[], colheads=colheads)
+        return self.render("playerlist.html")
 
 class PlayersListHandler(handler.BaseHandler):
     def get(self):
@@ -45,7 +43,8 @@ class PlayersListHandler(handler.BaseHandler):
                     "SELECT {columns} FROM Players"
                     " JOIN Countries ON Players.Country = Countries.Id"
                     " LEFT OUTER JOIN Compete ON Players.Id = Compete.Player"
-                    " JOIN Tournaments ON Compete.Tournament = Tournaments.Id"
+                    " LEFT OUTER JOIN Tournaments"
+                    "   ON Compete.Tournament = Tournaments.Id"
                     " WHERE Players.ReplacedBy ISNULL"
                     " GROUP BY Players.Id"
                     " ORDER BY Players.Name".format(
@@ -58,3 +57,74 @@ class PlayersListHandler(handler.BaseHandler):
                       'message': 'Unable to get players from database. ' +
                       str(e) }
         self.write(result)
+        
+    @tornado.web.authenticated
+    def post(self):
+        encoded_item = self.get_argument('item', None)
+        item = json.loads(encoded_item)
+        result = {'status': 0, 'message': ''}
+        if item.get('Id', None) is None or not isinstance(item['Id'], int):
+            result['message'] = 'Invalid Id field in item, {}'.format(
+                repr(item.get('Id', None)))
+            result['status'] = -1
+            self.write(result)
+            return
+        id = abs(item['Id'])
+        result['message'] = 'Item {}'.format(
+            'inserted' if id == 0 else 'deleted' if item['Id'] < 0 else
+            'updated')
+        player_fields = [f for f in db.table_field_names('Players')
+                         if f not in ('ReplacedBy')]
+        columns = [f for f in player_fields if f in item and f not in ['Id']]
+        cleanPlayerItem(item, columns)
+        try:
+            with db.getCur() as cur:
+                if id > 0:
+                    sql, args = 'SELECT Id FROM Players WHERE Id = ?', (id, )
+                    cur.execute(sql, args)
+                    matches = len(cur.fetchall())
+                    if matches == 0:
+                        result['message'] = 'No player with Id {}'.format(id)
+                        result['status'] = -2
+                    elif matches > 1:
+                        result['message'] = (
+                            'Multiple players with Id {}'.format(id))
+                        result['status'] = -3
+                if result['status'] == 0:
+                    values = [item[f] for f in columns]
+                    if item['Id'] < 0:
+                        sql = 'DELETE FROM Players WHERE Id = ?'
+                        args = (id, )
+                    elif item['Id'] == 0:
+                        sql = 'INSERT INTO Players ({}) VALUES ({})'.format(
+                            ', '.join(columns),
+                            ', '.join(['?' for v in values]))
+                        args = values
+                    else:
+                        sql = 'UPDATE Players SET {} WHERE Id = ?'.format(
+                                ', '.join('{} = ?'.format(f) for f in columns))
+                        args = values + [id]
+                    log.info('Executing "{}" on {}'.format(sql, args))
+                    cur.execute(sql, args)
+                    if item['Id'] == 0:
+                        log.info('Last Player Row ID is now {}'.format(
+                            cur.lastrowid))
+        except Exception as e:
+            result['message'] = (
+                'Exception in database change. SQL = {}. {}'.format(sql, e))
+            result['status'] = -5
+            
+        self.write(result)
+
+def cleanPlayerItem(item, columns):
+    for field in ['Name', 'Association']:
+        if field in columns:
+            item[field] = item[field].strip()
+    if 'Country' in columns:
+        with db.getCur() as cur:
+            sql = 'SELECT Id FROM Countries WHERE Code = ?'
+            args = (item['Country'].upper(), )
+            cur.execute(sql, args)
+            result = cur.fetchone()
+            if result:
+                item['Country'] = result[0]

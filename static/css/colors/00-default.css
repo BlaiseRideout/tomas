@@ -55,7 +55,11 @@ table td {
 }
 
 .jsgrid-edit-row > .jsgrid-cell {
-    background: #fdffe3;
+    background: #464;
+}
+
+.jsgrid-invalid input {
+    background: #644;
 }
 
 .ui-widget-content, .ui-state-default, #tournament li {
