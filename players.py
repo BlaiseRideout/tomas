@@ -19,14 +19,14 @@ log = logging.getLogger('WebServer')
 
 def playerColumns():
     player_fields = [f for f in db.table_field_names('Players')
-                     if f not in ('Country', 'ReplacedBy')]
+                     if f not in ('ReplacedBy')]
     columns = ["Players.{}".format(f) for f in player_fields] + [
-        "Code", "Flag_Image", "COUNT(DISTINCT Tournaments.Id)",
-        "MAX(Tournaments.Start)"] 
-    colnames = player_fields + [
-        "Country", "Flag_Image", "Tournaments", "Latest"]
+        "Flag_Image", "COUNT(DISTINCT Tournaments.Id)",
+        "MAX(Tournaments.Start)", "COUNT(Scores.Id)"
+    ] 
+    colnames = player_fields + ["Flag", "Tournaments", "Latest", "Scores"]
     colheads = [{"Name": util.prettyWords(col)} for col in colnames 
-                if col not in ('Id', 'Flag_Image')]
+                if col not in ('Id', 'Flag_Image', 'Scores')]
     colheads[len(player_fields) - 1]["Attrs"] = "colspan=2"
     return columns, colnames, colheads
         
@@ -45,11 +45,14 @@ class PlayersListHandler(handler.BaseHandler):
                     " LEFT OUTER JOIN Compete ON Players.Id = Compete.Player"
                     " LEFT OUTER JOIN Tournaments"
                     "   ON Compete.Tournament = Tournaments.Id"
+                    " LEFT OUTER JOIN Scores ON Players.Id = Scores.PlayerId"
                     " WHERE Players.ReplacedBy ISNULL"
                     " GROUP BY Players.Id"
                     " ORDER BY Players.Name".format(
                         columns=",".join(columns)))
                 players = [dict(zip(colnames, row)) for row in cur.fetchall()]
+#                for item in players:
+#                    item['Country'] += ' ' + item['Flag_Image']
                 result = {'status': 0, 
                           'data': players, 'itemsCount': len(players)}
         except Exception as e:
@@ -120,7 +123,7 @@ def cleanPlayerItem(item, columns):
     for field in ['Name', 'Association']:
         if field in columns:
             item[field] = item[field].strip()
-    if 'Country' in columns:
+    if 'Country' in columns and isinstance(item['Country'], str):
         with db.getCur() as cur:
             sql = 'SELECT Id FROM Countries WHERE Code = ?'
             args = (item['Country'].upper(), )
