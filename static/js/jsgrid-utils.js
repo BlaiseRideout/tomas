@@ -1,23 +1,24 @@
 (function() {
     updateFlagImage = function (updateObj, countries) {
 	var newFlag = countries.find( // Find country ID countries array
-	    function (country) {return country.Id == updateObj.item.Country})
-	    .Flag_Image;
-	updateObj.item['Flag'] = newFlag;
-	$(updateObj.row).find("td.FlagImage").html(newFlag);
+	    function (country) {return country.Id == updateObj.item.Country});
+	if (newFlag) {
+	    updateObj.item['Flag'] = newFlag.Flag_Image;
+	    $(updateObj.row).find("td.FlagImage").html(newFlag.Flag_Image);
+	}
     };
     makeFilter = function(filterItem, fieldDescriptions) {
 	return function(item) { // Create a function to filter items based on
 	    var keep = true; // user's filter parameters and field types
 	    for (field in fieldDescriptions) {
 		var fd = fieldDescriptions[field];
-		if (filterItem[field] && ( // Only check visible fields
+		if (filterItem[fd.name] && ( // Only check visible fields
 		    !fd.hasOwnProperty("visible") || fd.visible)) {
 		    if ((["number", "checkbox", "select"].indexOf(fd.type) > -1
-			 && item[field] != filterItem[field]) ||
-			(fd.type == "text" && 
-			 item[field].toLowerCase().indexOf(
-			     filterItem[field].toLowerCase()) == -1) ) {
+			 && item[fd.name] != filterItem[fd.name]) ||
+			(fd.type == "text" && item[fd.name] &&
+			 item[fd.name].toLowerCase().indexOf(
+			     filterItem[fd.name].toLowerCase()) == -1) ) {
 			keep = false;
 			break;  // Once a filter fails, quit loop
 		    }

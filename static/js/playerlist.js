@@ -1,12 +1,13 @@
 $(function() {
     $.getJSON("/countries", function(countryList) {
-	var fieldDescriptions = [
+	var anyCountry = [{Code: "any", Id: NaN}], 
+	    fieldDescriptions = [
             { name: "Id", type: "number", width: 5, visible: false },
             { name: "Name", type: "text", width: 150, validate: "required"},
             { name: "Association", type: "text", width: 40 },
-            { name: "Country", type: "select", width: 30, items: countryList,
-	      css: "CountrySelector", valueField: "Id", valueType: "number",
-	      textField: "Code", },
+            { name: "Country", type: "select", width: 30,
+	      items: anyCountry.concat(countryList), css: "CountrySelector",
+	      valueField: "Id", valueType: "number", textField: "Code", },
             { name: "Flag", type: "text", width: 20, css: "FlagImage",
 	      editing: false, inserting: false, sorting: false,
 	      filtering: false },
@@ -41,7 +42,7 @@ $(function() {
 		updateFlagImage(obj, countryList);
 //		$("#playersGrid").jsGrid("loadData"); Kluge to get data to show
 		$.notify(                             // KLUGE NOT WORKING
-		    "Player record inserted at end. Refesh page to see it"
+		    "Player record may be at end. Refesh page to see it"
 		    , { position: "left" } );         // SO NOTIFY USER INSTEAD
 	    },
 	    onItemInseted: function(obj) { // THIS ISN'T CALLED EVEN THOUGH

@@ -51,8 +51,6 @@ class PlayersListHandler(handler.BaseHandler):
                     " ORDER BY Players.Name".format(
                         columns=",".join(columns)))
                 players = [dict(zip(colnames, row)) for row in cur.fetchall()]
-#                for item in players:
-#                    item['Country'] += ' ' + item['Flag_Image']
                 result = {'status': 0, 
                           'data': players, 'itemsCount': len(players)}
         except Exception as e:
@@ -67,9 +65,13 @@ class PlayersListHandler(handler.BaseHandler):
         item = json.loads(encoded_item)
         result = {'status': 0, 'message': ''}
         if item.get('Id', None) is None or not isinstance(item['Id'], int):
-            result['message'] = 'Invalid Id field in item, {}'.format(
-                repr(item.get('Id', None)))
+            result['message'] = 'Invalid Id field for player, {}'.format(item)
             result['status'] = -1
+            self.write(result)
+            return
+        if not isinstance(item.get('Country', None), int) and item['Id'] >= 0:
+            result['message'] = 'Invalid Country for Player, {}'.format(item)
+            result['status'] = -2
             self.write(result)
             return
         id = abs(item['Id'])
@@ -88,11 +90,20 @@ class PlayersListHandler(handler.BaseHandler):
                     matches = len(cur.fetchall())
                     if matches == 0:
                         result['message'] = 'No player with Id {}'.format(id)
-                        result['status'] = -2
+                        result['status'] = -3
                     elif matches > 1:
                         result['message'] = (
                             'Multiple players with Id {}'.format(id))
-                        result['status'] = -3
+                        result['status'] = -4
+                if item['Id'] >= 0:
+                    sql = 'SELECT Id FROM Countries WHERE Id = ?'
+                    args = (item['Country'], )
+                    cur.execute(sql, args)
+                    matches = len(cur.fetchall())
+                    if matches != 1:
+                        result['message'] = (
+                            'Invalid Country for Player {}'.format(item))
+                        result['status'] = -5
                 if result['status'] == 0:
                     values = [item[f] for f in columns]
                     if item['Id'] < 0:
@@ -114,8 +125,10 @@ class PlayersListHandler(handler.BaseHandler):
                             cur.lastrowid))
         except Exception as e:
             result['message'] = (
-                'Exception in database change. SQL = {}. {}'.format(sql, e))
-            result['status'] = -5
+                'Exception in database change. SQL = {}. Args = {}. {}'.format(
+                    sql, args, e))
+            log.error(result['message'])
+            result['status'] = -10
             
         self.write(result)
 
