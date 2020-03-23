@@ -1,12 +1,13 @@
 (function() {
-    updateFlagImage = function (updateObj, countries) {
-	var newFlag = countries.find( // Find country ID countries array
+    updateFlagImage = function(updateObj, countries) {
+	var country = countries.find( // Find country ID in countries array
 	    function (country) {return country.Id == updateObj.item.Country});
-	if (newFlag) {
-	    updateObj.item['Flag'] = newFlag.Flag_Image;
-	    $(updateObj.row).find("td.FlagImage").html(newFlag.Flag_Image);
+	if (country) {
+	    updateObj.item['Flag'] = country.Flag_Image;
+	    $(updateObj.row).find("td.FlagImage").html(country.Flag_Image);
 	}
     };
+    
     makeFilter = function(filterItem, fieldDescriptions) {
 	return function(item) { // Create a function to filter items based on
 	    var keep = true; // user's filter parameters and field types
@@ -27,6 +28,7 @@
 	    return keep
 	}
     };
+    
     makeController = function(jsonURL, fieldDescriptions) {
 	return { // Create a controller object for jsGrid
 	    loadData: function(filterItem) { // Load GETs jsonURL
