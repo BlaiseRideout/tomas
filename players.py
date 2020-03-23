@@ -121,8 +121,11 @@ class PlayersListHandler(handler.BaseHandler):
                     log.info('Executing "{}" on {}'.format(sql, args))
                     cur.execute(sql, args)
                     if item['Id'] == 0:
+                        item['Id'] = cur.lastrowid
                         log.info('Last Player Row ID is now {}'.format(
-                            cur.lastrowid))
+                            item['Id']))
+                    item['Id'] = abs(item['Id']) # Put cleaned item record
+                    result['item'] = item # with correct Id in rsespone
         except Exception as e:
             result['message'] = (
                 'Exception in database change. SQL = {}. Args = {}. {}'.format(

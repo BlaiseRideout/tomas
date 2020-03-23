@@ -29,6 +29,14 @@
 	}
     };
     
+    function postChange(jsonURL, item, deferred) {
+	$.post(jsonURL, {item: JSON.stringify(item)}, 
+	       function(resp) {
+		   if (resp.status != 0) { $.notify(resp.message) };
+		   deferred.resolve(resp.status == 0 ? resp.item : null);
+	       }, "json");
+    };
+    
     makeController = function(jsonURL, fieldDescriptions) {
 	return { // Create a controller object for jsGrid
 	    loadData: function(filterItem) { // Load GETs jsonURL
@@ -47,30 +55,18 @@
 	    insertItem: function(item) {
 		var d = $.Deferred();
 		item.Id = 0;  // Insert POSTs new item with ID == 0
-		$.post(jsonURL, {item: JSON.stringify(item)}, 
-		       function(resp) {
-			   if (resp.status != 0) { $.notify(resp.message) };
-			   d.resolve(resp.status == 0 ? item : null);
-		       }, "json");
+		postChange(jsonURL, item, d);
 		return d.promise();
 	    },
 	    updateItem: function(item) {
 		var d = $.Deferred(); // Update POSTs modified item (same ID)
-		$.post(jsonURL, {item: JSON.stringify(item)}, 
-		       function(resp) {
-			   if (resp.status != 0) {$.notify(resp.message) };
-			   d.resolve(resp.status == 0 ? item : null);
-		       }, "json");
+		postChange(jsonURL, item, d);
 		return d.promise();
 	    },
 	    deleteItem: function(item) {
 		var d = $.Deferred(); // Delete POSTs item with negative ID
 		if (item.Id) {item.Id = - item.Id};
-		$.post(jsonURL, {item: JSON.stringify(item)}, 
-		       function(resp) {
-			   if (resp.status != 0) { $.notify(resp.message) };
-			   d.resolve(resp.status == 0 ? item : null);
-		       }, "json");
+		postChange(jsonURL, item, d);
 		return d.promise();
 	    },
 	};
