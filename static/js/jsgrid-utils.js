@@ -50,7 +50,7 @@
 		$.post(jsonURL, {item: JSON.stringify(item)}, 
 		       function(resp) {
 			   if (resp.status != 0) { $.notify(resp.message) };
-			   d.resolve(item ? resp.status == 0 : null);
+			   d.resolve(resp.status == 0 ? item : null);
 		       }, "json");
 		return d.promise();
 	    },
@@ -59,7 +59,7 @@
 		$.post(jsonURL, {item: JSON.stringify(item)}, 
 		       function(resp) {
 			   if (resp.status != 0) {$.notify(resp.message) };
-			   d.resolve(item ? resp.status == 0 : null);
+			   d.resolve(resp.status == 0 ? item : null);
 		       }, "json");
 		return d.promise();
 	    },
@@ -69,7 +69,7 @@
 		$.post(jsonURL, {item: JSON.stringify(item)}, 
 		       function(resp) {
 			   if (resp.status != 0) { $.notify(resp.message) };
-			   d.resolve(item ? resp.status == 0 : null);
+			   d.resolve(resp.status == 0 ? item : null);
 		       }, "json");
 		return d.promise();
 	    },

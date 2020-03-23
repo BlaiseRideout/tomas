@@ -73,9 +73,6 @@ $(function() {
 	    onItemUpdating: function(obj) {
 		updateFlagImage(obj, countryList);
 	    },
-	    onItemUpdated: function(obj) { // Kluge to get data to show up
-		$("#playersGrid").jsGrid("loadData");
-	    },
 	    onItemInserting: function(obj) {
 		updateFlagImage(obj, countryList);
 //		$("#playersGrid").jsGrid("loadData"); Kluge to get data to show
