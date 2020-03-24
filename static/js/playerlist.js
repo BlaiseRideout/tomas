@@ -1,7 +1,7 @@
 $(function() {
     $.getJSON("/countries", function(countryList) {
 	var anyCountry = [{Code: "any", Id: NaN}],
-	    selectedPlayers = [],  // list of selected Player Id's
+	    selectedPlayers = new Object(), // hash of selected Player Id's
 	    fieldDescriptions = [
 		{ name: "Id", type: "number", width: 5, visible: false },
 		{ name: "Name", type: "text", width: 150, validate: "required"},
@@ -20,19 +20,10 @@ $(function() {
 		  inserting: false,
 		  itemTemplate: function(value, item) {
 		      return this._createCheckbox().prop({
-			  checked: item.Id && selectedPlayers.find(
-			      function(x) {return x == item.Id}),
+			  checked: item.Id && selectedPlayers[item.Id],
 			  disabled: false
 		      }).click(function (e) {
-			  if ($(this).prop("checked")) {
-			      selectedPlayers.push(item.Id)
-			  } else {
-			      var players = [];
-			      for (var id in selctedPlayers) {
-				  if (id != item.Id) {players.push(id)}
-			      };
-			      selectedPlayers = players;
-			  };
+			  selectedPlayers[item.Id] = $(this).prop("checked");
 			  e.stopPropagation();
 		      });
 		  },
