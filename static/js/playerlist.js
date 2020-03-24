@@ -66,10 +66,6 @@ $(function() {
 	    },
 	    onItemInserting: function(obj) {
 		updateFlagImage(obj, countryList);
-//		$("#playersGrid").jsGrid("loadData"); Kluge to get data to show
-		$.notify(                             // KLUGE NOT WORKING
-		    "Player record may be at end. Refesh page to see it"
-		    , { position: "left" } );         // SO NOTIFY USER INSTEAD
 	    },
 	    onItemInseted: function(obj) { // THIS ISN'T CALLED EVEN THOUGH
 		$("#playersGrid").jsGrid("loadData"); // THE DOCS SAY IT IS

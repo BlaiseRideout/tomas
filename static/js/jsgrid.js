@@ -1606,7 +1606,7 @@
 
         finishInsert: function(insertedItem) {
             var grid = this._grid;
-            grid.option("data").push(insertedItem);
+            grid.option("data").unshift(insertedItem);
             grid.refresh();
         },
 
