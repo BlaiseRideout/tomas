@@ -18,7 +18,7 @@ import util
 
 log = logging.getLogger('WebServer')
 
-fetchValidPlayersSQL = """
+ValidPlayersSQL = """
 SELECT {columns} FROM Players
  JOIN Countries ON Players.Country = Countries.Id
  LEFT OUTER JOIN Compete ON Players.Id = Compete.Player
@@ -48,11 +48,18 @@ class PlayersHandler(handler.BaseHandler):
 class PlayersListHandler(handler.BaseHandler):
     def get(self):
         columns, colnames, colheads = playerColumns()
+        condition = ""
+        args = []
+        players = self.get_argument("players", None)
+        if players and isinstance(players, str):
+            players = [id if id.isdigit() else False 
+                       for id in players.split()]
+            if all(players):
+                condition = "AND Players.Id in ({})".format(",".join(players))
         try:
             with db.getCur() as cur:
-                sql = validPlayersSQL.format(
-                    columns=",".join(columns), conditions="")
-                args = []
+                sql = ValidPlayersSQL.format(
+                    columns=",".join(columns), conditions=condition)
                 cur.execute(sql, args)
                 players = [dict(zip(colnames, row)) for row in cur.fetchall()]
                 result = {'status': 0, 'data': players}
@@ -176,7 +183,7 @@ class MergePlayersHandler(handler.BaseHandler):
             columns, colnames, colheads = playerColumns()
             try:
                 with db.getCur() as cur:
-                    sql = validPlayersSQL.format(
+                    sql = ValidPlayersSQL.format(
                         columns=",".join(columns), 
                         conditions='AND Players.Id IN ({})'.format(
                             ",".join(map(str, playerIDs))))
