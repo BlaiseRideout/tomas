@@ -67,9 +67,6 @@ $(function() {
 	    onItemInserting: function(obj) {
 		updateFlagImage(obj, countryList);
 	    },
-	    onItemInseted: function(obj) { // THIS ISN'T CALLED EVEN THOUGH
-		$("#playersGrid").jsGrid("loadData"); // THE DOCS SAY IT IS
-	    },
         });
     });
     $(".playerListTitle").click(function() { // Click on grid title reloads
