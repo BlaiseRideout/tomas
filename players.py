@@ -89,6 +89,8 @@ class PlayersListHandler(handler.BaseHandler):
         result['message'] = 'Item {}'.format(
             'inserted' if id == 0 else 'deleted' if item['Id'] < 0 else
             'updated')
+        if item['Id'] < 0:
+            db.make_backup()
         player_fields = [f for f in db.table_field_names('Players')
                          if f not in ('ReplacedBy')]
         columns = [f for f in player_fields if f in item and f not in ['Id']]
@@ -165,19 +167,21 @@ class MergePlayersHandler(handler.BaseHandler):
     @tornado.web.authenticated
     def post(self):
         global sql, args
-        encoded_request = self.get_argument('request', None)
-        request = json.loads(encoded_request)
+        request = json.loads(self.request.body)
+        playerIDs = request and request.get('playerIDs', None)
+        performMerge = request and request.get('performMerge', None)
         result = {'status': 0, 'message': ''}
-        if not (isinstance(request, dict) and 'playerIDs' in request):
-            result['message'] = 'Invalid request to merge players, {}'.format(
-                request)
+        if not isinstance(playerIDs, list):
+            result['message'] = 'Invalid merge player request, {} {}'.format(
+                playerIDs, performMerge)
+            log.error(result['message'])
             result['status'] = -1
-        elif not (isinstance(request['playerIDs'], list) and
-                  all(map(lambda x: isinstance(x, int) and x > 0,
-                          request['playerIDs'])) and
-                  len(request['playerIDs']) > 1):
+        elif not all(map(lambda x: (isinstance(x, int) and x > 0) or
+                         (isinstance(x, str) and x.isdigit()),
+                         playerIDs)) and len(playerIDs) > 1:
             result['message'] = 'Invalid Player IDs in request, {}'.format(
-                request['playerIDs'])
+                playerIDs)
+            log.error(result['message'])
             result['status'] = -2
         else:
             columns, colnames, colheads = playerColumns()
@@ -187,11 +191,12 @@ class MergePlayersHandler(handler.BaseHandler):
                         columns=",".join(columns), 
                         conditions='AND Players.Id IN ({})'.format(
                             ",".join(map(str, playerIDs))))
-                    args = playerIDs
+                    args = []
                     cur.execute(sql, args)
-                    players = [dict(zip(colnames, row)) 
-                               for row in cur.fetchall()]
-                    missing = set(playerIDs) - set(p['Id'] for p in players)
+                    players = [
+                        dict(zip(colnames, row)) for row in cur.fetchall()]
+                    missing = set(map(int, playerIDs)) - set(
+                        p['Id'] for p in players)
                     if len(missing) > 0:
                         result['message'] = 'Missing Player IDs, {}'.format(
                             missing)
@@ -200,7 +205,7 @@ class MergePlayersHandler(handler.BaseHandler):
                         merge_record = self.combine_player_records(
                             players, colnames)
                         result['merged'] = merge_record
-                        if 'performMerge' in request and request['peformMerge']:
+                        if performMerge:
                             self.merge_player_records(
                                 playerIDs, merge_record, colnames, cur, result)
             except Exception as e:
@@ -212,10 +217,13 @@ class MergePlayersHandler(handler.BaseHandler):
             
         self.write(result)
 
-    def combine_player_records(players, colnames):
+    def combine_player_records(self, players, colnames):
         res = {}
-        maxitem = 0
+        playerFields = [f for f in db.table_field_names('Players')
+                        if f not in ('Id', 'ReplacedBy')]
         for col in colnames: # For each column, histogram values
+            if col not in playerFields:
+                continue
             hist = defaultdict(lambda: 0)
             for player in players:
                 val = "" if player[col] is None else player[col]
@@ -231,22 +239,27 @@ class MergePlayersHandler(handler.BaseHandler):
             res[col] = metrics[-1][0]  # Take highest after sort
         return res
 
-    def merge_player_records(playerIDs, merge_record, colnames, cur, result):
+    def merge_player_records(
+            self, playerIDs, merge_record, colnames, cur, result):
         global sql, args
+        db.make_backup()
         keys = list(merge_record.keys())
         sql = 'INSERT INTO Players ({}) VALUES ({})'.format(
             ', '.join(keys), ', '.join(['?' for k in keys]))
         args = [merge_record[k] for k in keys]
         cur.execute(sql, args)
-        merge_reocrd['Id'] = cur.lastrowid
-        for table, field in (
-                ('Players', 'ReplacedBy'), ('Scores', 'PlayerId'), 
-                ('Compete', 'Player'), ('Seating', 'Player')):
-            sql = ('UPDATE {table} SET ({field} = {mergeID})'
-                   '  WHERE {field} in ({playerIDs})'.format(
-                       table=table, field=field, mergeID=merge_record['Id'],
+        merge_record['Id'] = cur.lastrowid
+        for table, pIDfield, target  in (
+                ('Players', 'Id', 'ReplacedBy'), ('Scores', 'PlayerId', 0), 
+                ('Compete', 'Player', 0), ('Seating', 'Player', 0)):
+            sql = ('UPDATE {table} SET {target} = {mergeID}'
+                   '  WHERE {pIDfield} in ({playerIDs})'.format(
+                       table=table, pIDfield=pIDfield,
+                       target=target or pIDfield,
+                       mergeID=merge_record['Id'],
                        playerIDs=', '.join(str(id) for id in playerIDs)))
             cur.execute(sql)
+            log.info('Executed SQL: {}'.format(sql))
         result['status'] = 0
         result['message'] = '{} player records merged into ID {}'.format(
             len(playerIDs), merge_record['Id'])

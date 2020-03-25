@@ -90,7 +90,7 @@ class Application(tornado.web.Application):
                 (r"/t/([^/]*)/leaderboard.html", leaderboard.LeaderboardHandler),
                 (r"/players/(.*)", players.PlayersHandler),
                 (r"/playerslist/", players.PlayersListHandler),
-                (r"/playersMerge/", players.MergePlayersHandler),
+                (r"/mergePlayers/", players.MergePlayersHandler),
                 (r"/playerstats/(.*)", playerstats.PlayerStatsHandler),
                 (r"/playerstatsdata/(.*)", playerstats.PlayerStatsDataHandler),
                 (r"/t/([^/]*)/scores", scores.EditGameHandler),

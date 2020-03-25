@@ -4,12 +4,15 @@ $(function() {
 	    selectedPlayers = new Object(), // hash of selected Player Id's
 	    createMergeButton = function(item) {
 		// merge icon: triple nested greater than ⫸ (u-2AF8)
+		var selected = selectedPlayerIDs();
 		return $("<input>").addClass(
 		    "player-merge-button").attr({
 			type: "button",
 			title: "Merge selected players",
 		    }).data("playerID", item.Id)
-		    .css("display", "none").text("⫸").on(
+		    .css("display", 
+			 selected.length > 1 && selected[item.Id] ? "inline" :
+			 "none").text("⫸").on(
 			"click", function(e) {
 			mergeSelectedPlayers(selectedPlayers, e);
 			e.stopPropagation();
@@ -91,14 +94,64 @@ $(function() {
 	    players = selectedPlayerIDs();
 	    if (players.length < 2) {
 		$.notify('Merge requires 2 or more players')
-	    } else if (window.confirm(
-		'OK to merge ' + players.length + ' players?')) {
-		console.log('Merge players with IDs: ', players.join(', '));
-		clearSelectedPlayers();
-		updatePlayerMergeButtons();
+		return;
 	    }
+	    $.post(
+		"/mergePlayers/", 
+		JSON.stringify({playerIDs: players, performMerge: false}),
+		function(resp) {
+		    if (resp.status != 0) { $.notify(resp.message); return};
+		    $.getJSON(
+			"/playerslist/?players=" +
+			    players.join("%20"),
+			function(currentPlayers) {
+			    if (currentPlayers.status != 0) {
+				$.notify(currentPlayers.message); return};
+			    if (confirmMerge(
+				resp.merged, currentPlayers.data)) {
+				$.post("/mergePlayers/",
+				       JSON.stringify({playerIDs: players,
+						       performMerge: true}),
+				       function(realmerge) {
+					   if (realmerge.status != 0) {
+					       $.notify(realmerge.message);
+					       return
+					   };
+					   console.log(
+					       'Merged players with IDs: ',
+					       players.join(', '));
+					   clearSelectedPlayers();
+					   $("#playersGrid").jsGrid("loadData");
+					   // updatePlayerMergeButtons();
+				       });
+			    };
+			});
+		});
+ 	};
+
+	function confirmMerge(merged, players) {
+	    msg = "Do you wish merge\n" +
+		players.map(function(o) {return copyObj(o, merged)})
+		.map(objectToString).join("\n") + "\ninto the player\n" +
+		objectToString(merged) + "?\nThe operation cannot be undone.";
+	    return confirm(msg);
+	};
+
+	function copyObj(obj, template) {
+	    var result = new Object();
+	    for (field in template) {result[field] = obj[field]};
+	    return result
 	};
 	
+	function objectToString(obj) {
+	    var result = "";
+	    for (field in obj) {
+		if (result.length) { result += ", "}
+		result += field + ": " + obj[field]
+	    };
+	    return "{" + result + "}"
+	};
+
 	$("#playersGrid").jsGrid({
             width: "100%",
             height: "auto",
