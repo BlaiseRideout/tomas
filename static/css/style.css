@@ -219,3 +219,14 @@ button.clearplayercomplete {
     margin-left: 5px;
 }
 
+.confirm-merge-table td, .confirm-merge-table th {
+    text-align: center;
+    height:1.5em;
+    line-height:1.5em;
+    padding-left:0.5em;
+    padding-right:0.5em;
+}
+
+.confirm-merge-table .jconfirm-content-pane {
+    display: inline-block;
+}

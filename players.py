@@ -249,6 +249,7 @@ class MergePlayersHandler(handler.BaseHandler):
         args = [merge_record[k] for k in keys]
         cur.execute(sql, args)
         merge_record['Id'] = cur.lastrowid
+        log.info('Created new player {}'.format(merge_record))
         for table, pIDfield, target  in (
                 ('Players', 'Id', 'ReplacedBy'), ('Scores', 'PlayerId', 0), 
                 ('Compete', 'Player', 0), ('Seating', 'Player', 0)):
@@ -259,7 +260,8 @@ class MergePlayersHandler(handler.BaseHandler):
                        mergeID=merge_record['Id'],
                        playerIDs=', '.join(str(id) for id in playerIDs)))
             cur.execute(sql)
-            log.info('Executed SQL: {}'.format(sql))
+            log.debug('Executed SQL: {}'.format(sql))
+        log.info('Replaced player IDs {}'.format(playerIDs))
         result['status'] = 0
         result['message'] = '{} player records merged into ID {}'.format(
             len(playerIDs), merge_record['Id'])

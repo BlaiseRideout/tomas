@@ -108,34 +108,70 @@ $(function() {
 			function(currentPlayers) {
 			    if (currentPlayers.status != 0) {
 				$.notify(currentPlayers.message); return};
-			    if (confirmMerge(
-				resp.merged, currentPlayers.data)) {
-				$.post("/mergePlayers/",
-				       JSON.stringify({playerIDs: players,
-						       performMerge: true}),
-				       function(realmerge) {
-					   if (realmerge.status != 0) {
-					       $.notify(realmerge.message);
-					       return
-					   };
-					   console.log(
-					       'Merged players with IDs: ',
-					       players.join(', '));
-					   clearSelectedPlayers();
-					   $("#playersGrid").jsGrid("loadData");
-					   // updatePlayerMergeButtons();
-				       });
-			    };
+			    confirmMerge(
+				resp.merged, currentPlayers.data).done(
+				    function(val) {
+					if (!val) {
+					    $.notify('Internal Error')
+					}
+					$.post("/mergePlayers/",
+					       JSON.stringify(
+						   {playerIDs: players,
+						    performMerge: true}),
+					       function(realmerge) {
+						   if (realmerge.status != 0) {
+						       $.notify(
+							   realmerge.message);
+						       return
+						   };
+						   clearSelectedPlayers();
+						   $("#playersGrid")
+						       .jsGrid("loadData");
+					       });
+				    });
 			});
 		});
  	};
 
 	function confirmMerge(merged, players) {
-	    msg = "Do you wish merge\n" +
+	    var table = '<table class="confirm-merge-table">',
+		columns=[], defer = $.Deferred();
+	    table += '<thead><tr>';
+	    for (key in merged) { 
+		table += '<th>' + key + '</th>'; columns.push(key) };
+	    table += '</tr></thead>  <tbody>' +
 		players.map(function(o) {return copyObj(o, merged)})
-		.map(objectToString).join("\n") + "\ninto the player\n" +
-		objectToString(merged) + "?\nThe operation cannot be undone.";
-	    return confirm(msg);
+		.map(function (player) {
+		    var row = '<tr>';
+		    for (key in merged) { 
+			row += '<td>' + (player[key] || '') + '</td>' 
+		    };
+		    return row + '</tr>'
+		});
+	    table += '<tr><td colspan=' + columns.length + '>' +
+		'will be merged into the player</td></tr>';
+	    table += '<tr>' + columns.map(function (col) {
+		return '<td>' + merged[col] + '</td>'; }) + '</tr>';
+	    table += '<tr><td colspan=' + columns.length + '>' +
+		'The operation cannot be undone. </td><tr>';
+	    $.confirm({
+		title: 'Confirm merge of ' + players.length + 
+		    ' player records',
+		columnClass: 'small',
+		closeIcon: true,
+		theme: 'dark',
+		content: table,
+		buttons: {
+		    confirm: function () { defer.resolve(true) },
+		    cancel: {
+			text: 'Do not merge',
+			btnClass: 'btn-blue',
+			keys: ['enter', 'space'],
+			action: function() { defer.reject(false) },
+		    }
+		},
+	    });
+	    return defer.promise();
 	};
 
 	function copyObj(obj, template) {
