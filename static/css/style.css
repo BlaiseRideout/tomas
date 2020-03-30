@@ -214,3 +214,8 @@ button.clearplayercomplete {
     opacity: .5;
     transition: opacity 200ms linear;
 }
+
+.jsgrid-button + .player-merge-button {
+    margin-left: 5px;
+}
+
