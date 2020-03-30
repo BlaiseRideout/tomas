@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import tornado.web
-from util import stringify
+
+import util
 import settings
 
 import db
@@ -12,16 +13,16 @@ class BaseHandler(tornado.web.RequestHandler):
         if settings.DEVELOPERMODE:
             return "1"
         else:
-            return stringify(self.get_secure_cookie("user"))
+            return util.stringify(self.get_secure_cookie("user"))
 
     def get_is_admin(self):
         if settings.DEVELOPERMODE:
             return True
         else:
-            return stringify(self.get_secure_cookie("admin")) == "1"
+            return util.stringify(self.get_secure_cookie("admin")) == "1"
 
     def get_stylesheet(self):
-        return stringify(self.get_secure_cookie("stylesheet"))
+        return util.stringify(self.get_secure_cookie("stylesheet"))
 
     def render(self, template_name, **kwargs):
         tornado.web.RequestHandler.render(
@@ -35,6 +36,7 @@ class BaseHandler(tornado.web.RequestHandler):
             tournamentname = self.tournamentname,
             owner = getattr(self, 'owner', None),
             SponsorLink = settings.SPONSORLINK,
+            useLocal = util.useLocal,
             **kwargs
         )
 

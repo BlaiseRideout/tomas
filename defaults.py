@@ -74,6 +74,10 @@ SERVERPREFIX = None
 #   every access be done as the first, administrative user.  Only set this
 #   to true when working on enhancing the code
 DEVELOPERMODE = False
+#   USELOCALCOPY is a flag that forces the web server to load local
+#   versions of the javascript and css files when available.  Useful when
+#   Internet access is spotty or unavailable
+USELOCALCOPY = False
 
 # EMAIL
 #   These settings are for the outbound email server that sends invites

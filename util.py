@@ -4,6 +4,8 @@ import random
 import string
 import re
 from quemail import QueMail, Email
+from urllib.parse import *
+import os
 
 import settings
 
@@ -52,3 +54,30 @@ def breakCamelCase(words):
     return [m.group(0) for m in capword.finditer(words) if m.group(0) != '']
     
 winds = "東南西北"
+
+localDirs = ('js', 'css')
+localDirRoot = "static"
+localExtensions = tuple('.' + dir for dir in localDirs)
+
+def useLocal(URL):
+    "Convert Internet URLs to locally served file if configured in settings"
+    if not settings.USELOCALCOPY:
+        return URL
+    try:
+        url = urlparse(URL)
+    except Exception:
+        return URL
+    if url.scheme == '':     # Relative URL's don't need to be redirected
+        return URL
+    path, name = os.path.split(url.path)
+    if not name:
+        return URL
+    base, ext = os.path.splitext(name)
+    if ext in localExtensions and os.path.exists( # Look in local directory
+            os.path.join(localDirRoot, ext[1:], name)):
+        return settings.PROXYPREFIX + os.path.join(localDirRoot, ext[1:], name)
+    return URL
+        
+    
+    
+
