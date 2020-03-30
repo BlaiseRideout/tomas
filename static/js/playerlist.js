@@ -12,7 +12,7 @@ $(function() {
 		    }).data("playerID", item.Id)
 		    .css("display", 
 			 selected.length > 1 && selected[item.Id] ? "inline" :
-			 "none").text("⫸").on(
+			 "none").text("Merge").on(
 			"click", function(e) {
 			mergeSelectedPlayers(selectedPlayers, e);
 			e.stopPropagation();

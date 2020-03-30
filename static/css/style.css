@@ -203,3 +203,14 @@ button.clearplayercomplete {
 #delete-tournament-confirmation {
 	display: none;
 }
+.player-merge-button {
+    border: none;
+    background-image: url("/static/images/merge-icon-pale-yellow.png");
+    background-repeat: no-repeat;
+    background-color: transparent;
+}
+
+.player-merge-button:hover {
+    opacity: .5;
+    transition: opacity 200ms linear;
+}
