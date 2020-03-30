@@ -18,6 +18,21 @@ $(function() {
 			e.stopPropagation();
 		    })
 	    },
+	    createPlayerSelectButton = function(editable) {
+		return function(value, item) {
+		    var box = this._createCheckbox().prop({
+			  checked: item.Id && selectedPlayers[item.Id],
+			  disabled: !editable
+		    });
+		    if (editable) { box.click(function (e) {
+			  selectedPlayers[item.Id] = $(this).prop("checked");
+			  players = selectedPlayerIDs();
+			  updatePlayerMergeButtons();
+			  e.stopPropagation();
+		    })};
+		    return box;
+		}
+	    },
 	    fieldDescriptions = [
 		{ name: "Id", type: "number", width: 5, visible: false },
 		{ name: "Name", type: "text", width: 150, validate: "required"},
@@ -34,38 +49,19 @@ $(function() {
 		  editing: false, inserting: false },
 		{ name: "", type: "checkbox", width: 10,
 		  inserting: false, editing: false, css: "PlayerSelectBox",
-		  itemTemplate: function(value, item) {
-		      return this._createCheckbox().prop({
-			  checked: item.Id && selectedPlayers[item.Id],
-			  disabled: false
-		      }).click(function (e) {
-			  selectedPlayers[item.Id] = $(this).prop("checked");
-			  players = selectedPlayerIDs();
-			  updatePlayerMergeButtons();
-			  e.stopPropagation();
-		      });
-		  },
-		  editTemplate: function(value, item) {
-		      return this._createCheckbox().prop({
-			  checked: item.Id && selectedPlayers[item.Id],
-			  disabled: true
-		      })
-		  }},
+		  itemTemplate: createPlayerSelectButton(true),
+		  editTemplate: createPlayerSelectButton(false), },
 		{ type: "control",
 		  itemTemplate: function(value, item) {
 		      var $result = $([]);
-		      
 		      if(this.editButton) {
 			  $result = $result.add(this._createEditButton(item));
 		      }
-
 		      if(this.deleteButton &&
 			 !item.Tournaments && !item.Scores) {
 			  $result = $result.add(this._createDeleteButton(item));
 		      }
-
 		      $result = $result.add(createMergeButton(item));
-
 		      return $result;
 		  }
 		}
