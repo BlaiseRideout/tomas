@@ -157,7 +157,8 @@ $(function() {
 	    $.confirm({
 		title: 'Confirm merge of ' + players.length + 
 		    ' player records',
-		columnClass: 'small',
+		useBootstrap: false,
+		boxWidth: '80%',
 		closeIcon: true,
 		theme: 'dark',
 		content: table,
