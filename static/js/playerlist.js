@@ -11,8 +11,8 @@ $(function() {
 			title: "Merge selected players",
 		    }).data("playerID", item.Id)
 		    .css("display", 
-			 selected.length > 1 && selected[item.Id] ? "inline" :
-			 "none").text("Merge").on(
+			 selected.length > 1 && selectedPlayers[item.Id] ?
+			 "inline" : "none").text("Merge").on(
 			"click", function(e) {
 			mergeSelectedPlayers(selectedPlayers, e);
 			e.stopPropagation();
@@ -33,7 +33,7 @@ $(function() {
 		{ name: "Latest", type: "text", width: 50,
 		  editing: false, inserting: false },
 		{ name: "", type: "checkbox", width: 10,
-		  inserting: false, css: "PlayerSelectBox",
+		  inserting: false, editing: false, css: "PlayerSelectBox",
 		  itemTemplate: function(value, item) {
 		      return this._createCheckbox().prop({
 			  checked: item.Id && selectedPlayers[item.Id],
@@ -45,7 +45,12 @@ $(function() {
 			  e.stopPropagation();
 		      });
 		  },
-		},
+		  editTemplate: function(value, item) {
+		      return this._createCheckbox().prop({
+			  checked: item.Id && selectedPlayers[item.Id],
+			  disabled: true
+		      })
+		  }},
 		{ type: "control",
 		  itemTemplate: function(value, item) {
 		      var $result = $([]);
