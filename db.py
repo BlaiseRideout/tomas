@@ -219,6 +219,9 @@ def make_backup():
 def words(spec):
     return re.findall(r'\w+', spec)
 
+def fieldname(columnspec):
+    return columnspec.split('.')[-1]
+
 def table_field_names(tablename):
     return [words(fs)[0] for fs in schema.get(tablename, [])
             if not words(fs)[0].upper() in [

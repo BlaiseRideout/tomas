@@ -66,7 +66,7 @@ $(function() {
 		  }
 		}
 	],
-	    gridController = makeController(base + "playerslist/",
+	    gridController = makeController(base + "playerlist",
 					    fieldDescriptions);
 	
 	function selectedPlayerIDs() {
@@ -103,7 +103,7 @@ $(function() {
 		function(resp) {
 		    if (resp.status != 0) { $.notify(resp.message); return};
 		    $.getJSON(
-			"/playerslist/?players=" +
+			"/playerlist?players=" +
 			    players.join("%20"),
 			function(currentPlayers) {
 			    if (currentPlayers.status != 0) {

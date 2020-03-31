@@ -45,7 +45,7 @@ class PlayersHandler(handler.BaseHandler):
     def get(self, rest=''):
         return self.render("playerlist.html")
 
-class PlayersListHandler(handler.BaseHandler):
+class PlayerListHandler(handler.BaseHandler):
     def get(self):
         columns, colnames, colheads = playerColumns()
         condition = ""
@@ -63,7 +63,7 @@ class PlayersListHandler(handler.BaseHandler):
                 cur.execute(sql, args)
                 players = [dict(zip(colnames, row)) for row in cur.fetchall()]
                 result = {'status': 0, 'data': players}
-        except Exception as e:
+        except sqlite3.DatabaseError as e:
             result = {'status': 1,
                       'message': 'Unable to get players from database. ' +
                       str(e) }
@@ -139,7 +139,7 @@ class PlayersListHandler(handler.BaseHandler):
                             item['Id']))
                     item['Id'] = abs(item['Id']) # Put cleaned item record
                     result['item'] = item # with correct Id in rsespone
-        except Exception as e:
+        except sqlite3.DatabaseError as e:
             result['message'] = (
                 'Exception in database change. SQL = {}. Args = {}. {}'.format(
                     sql, args, e))
@@ -208,7 +208,7 @@ class MergePlayersHandler(handler.BaseHandler):
                         if performMerge:
                             self.merge_player_records(
                                 playerIDs, merge_record, colnames, cur, result)
-            except Exception as e:
+            except sqlite3.DatabaseError as e:
                 result['message'] = (
                     'Exception in database query. SQL = {}. Args = {}. {}'
                     .format(sql, args, e))

@@ -28,6 +28,7 @@ import util
 import db
 import settings
 
+import home
 import login
 import seating
 import scores
@@ -62,7 +63,8 @@ class Application(tornado.web.Application):
             curdirname = os.path.dirname(os.path.realpath(__file__))
 
         handlers = [
-                (r"/", tournament.TournamentListHandler),
+                (r"/", home.TournamentHomeHandler),
+                (r"/tournaments", tournament.TournamentListHandler),
                 (r"/edittournament", tournament.EditTournamentHandler),
                 (r"/edittournament/([^/]+)", tournament.EditTournamentHandler),
                 (r"/countries", tournament.CountriesHandler),
@@ -88,8 +90,8 @@ class Application(tornado.web.Application):
                 (r"/t/([^/]*)/scoreboard", leaderboard.ScoreboardHandler),
                 (r"/t/([^/]*)/leaderboard", leaderboard.LeaderDataHandler),
                 (r"/t/([^/]*)/leaderboard.html", leaderboard.LeaderboardHandler),
-                (r"/players/(.*)", players.PlayersHandler),
-                (r"/playerslist/", players.PlayersListHandler),
+                (r"/players(.*)", players.PlayersHandler),
+                (r"/playerlist", players.PlayerListHandler),
                 (r"/mergePlayers/", players.MergePlayersHandler),
                 (r"/playerstats/(.*)", playerstats.PlayerStatsHandler),
                 (r"/playerstatsdata/(.*)", playerstats.PlayerStatsDataHandler),
