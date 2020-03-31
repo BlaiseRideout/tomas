@@ -15,6 +15,10 @@ button:hover, input[type="submit"]:hover, a:hover, .colheader:hover {
     color: #ddf;
 }
 
+.table-button {
+    background: #333
+}
+
 input::placeholder {
 	color:#777;
 }
