@@ -595,11 +595,12 @@ class TourneySettingsHandler(handler.BaseHandler):
 
 class CountriesHandler(handler.BaseHandler):
     def get(self):
+        countries = []
         with db.getCur() as cur:
             cols = ["Id", "Name", "Code", "IOC_Code", "IOC_Name", "Flag_Image"]
             cur.execute("SELECT {cols} FROM Countries".format(cols=",".join(cols)))
             countries = [dict(zip(cols, row)) for row in cur.fetchall()]
-            return self.write(json.dumps(countries))
+        return self.write(json.dumps(countries))
 
 class AssociationsHandler(handler.BaseHandler):
     @handler.tournament_handler

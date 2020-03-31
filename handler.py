@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import tornado.web
+import json
 
 import util
 import settings
@@ -69,6 +70,18 @@ def is_owner(func):
         func(self, *args, **kwargs)
 
     return func_wrapper
+
+
+class AuthenticationHandler(BaseHandler):
+    def get(self):
+        status = {'user': self.get_current_user(), 'admin': False }
+        # Check admin status from database rather than browser cookie to
+        # be slightly more up to date
+        with db.getCur() as cur:
+            cur.execute("SELECT EXISTS(SELECT * FROM Admins WHERE Id = ?)",
+                        (self.get_current_user(),))
+            status['admin'] = cur.fetchone()[0] == 1
+        return self.write(json.dumps(status))
 
 def is_admin_ajax(func):
     def func_wrapper(self, *args, **kwargs):
