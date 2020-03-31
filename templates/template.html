@@ -49,10 +49,7 @@
 				<a href="{{ proxyprefix }}login?next={{ proxyprefix.rstrip('/') + request.uri }}">Login</a>
 			{% else %}
 				<a href="{{ proxyprefix }}preferences">Preferences</a>
-				<a href="{{ proxyprefix }}invite">Invite</a>
-				{% if is_admin %}
-					<a href="{{ proxyprefix }}users.html">Users</a>
-				{% end %}
+				<a href="{{ proxyprefix }}users.html">Users</a>
 				<a href="{{ proxyprefix }}logout?next={{ proxyprefix.rstrip('/') + request.uri }}">Logout</a>
 			{% end %}
 	  </div>

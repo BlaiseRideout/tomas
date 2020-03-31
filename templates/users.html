@@ -20,30 +20,45 @@
 	</th>
     </tr>
     {% for user in users %}
-      <tr class="user" data-id="{{ user['id'] }}">
-	<td class="email">
-	  <input type="text" data-colname="Email" class="userfield"
-		 value="{{ user['email'] }}"/>
-	</td>
-	<td>
-	  <input type="checkbox" class="adminflag userfield"
-		 id="adminflag-{{ user['id'] }}"
-		 data-colname="Admin" {% if user['admin'] %}checked{% end %} />
-	  <label for="adminflag-{{ user['id'] }}">Admin</label>
-	</td>
-	<td class="actions">
-	    <input type="button" class="actionbutton resetpwdbutton"
-		   id="resetuserpwd-{{ user['id'] }}" value="Reset Pwd" />
-	    <input type="button" class="actionbutton deluserbutton"
-		   id="deleteuser-{{ user['id'] }}" value="Delete" />
-	</td>
+    <tr class="user" data-id="{{ user['id'] }}">
+      <td class="email">
+	{% if is_admin %}
+	<input type="text" data-colname="Email" class="userfield"
+	       value="{{ user['email'] }}"/>
+	{% else %}
+	<a href="mailto:{{ user['email'] }}"> {{ user['email'] }} </a>
+	{% end %}
+      </td>
+      <td>
+	{% if is_admin %}
+	<input type="checkbox" class="adminflag userfield"
+	       id="adminflag-{{ user['id'] }}"
+	       data-colname="Admin" {% if user['admin'] %}checked{% end %} />
+	<label for="adminflag-{{ user['id'] }}">Admin</label>
+	{% else %}
+	{{ "✓" if user['admin'] else "×" }}
+	{% end %}
+      </td>
+      <td class="actions">
+	{% if is_admin %}
+	<input type="button" class="actionbutton resetpwdbutton"
+	       id="resetuserpwd-{{ user['id'] }}" value="Reset Password" />
+	<input type="button" class="actionbutton deluserbutton"
+	       id="deleteuser-{{ user['id'] }}" value="Delete" />
+	{% end %}
+      </td>
     </tr>
     {% end %}
     <tr>
-	<td colspan="3" class="adduser">
-	    <input type="button" class="adduserbutton" value="Add user..."
-		   id="adduser"/>
-	</td>
+      <td colspan="3" class="adduser table-button">
+	{% if is_admin %}
+	<input type="button" class="adduserbutton actionbutton"
+	       value="Add user..." id="adduser"/>
+	&nbsp; &nbsp;
+	{% end %}
+	<a href="{{ proxyprefix }}invite" class"actionbutton">
+	  Send invite for new user...</a>
+      </td>
     </tr>
   </table>
   {% if len(invites) > 0 %}
@@ -58,14 +73,17 @@
 	<th class="actioncol"> Actions </th>
       </tr>
       {% for invite in invites %}
-        <tr class="invite" data-id="{{ invite['id'] }}">
-          <td class="email"> {{ invite['email'] }} </td>
-          <td class="expires"> {{ invite['expires'] }} </td>
-          <td class="actions">
-	    <input type="button" id="dropinvite-{{ invite['id'] }}"
-		   class="actionbutton dropinvite"
-                   value="Drop invite" />
-        </tr>
+      <tr class="invite" data-id="{{ invite['id'] }}">
+        <td class="email"> {{ invite['email'] }} </td>
+        <td class="expires"> {{ invite['expires'] }} </td>
+        <td class="actions">
+	  {% if is_admin %}
+	  <input type="button" id="dropinvite-{{ invite['id'] }}"
+		 class="actionbutton dropinvite"
+                 value="Drop invite" />
+	  {% end %}
+	</td>
+      </tr>
       {% end %}
     </table>
   {% end %}

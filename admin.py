@@ -17,7 +17,7 @@ log = logging.getLogger("WebServer")
 user_fields = ["id", "email", "password", "admin"]
 
 class ManageUsersHandler(handler.BaseHandler):
-    @handler.is_admin
+    @tornado.web.authenticated
     def get(self):
         global user_fields
         with db.getCur() as cur:
