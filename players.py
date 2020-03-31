@@ -76,11 +76,13 @@ class PlayerListHandler(handler.BaseHandler):
         item = json.loads(encoded_item)
         result = {'status': 0, 'message': ''}
         if item.get('Id', None) is None or not isinstance(item['Id'], int):
+            item['Flag_Image'] = ''
             result['message'] = 'Invalid Id field for player, {}'.format(item)
             result['status'] = -1
             self.write(result)
             return
         if not isinstance(item.get('Country', None), int) and item['Id'] >= 0:
+            item['Flag_Image'] = ''
             result['message'] = 'Invalid Country for Player, {}'.format(item)
             result['status'] = -2
             self.write(result)

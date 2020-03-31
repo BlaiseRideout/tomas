@@ -31,15 +31,18 @@
 		}
 	};
 
-	function postChange(jsonURL, item, deferred) {
+	function postItemChange(jsonURL, item, deferred) {
 		$.post(jsonURL, {
 				item: JSON.stringify(item)
 			},
 			function(resp) {
 				if (resp.status != 0) {
 					$.notify(resp.message)
-				};
-				deferred.resolve(resp.status == 0 ? resp.item : null);
+					deferred.reject(resp.item);
+				}
+				else {
+					deferred.resolve(resp.item);
+				}
 			}, "json");
 	};
 
@@ -67,12 +70,12 @@
 			insertItem: function(item) {
 				var d = $.Deferred();
 				item.Id = 0; // Insert POSTs new item with ID == 0
-				postChange(jsonURL, item, d);
+				postItemChange(jsonURL, item, d);
 				return d.promise();
 			},
 			updateItem: function(item) {
 				var d = $.Deferred(); // Update POSTs modified item (same ID)
-				postChange(jsonURL, item, d);
+				postItemChange(jsonURL, item, d);
 				return d.promise();
 			},
 			deleteItem: function(item) {
@@ -80,9 +83,13 @@
 				if (item.Id) {
 					item.Id = -item.Id
 				};
-				postChange(jsonURL, item, d);
+				postItemChange(jsonURL, item, d);
 				return d.promise();
 			},
 		};
+	};
+	playerStatLinkTemplate = function(value, item) {
+		return $('<a>').attr('href', base + 'playerStats/' + item.Id)
+			.text(item.Name)
 	};
 })();

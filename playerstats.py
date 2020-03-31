@@ -140,7 +140,7 @@ class PlayerStatsHandler(handler.BaseHandler):
                         FROM Players
                         LEFT OUTER JOIN Countries
                           ON Countries.Id = Players.Country
-                        LEFT JOIN Compete ON Compete.Player = Players.Id
+                        LEFT OUTER JOIN Compete ON Compete.Player = Players.Id
                         WHERE Players.Id = ? OR Players.Name = ?""", (player, player))
 
             player = cur.fetchone()

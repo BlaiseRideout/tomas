@@ -7,7 +7,7 @@ $(function() {
 				}],
 				selectedPlayers = new Object(), // hash of selected Player Id's
 				createMergeButton = function(item) {
-					// merge icon: triple nested greater than ⫸ (u-2AF8)
+					// icon idea: triple nested greater than ⫸ (u-2AF8)
 					var selected = selectedPlayerIDs();
 					return $("<input>").addClass(
 							"player-merge-button").attr({
@@ -16,8 +16,8 @@ $(function() {
 						}).data("playerID", item.Id)
 						.css("display",
 							selected.length > 1 && selectedPlayers[item.Id] ?
-							"inline" : "none").text("Merge").on(
-							"click",
+							"inline" : "none").text("Merge")
+						.on("click",
 							function(e) {
 								mergeSelectedPlayers(selectedPlayers, e);
 								e.stopPropagation();
@@ -52,7 +52,8 @@ $(function() {
 						width: 150,
 						inserting: auth['user'],
 						editing: auth['user'],
-						validate: "required"
+						validate: "required",
+						itemTemplate: playerStatLinkTemplate,
 					},
 					{
 						name: "Association",

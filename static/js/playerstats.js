@@ -10,7 +10,7 @@ $(function() {
 	});
 
 	function getData(player) {
-		$.getJSON(base + "playerstatsdata/" + player, function(data) {
+		$.getJSON(base + "playerStatsData/" + player, function(data) {
 			if (data.status != 0) {
 				$.notify(data.error);
 			}

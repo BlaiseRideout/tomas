@@ -95,7 +95,7 @@ class Application(tornado.web.Application):
             (r"/playerlist", players.PlayerListHandler),
             (r"/mergePlayers/", players.MergePlayersHandler),
             (r"/playerStats/(.*)", playerstats.PlayerStatsHandler),
-            (r"/playerstatsdata/(.*)", playerstats.PlayerStatsDataHandler),
+            (r"/playerStatsData/(.*)", playerstats.PlayerStatsDataHandler),
             (r"/t/([^/]*)/scores", scores.EditGameHandler),
             (r"/t/([^/]*)/penalties", scores.EditPenaltiesHandler),
             (r"/t/([^/]*)/penalties/(\d+)", scores.EditPenaltiesHandler),
