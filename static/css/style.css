@@ -74,6 +74,9 @@ button, input[type="submit"] {
 button:hover, input[type="submit"]:hover, a:hover, .colheader:hover {
     text-decoration:underline;
     cursor:pointer;
+    opacity: .5;
+    transition: opacity 200ms linear;
+}
 }
 
 button[disabled] {
@@ -144,18 +147,24 @@ button.clearplayercomplete {
 	padding:0.5em;
 	width:49%;
 }
-.table > div {
+.table > div, .table th, .table td {
 	text-align:center;
 	height:1.5em;
 	line-height:1.5em;
-	padding-left:0.2em;
-	padding-right:0.2em;
+	padding-left:0.5em;
+	padding-right:0.5em;
 	white-space:nowrap;
 	vertical-align:middle;
 }
 .table > div > .windicator {
 	float:left;
 }
+.summaryTile {
+    padding: 1em;
+    display: inline-block;
+    margin: auto;
+}
+
 .unusedPointsEditor[data-scoreid=""] {
     display:none;
 }

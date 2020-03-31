@@ -11,6 +11,10 @@ button, input, select, .button, .clickable,
 	color:#ddd;
 }
 
+button:hover, input[type="submit"]:hover, a:hover, .colheader:hover {
+    color: #ddf;
+}
+
 input::placeholder {
 	color:#777;
 }
