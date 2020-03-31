@@ -66,6 +66,6 @@ class PreferencesHandler(handler.BaseHandler):
                     (email, self.current_user, email))
             self.set_secure_cookie("stylesheet", stylesheet)
             self.render("message.html",
-                        message="",
+                        message="", stylesheet=stylesheet,
                         title="Preferences Updated",
                         next="Preferences", next_url="preferences")

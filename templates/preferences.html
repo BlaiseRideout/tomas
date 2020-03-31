@@ -2,6 +2,16 @@
 
 {% block title %} - User Preferences{% end %}
 
+{% block head %}
+<script type="text/javascript">
+  function switchStylesheet(newvalue) {
+      var sheetpath = $("#userstylesheet").attr('href').split('/');
+      sheetpath.splice(sheetpath.length - 1, 1, newvalue);
+      $("#userstylesheet").attr('href', sheetpath.join('/'));
+  }
+</script>
+
+{% end %}
 {% block content %}
 	<h1>User Preferences</h1>
 	<form action="{{ proxyprefix }}preferences" method="post" id="preferencesform">
@@ -9,13 +19,14 @@
 		<input id="email" name="email" type="text" value="{{ email }}" />
 		<br>
 		<label for="stylesheet">Stylesheet: </label>
-		<select id="stylesheet" name="stylesheet">
+		<select id="stylesheetselect" name="stylesheet" 
+			onchange="switchStylesheet(this.value)">
 			{% for sheet in stylesheets %}
 			<option value="{{ sheet }}"{% if sheet == stylesheet %} selected{% end %}>{{ sheet }}</option>
 			{% end %}
 		</select>
 		<br>
-		<input type="submit" value="Update"/>
+		<input type="submit" value="Update preferences"/>
 		<br>
 		<br>
 		<a href="reset">Reset password</a>

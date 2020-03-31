@@ -26,20 +26,20 @@ class BaseHandler(tornado.web.RequestHandler):
         return util.stringify(self.get_secure_cookie("stylesheet"))
 
     def render(self, template_name, **kwargs):
-        tornado.web.RequestHandler.render(
-            self, template_name,
-            current_user = self.current_user,
-            is_admin = self.get_is_admin(),
-            stylesheet = self.get_stylesheet(),
-            proxyprefix = settings.PROXYPREFIX,
-            websitename = settings.WEBSITENAME,
-            tournamentid = self.tournamentid,
-            tournamentname = self.tournamentname,
-            owner = getattr(self, 'owner', None),
-            SponsorLink = settings.SPONSORLINK,
-            useLocal = util.useLocal,
-            **kwargs
-        )
+        config = {
+            'current_user': self.current_user,
+            'is_admin': self.get_is_admin(),
+            'stylesheet': self.get_stylesheet(),
+            'proxyprefix': settings.PROXYPREFIX,
+            'websitename': settings.WEBSITENAME,
+            'tournamentid': self.tournamentid,
+            'tournamentname': self.tournamentname,
+            'owner': getattr(self, 'owner', None),
+            'SponsorLink': settings.SPONSORLINK,
+            'useLocal': util.useLocal,
+        }
+        config.update(kwargs)
+        tornado.web.RequestHandler.render(self, template_name, **config)
 
 def is_admin(func):
     def func_wrapper(self, *args, **kwargs):
