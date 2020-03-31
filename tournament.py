@@ -29,13 +29,14 @@ class TournamentListHandler(handler.BaseHandler):
                 "Code", "Flag_Image"]
             colnames = [col.split(".")[-1] for col in columns] + [
                 'PlayerCount']
-            cur.execute("SELECT {columns}, COUNT(DISTINCT Compete.PLayer)"
-                        " FROM Tournaments"
-                        " JOIN Compete on Compete.Tournament = Tournaments.Id"
-                        " JOIN Countries ON Tournaments.Country = Countries.Id"
-                        " GROUP BY Tournaments.Id"
-                        " ORDER BY End DESC".format(
-                        columns=",".join(columns)))
+            sql = ("SELECT {columns}, COUNT(DISTINCT Compete.PLayer)"
+                   " FROM Tournaments"
+                   " LEFT OUTER JOIN Compete"
+                   "   ON Compete.Tournament = Tournaments.Id"
+                   " JOIN Countries ON Tournaments.Country = Countries.Id"
+                   " GROUP BY Tournaments.Id"
+                   " ORDER BY End DESC").format(columns=",".join(columns))
+            cur.execute(sql)
             tournaments = [dict(zip(colnames, row)) for row in cur.fetchall()]
         return self.render("tournamentlist.html",
                 tournaments=tournaments, no_user=no_user)
