@@ -1,0 +1,85 @@
+{% extends "template.html" %}
+{% block head %}
+{% end %}
+{% block title %}
+	- Home
+{% end %}
+{% block content %}
+{% if no_user %}
+	<p>It appears the database is empty and there are no users.
+	  Would you like to create one?</p>
+	<a class="button" href="setup">SETUP</a>
+{% end %}
+	<h1>{{ websitename }}</h1>
+	🀄 A website for managing mahjong tournaments. 🀄
+	<p></p>
+<div class="summaryTile tournamentlist">
+  <h2>Upcoming/Recent Tournaments</h2>
+  <table class="table">
+    <thead>
+      <tr>
+	{% for col in tmt_colnames %}
+	<th {% raw col.get("Attrs", "") if isinstance(col, dict) else "" %}>
+	  {{ col.get('label', '?') if isinstance(col, dict) else col }}
+	</th>
+	{% end %}
+      </tr>
+    </thead>
+    {% for tournament in tournaments %}
+    <tr>
+      <td><a href="/t/{{ tournament['Name'] }}/tournament">
+	  {{ tournament['Name'] }}</a></td>
+      <td>{{ tournament['Start'] }}</td>
+      <td>{{ tournament['End'] }}</td>
+    </tr>
+    {% end %}
+    <tr>
+      <td colspan={{ len(tmt_colnames) }} class="table-button">
+	<a href="/tournaments">All Tournaments</a>
+      </td>
+    </tr>
+    {% if current_user %} 
+    <tr>
+      <td colspan={{ len(tmt_colnames) }} class="table-button">
+	<a href="/edittournament">Create New Tournament</a>
+      </td>
+    </tr>
+    {% end %}
+  </table>
+</div>
+
+<div class="summaryTile playerlist">
+  <h2>Sample Players</h2>
+  <table class="table">
+    <thead>
+      <tr>
+	{% for col in plr_colnames %}
+	<th {% raw col.get("Attrs", "") if isinstance(col, dict) else "" %}>
+	  {{ col.get('label', '?') if isinstance(col, dict) else col }}
+	</th>
+	{% end %}
+      </tr>
+    </thead>
+    {% for player in players %}
+    <tr>
+      <td><a href="/playerStats/{{ player['Name'] }}">
+	  {{ player['Name'] }}</a></td>
+      <td>{{ player['Association'] }}</td>
+      <td>{% raw player['Flag_Image'] %}</td>
+    </tr>
+    {% end %}
+    <tr>
+      <td colspan={{ len(tmt_colnames) }} class="table-button">
+	<a href="/players">All Players</a>
+      </td>
+    </tr>
+    {% if current_user %} 
+    <tr>
+      <td colspan={{ len(tmt_colnames) }} class="table-button">
+	<a href="/loadplayers">Load New Players</a>
+      </td>
+    </tr>
+    {% end %}
+  </table>
+</div>
+{% end %}
