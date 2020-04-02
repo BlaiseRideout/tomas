@@ -6,6 +6,14 @@
 	width:100%;
 }
 
+.ui-corner-top, .ui-corner-right, .ui-corner-tr {
+    border-top-right-radius: 6px;
+}
+
+.ui-corner-top, .ui-corner-left, .ui-corner-tl {
+    border-top-left-radius: 6px;
+}
+
 .statsummarytable table, .statsummarytable td, .pielegendbox {
     margin: auto;
 }
