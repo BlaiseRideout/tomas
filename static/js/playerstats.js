@@ -1,32 +1,11 @@
 $(function() {
-	var statsTemplate, ranks = ["1st", "2nd", "3rd", "4th", "5th"];
+	var ranks = ["1st", "2nd", "3rd", "4th", "5th"];
 
-	$.get(base + "static/mustache/playerstats.mst", function(data) {
-		statsTemplate = data;
-		Mustache.parse(statsTemplate);
-		var parts = document.URL.split('/');
-		player = parts[parts.length - 1];
-		getData(player);
-	});
+    $("#playerstats").tabs({
+	active: activeTab,
+    });
 
-	function getData(player) {
-		$.getJSON(base + "playerStatsData/" + player, function(data) {
-			if (data.status != 0) {
-				$.notify(data.error);
-			}
-			else {
-				data['base'] = base;
-				$("#playerstats").html(Mustache.render(statsTemplate, data));
-				d3.selectAll(".playerstatperiod").each(function(d, i) {
-					drawData(d3.select(this).select('svg'),
-						d3.select(this).select('.rankpielegend'),
-						data['playerstats'][i]['rank_histogram']);
-				});
-			}
-		});
-	}
-
-	function drawData(svg_selection, legend_selection, data) {
+    function drawRankData(svg_selection, legend_selection, rankhist) {
 		var rect = svg_selection.nodes()[0].getBoundingClientRect(),
 			width = rect.width || 800,
 			height = rect.height || 500,
@@ -36,7 +15,7 @@ $(function() {
 			path = d3.arc().innerRadius(innerRadius).outerRadius(outerRadius),
 			label = d3.arc().innerRadius(labelInnerRadius).outerRadius(
 				outerRadius),
-			nonzero = data.filter(function(d) {
+			nonzero = rankhist.filter(function(d) {
 				return d.count > 0
 			}),
 			arcs = d3.pie().sort(null).value(function(d) {
@@ -69,12 +48,12 @@ $(function() {
 			return "rank_" + d.data.rank + "_count rank_count"
 		});
 		var columns = []
-		for (prop in data[0]) {
+		for (prop in rankhist[0]) {
 			columns.push(prop)
 		}
 
 		// Build a table for the legend that shows all the ranks and counts
-		var rows = legend_selection.selectAll("tr").data(data).enter().
+		var rows = legend_selection.selectAll("tr").data(rankhist).enter().
 		append("tr"),
 			cells = rows.selectAll("td").
 		data(function(row) {
@@ -92,5 +71,13 @@ $(function() {
 		}).text(function(d) {
 			return d.column == 'rank' ? ranks[d.value - 1] : d.value
 		});
-	}
+    }
+
+    d3.selectAll(".statsummarytable").each(function(d, i) {
+	var tourneyID = $(this).data('tourneyid');
+	drawRankData(d3.select(this).select('svg'),
+		     d3.select(this).select('.rankpielegend'),
+		     rank_histograms[tourneyID]);
+    });
+    
 });

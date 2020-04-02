@@ -1,156 +1,209 @@
 #!/usr/bin/env python3
 
 import json
+import logging
+
 import db
 import handler
 from util import *
 
+log = logging.getLogger('WebServer')
+
+def playersTournaments(playerId, cur=None):
+    """Get a list of tournament dictionaries with all the tournament info
+    and the player's role in the tournament as fields.
+    If the player is in multiple tournaments, the first dictionary in the
+    list will be for 'All Tournaments' with an Id of 'all' and the other
+    fields as None.
+    """
+    columns = ('Tournaments.Id', 'Name', 'Number', 'Pool', 'Wheel', 'Type')
+    sql = ("SELECT {}"
+           " FROM Tournaments JOIN Compete ON Tournament = Tournaments.Id"
+           " WHERE Player = ?"
+           " ORDER BY Start DESC").format(','.join(columns))
+    args = (playerId, )
+    if cur:
+        cur.execute(sql, args)
+        results = cur.fetchall()
+    else:
+        with db.getCur() as cursor:
+            cursor.execute(sql, args)
+            results = cursor.fetchall()
+    if len(results) >  1:
+        all = ['all', 'All Tournaments'] + [None] * (len(columns) - 2)
+        results = [all] + results
+    return [dict(zip(map(db.fieldname, columns), row)) for row in results]
+
+def getPlayerTournamentData(playerID, playerTourneys, cur):
+    tourneys = [
+        {'Name': '{} Stats'.format(
+            'All Tournament' if tourney['Id'] == 'all' else tourney['Name']),
+         'scoresSubquery': 
+         """FROM Scores LEFT OUTER JOIN Penalties ON ScoreId = Scores.Id
+                 LEFT JOIN Rounds ON Round = Rounds.Id
+            WHERE PlayerId = ? {}""".format(
+                '' if tourney['Id'] == 'all' else
+                'AND Tournament = {}'.format(tourney['Id'])),
+         'scoresParams': (playerID,),
+         'gamesCondition': 'AND Tournament = {}'.format(
+             'NULL' if tourney['Id'] == 'all' else tourney['Id']),
+         'seatingCondition': 'AND Rounds.Tournament = {}'.format(
+             'NULL' if tourney['Id'] == 'all' else tourney['Id']),
+         'player': tourney,
+         'Id': tourney['Id'],
+         'playerID': playerID,
+        } for tourney in playerTourneys
+    ]
+    for tourney in tourneys:
+        populate_queries(tourney, cur)
+    return tourneys
+    
+_statquery = """
+    SELECT Max(Score),MIN(Score),COUNT(*),
+      ROUND(SUM(Score) * 1.0/COUNT(*) * 100) / 100,
+      ROUND(SUM(Rank) * 1.0/COUNT(*) * 100) / 100,
+      MIN(Rank), MAX(Rank),
+      MIN(Round), MAX(Round),
+      SUM(COALESCE(Penalties.Penalty, 0))
+    {scoresSubquery} """
+_statqfields = ('maxscore', 'minscore', 'numgames', 'avgscore',
+                'avgrank', 'maxrank', 'minrank',
+                'minround', 'maxround',
+                'penalties')
+_rankhistogramquery = """
+    SELECT Rank, COUNT(*) {scoresSubquery} GROUP BY Rank ORDER BY Rank"""
+_rankhfields = ['rank', 'rankcount']
+    
+_gamesQuery = """
+    SELECT Scores2.Round, Rounds.Number, Rounds.Name,
+      Scores2.Rank, ROUND(Scores2.Score * 100) / 100, Players.Name, Players.Id,
+      Countries.Code, Countries.Flag_Image
+    FROM Scores JOIN Scores AS Scores2
+        ON Scores.GameId = Scores2.GameId AND Scores.Round = Scores2.Round
+      JOIN Players ON Players.Id = Scores2.PlayerId
+      JOIN Countries ON Players.Country = Countries.Id
+      JOIN Rounds ON Rounds.Id = Scores2.Round
+    WHERE Scores.PlayerId = ? AND Scores2.PlayerId != ? {gamesCondition}
+    ORDER BY Scores2.Round, Scores2.Rank"""
+_gamesqfields = ('roundID', 'rNumber', 'rName', 'rank', 'score',
+                 'name', 'id', 'country', 'flag')
+
+_seatingQuery = """
+    SELECT Seating.Round, Rounds.Name, Rounds.Winds,
+      S2.TableNum, S2.Wind, Players.Name,
+      Countries.Code, Countries.Flag_Image
+    FROM Seating JOIN Seating AS S2
+        ON Seating.TableNum = S2.TableNum AND Seating.Round = S2.Round
+      JOIN Players ON Players.Id = S2.Player
+      JOIN Countries ON Players.Country = Countries.Id
+      JOIN Rounds ON Seating.Round = Rounds.Id
+    WHERE Seating.Player = ? {seatingCondition}
+      AND Seating.Round NOT IN (SELECT Round FROM Scores WHERE PlayerId = ?)
+    ORDER BY S2.Round, S2.TableNum, S2.Wind"""
+_seatingtablefields = ['round', 'roundname', 'showwinds', 'table']
+_seatingplayerfields = ['wind', 'name', 'country', 'flag']
+
+#      AND NOT EXISTS 
+#        (SELECT Id FROM Scores WHERE PlayerId = ? AND Round = Seating.Round) 
+
+def populate_queries(tourney_dict, cur):
+    "Update the tourney dictionary with the results of stats queries"
+    cur.execute(_statquery.format(**tourney_dict), tourney_dict['scoresParams'])
+    tourney_dict.update(
+        dict(zip(_statqfields,
+                 map(lambda x: round(x, 2) if isinstance(x, float) else x,
+                     cur.fetchone()))))
+    cur.execute(_rankhistogramquery.format(**tourney_dict),
+                tourney_dict['scoresParams'])
+    rank_histogram = dict([map(int, r) for r in cur.fetchall()])
+    rank_histogram_list = [{'rank': i, 'count': rank_histogram.get(i, 0)}
+                           for i in range(1, settings.LOWESTRANK + 1)]
+    tourney_dict['rank_histogram'] = rank_histogram_list
+    cur.execute(_gamesQuery.format(**tourney_dict),
+                (tourney_dict['playerID'], db.getUnusedPointsPlayerID()))
+    games = []
+    for row in cur.fetchall():
+        score = dict(zip(_gamesqfields, row))
+        if len(games) == 0 or games[-1]['round'] != score['roundID']:
+            games += [{
+                'round': score['roundID'],
+                'number': score['rNumber'],
+                'roundname': score['rName'],
+                'scores': []
+            }]
+        games[-1]['scores'] += [score]
+    cur.execute(_seatingQuery.format(**tourney_dict),
+                (tourney_dict['playerID'], tourney_dict['playerID']))
+    tourney_dict['playergames'] = games
+    futuregames = []
+    for row in cur.fetchall():
+        table = dict(zip(_seatingtablefields, row[0:len(_seatingtablefields)]))
+        seat = dict(zip(_seatingplayerfields, row[len(_seatingplayerfields):]))
+        seat['wind'] = winds[seat['wind']]
+        if (len(futuregames) == 0 or 
+            futuregames[-1]['round'] != table['round']):
+            table['seating'] = []
+            futuregames += [table]
+        futuregames[-1]['seating'] += [seat]
+    tourney_dict['futuregames'] = futuregames
+
 class PlayerStatsDataHandler(handler.BaseHandler):
-    _statquery = """
-       SELECT Max(Score),MIN(Score),COUNT(*),
-         ROUND(SUM(Score) * 1.0/COUNT(*) * 100) / 100,
-         ROUND(SUM(Rank) * 1.0/COUNT(*) * 100) / 100,
-         MIN(Rank), MAX(Rank),
-         MIN(Round), MAX(Round),
-         SUM(COALESCE(Penalties.Penalty, 0))
-         {subquery} """
-    _statqfields = ['maxscore', 'minscore', 'numgames', 'avgscore',
-                    'avgrank', 'maxrank', 'minrank',
-                    'minround', 'maxround',
-                    'penalties']
-    _rankhistogramquery = """
-        SELECT Rank, COUNT(*) {subquery} GROUP BY Rank ORDER BY Rank"""
-    _rankhfields = ['rank', 'rankcount']
-
-    def populate_queries(self, cur, period_dict):
-        cur.execute(self._statquery.format(**period_dict),
-                    period_dict['params'])
-        period_dict.update(
-            dict(zip(self._statqfields,
-                     map(lambda x: round(x, 2) if isinstance(x, float) else x,
-                         cur.fetchone()))))
-        cur.execute(self._rankhistogramquery.format(**period_dict),
-                    period_dict['params'])
-        rank_histogram = dict([map(int, r) for r in cur.fetchall()])
-        rank_histogram_list = [{'rank': i, 'count': rank_histogram.get(i, 0)}
-                               for i in range(1, settings.LOWESTRANK + 1)]
-        period_dict['rank_histogram'] = rank_histogram_list
-
-    def get(self, player):
+    def get(self, playerspec):
         with db.getCur() as cur:
-            name = player
-            cur.execute("SELECT Id,Name FROM Players WHERE Id = ? OR Name = ?",
-                        (player, player))
+            columns = db.table_field_names('Players')
+            cur.execute("SELECT {} FROM Players WHERE Id = ? OR Name = ?"
+                        .format(','.join(columns)),
+                        (playerspec, playerspec))
             player = cur.fetchone()
             if player is None or len(player) == 0:
                 self.write(json.dumps({'status': 1,
                                        'error': "Couldn't find player " + name}))
                 return
-            playerID, name = player
-
-            periods = [
-                {'name': 'All Rounds Stats',
-                 'subquery': "FROM Scores LEFT OUTER JOIN Penalties ON ScoreId = Scores.Id WHERE PlayerId = ? ",
-                 'params': (playerID,)
-                },
-            ]
-            p = periods[0]
-            self.populate_queries(cur, p)
-            p['showstats'] = True
-            if p['numgames'] == 0:
-                return self.render("playerstats.html",
-                                   player = {'Name':name},
-                                   error = "Couldn't find any scores for {}".format(name))
-
-            cur.execute(
-                    "SELECT Scores2.Round, Rounds.Number, Rounds.Name,"
-                    " Scores2.Rank, ROUND(Scores2.Score * 100) / 100, Players.Name, Players.Id,"
-                    " Countries.Code, Countries.Flag_Image FROM Scores"
-                    " JOIN Scores AS Scores2"
-                    "  ON Scores.GameId = Scores2.GameId AND Scores.Round = Scores2.Round"
-                    " JOIN Players"
-                    "  ON Players.Id = Scores2.PlayerId"
-                    " JOIN Countries"
-                    "  ON Players.Country = Countries.Id"
-                    " JOIN Rounds"
-                    "  ON Rounds.Id = Scores2.Round"
-                    " WHERE Scores.PlayerId = ? AND Scores2.PlayerId != ?"
-                    " ORDER BY Scores2.Round, Scores2.Rank",
-                    (playerID, db.getUnusedPointsPlayerID())
-                )
-            cols = ['rank', 'score', 'name', 'id', 'country', 'flag']
-            playergames = []
-            for row in cur.fetchall():
-                score = dict(zip(cols, row[3:]))
-                if len(playergames) == 0 or playergames[-1]['round'] != row[0]:
-                    playergames += [{
-                        'round': row[0],
-                        'number': row[1],
-                        'roundname': row[2],
-                        'scores': []
-                    }]
-                playergames[-1]['scores'] += [score]
-
-            cur.execute(
-                    "SELECT Seating.Round, Rounds.Name, Rounds.Winds,"
-                    " Seating2.TableNum, Seating2.Wind, Players.Name,"
-                    " Countries.Code, Countries.Flag_Image FROM Seating"
-                    " JOIN Seating AS Seating2"
-                    "  ON Seating.TableNum = Seating2.TableNum AND Seating.Round = Seating2.Round"
-                    " JOIN Players"
-                    "  ON Players.Id = Seating2.Player"
-                    " JOIN Countries"
-                    "  ON Players.Country = Countries.Id"
-                    " JOIN Rounds"
-                    "  ON Seating.Round = Rounds.Id"
-                    " WHERE Seating.Player = ?"
-                    " AND Seating.Round NOT IN (SELECT Round FROM Scores WHERE PlayerId = ?)"
-                    " ORDER BY Seating2.Round, Seating2.TableNum, Seating2.Wind",
-                    (playerID, playerID)
-                )
-
-            tablecols = ['round', 'roundname', 'showwinds', 'table']
-            cols = ['wind', 'name', 'country', 'flag']
-            futuregames = []
-            for row in cur.fetchall():
-                table = dict(zip(tablecols, row[0:len(tablecols)]))
-                seat = dict(zip(cols, row[len(tablecols):]))
-                seat['wind'] = winds[seat['wind']]
-                if len(futuregames) == 0 or futuregames[-1]['round'] != table['round']:
-                    table['seating'] = []
-                    futuregames += [table]
-                futuregames[-1]['seating'] += [seat]
-
-            self.write({
-                'status': 0,
-                'playerstats': periods,
-                'playergames': playergames,
-                'futuregames': futuregames
-            })
+            player = dict(zip(columns), player)
+            playerID = player['Id']
+            playerTourneys = playersTournaments(playerID, cur)
+            tourneys = getPlayerTournamentData(playerID, playerTourneys, cur)
+        self.write({'status': 0, 'playerstats': tourneys, })
 
 class PlayerStatsHandler(handler.BaseHandler):
     def get(self, player):
         HISTORY_COOKIE = "stats_history"
         with db.getCur() as cur:
             name = player
-            cur.execute(
-                    """SELECT
-                            Players.Id, Players.Name, Number, 
-                            Countries.Code, Flag_Image, Association, Pool
-                        FROM Players
-                        LEFT OUTER JOIN Countries
-                          ON Countries.Id = Players.Country
-                        LEFT OUTER JOIN Compete ON Compete.Player = Players.Id
-                        WHERE Players.Id = ? OR Players.Name = ?""", (player, player))
+            cols = ['Players.{}'.format(f) 
+                    for f in db.table_field_names('Players')] + [
+                            'Code', 'Flag_Image'] + [
+                            f for f in db.table_field_names('Compete')
+                                if f not in ('Id',)]
+            sql = """
+              SELECT {}
+              FROM Players LEFT OUTER JOIN Countries
+                     ON Countries.Id = Players.Country
+                   LEFT OUTER JOIN Compete ON Compete.Player = Players.Id
+              WHERE Players.Id = ? OR Players.Name = ?""".format(
+                  ','.join(cols))
+            cur.execute(sql, (player, player))
 
             player = cur.fetchone()
             if player is None or len(player) == 0:
-                return self.render("playerstats.html",
-                                   player = {'Name':name},
-                                   error = "Couldn't find player {}".format(name))
-            cols = ["Id", "Name", "Number", "CountryCode",
-                    "Flag_Image", "Association", "Pool", "Type", "Wheel"]
-            player = dict(zip(cols, player))
+                return self.render(
+                    "playerstats.html", player = {'Name':name},
+                    error = "Couldn't find player {}".format(name))
+            player = dict(zip(map(db.fieldname, cols), player))
+
+            playerTourneys = playersTournaments(player['Id'], cur)
+            selectedTournament = self.get_argument("tournament", None)
+            if selectedTournament and isinstance(selectedTournament, str):
+                if selectedTournament != 'all' and selectedTournament.isdigit():
+                    if not int(selectedTournament) in [
+                            t['Id'] for t in playerTourneys]:
+                        log.error('Request for stats on tournament ID {} '
+                                  'but player ID {} did not compete in that '
+                                  'tournament'.format(
+                                      selectedTournament, playerID))
+                        selectedTournament = None
+            tourneys = getPlayerTournamentData(player['Id'],
+                                               playerTourneys, cur)
 
             history = stringify(self.get_secure_cookie(HISTORY_COOKIE))
             if history is None:
@@ -166,8 +219,7 @@ class PlayerStatsHandler(handler.BaseHandler):
             history = history[0:settings.STATSHISTORYSIZE]
             self.set_secure_cookie(HISTORY_COOKIE, json.dumps(history))
 
-            return self.render("playerstats.html",
-                        error = None,
-                        player = player,
-                        history = history
-            )
+        return self.render(
+            "playerstats.html", error = None,
+            player=player, tourneys=tourneys, history = history,
+            playertypes=db.playertypes, selectedTournament=selectedTournament)
