@@ -1,11 +1,7 @@
 $(function() {
 	var ranks = ["1st", "2nd", "3rd", "4th", "5th"];
 
-    $("#playerstats").tabs({
-	active: activeTab,
-    });
-
-    function drawRankData(svg_selection, legend_selection, rankhist) {
+	function drawRankData(svg_selection, legend_selection, rankhist) {
 		var rect = svg_selection.nodes()[0].getBoundingClientRect(),
 			width = rect.width || 800,
 			height = rect.height || 500,
@@ -71,13 +67,26 @@ $(function() {
 		}).text(function(d) {
 			return d.column == 'rank' ? ranks[d.value - 1] : d.value
 		});
-    }
+	}
 
-    d3.selectAll(".statsummarytable").each(function(d, i) {
-	var tourneyID = $(this).data('tourneyid');
-	drawRankData(d3.select(this).select('svg'),
-		     d3.select(this).select('.rankpielegend'),
-		     rank_histograms[tourneyID]);
-    });
-    
+	function redrawRankDataInTab(ev, ui) {
+		var statsummarytable = $(ui.newPanel).find(".statsummarytable"),
+			tourneyID = statsummarytable.data('tourneyid');
+		drawRankData(d3.select(statsummarytable.get(0)).select('svg'),
+			d3.select(statsummarytable.get(0)).select('.rankpielegend'),
+			rank_histograms[tourneyID]);
+	};
+
+	$("#playerstats").tabs({
+		active: activeTab,
+		activate: redrawRankDataInTab,
+	});
+
+	d3.selectAll(".statsummarytable").each(function(d, i) {
+		var tourneyID = $(this).data('tourneyid');
+		drawRankData(d3.select(this).select('svg'),
+			d3.select(this).select('.rankpielegend'),
+			rank_histograms[tourneyID]);
+	});
+
 });

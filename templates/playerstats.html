@@ -13,9 +13,9 @@
     {% if tourney['Id'] == selectedTournament %}
     activeTab = {{ i }};
     {% end %} <!-- if tourney['Id'] -->
-  rank_histograms[{{ tourney['Id'] }}] = [];
+  rank_histograms[{% raw repr(tourney['Id']) %}] = [];
   {% for ent in tourney['rank_histogram'] %}
-    rank_histograms[{{ tourney['Id'] }}].push(
+    rank_histograms[{% raw repr(tourney['Id']) %}].push(
       {rank: {{ ent['rank'] }}, count: {{ ent['count'] }} });
   {% end %} <!-- for entry in tourney['rank_histogram'] -->
   {% end %} <!-- for i, tourney -->

@@ -14,15 +14,15 @@
     border: 2px solid #ddd;
 }
 
-.rankpielegend td {
-    padding-left: 0.3em;
-    padding-right: 0.3em;
-}
-
 .playerattr, .playerrole {
     display: inline-block;
     padding-left: 0.7em;
     padding-right: 0.7em;
+}
+
+.rankpielegend td {
+    padding-left: 0.3em;
+    padding-right: 0.3em;
 }
 
 @media(max-width:600px) {
