@@ -78,9 +78,10 @@ table td {
 }
 
 .ui-tabs .ui-state-hover, .ui-tabs .ui-state-active,
+.ui-widget-content .ui-state-active,
 .ui-state-active a:link {
 	background: #333;
-	color: #eee;
+	color: #fff;
 }
 .ui-state-highlight {
 	background: #666;

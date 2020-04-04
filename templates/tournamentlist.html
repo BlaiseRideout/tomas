@@ -1,77 +1,26 @@
 {% extends "template.html" %}
 {% block head %}
-<style type="text/css">
-.tournamentlist {
-	width:100%;
-}
-table.tournamentlist tr > *:nth-of-type(2) {
-	width:3em;
-}
-table.tournamentlist tr > *:nth-of-type(3) {
-	width:1em;
-}
-</style>
+<script src="{{ proxyprefix.rstrip('/') + static_url("js/jsgrid-utils.js") }}"
+	type="text/javascript"></script>
+<script src="{{ proxyprefix.rstrip('/') + static_url("js/tournaments.js") }}"
+	type="text/javascript"></script>
+{% end %}
+{% block title %}
+	All Tournaments
 {% end %}
 {% block content %}
-{% if no_user %}
-	<p>It appears you've no users. Would you like to create one?</p>
-	<a class="button" href="setup">SETUP</a>
-{% end %}
-{%
-set colheads = [
-	{
-		"Name": "Name"
-	},
-	{
-		"Name": "Dates"
-	},
-	{
-		"Name": "Location"
-	},
-	{
-		"Name": "Country",
-		"Attrs": "colspan=2"
-	},
-	{
-		"Name": "Players"
-	},
-	{
-		"Name": "Actions"
-	},
-]
-%}
-<div id="tournamentlist">
-	<h2>All Tournaments</h2>
-	<table class="tournamentlist">
-		<thead>
-			<tr>
-				{% for colhead in colheads %}
-					<th{% raw " " + colhead["Attrs"] if "Attrs" in colhead else "" %}>{{ colhead['Name'] }}</th>
-				{% end %}
-			</tr>
-		</thead>
-		{% for tournament in tournaments %}
-			<tr>
-			  <td><a href="/t/{{ tournament['Name'] }}/tournament">{{ tournament['Name'] }}</a></td>
-			  <td>{{ tournament['Start'] }} - {{ tournament['End'] }}</td>
-			  <td>{{ tournament['Location'] if tournament['Location'] else '' }}</td>
-			  <td>{{ tournament['Code'] }}</td>
-			  <td>{% raw tournament['Flag_Image'] %}</td>
-			  <td>{{ tournament['PlayerCount'] }}</td>
-			  <td>{% if is_admin or (isinstance(current_user, str) and tournament['Owner'] == int(current_user)) %}
-			    <a href="{{ proxyprefix }}edittournament/{{ tournament['Id'] }}">
-			      Edit</a>
-			    {% end %}
-			  </td>
-			</tr>
-			{% end %}
-		<tr>
-		  {% if current_user %} 
-		  <td colspan=7>
-		    <a href="/edittournament">Create New Tournament</a>
-		  </td>
-		  {% end %}
-		</tr>
-	</table>
+<div id="tournamentspanel">
+  <h2>All Tournaments</h2>
+  <div id="tournamentsGrid">
+    Loading...
+  </div>
+</div>
+
+<div id="transferplayers" class="button hidden">⇔</div>
+
+<div id="playerspanel" class="hidden">
+  <h2>Available Players</h2>
+  <div id="playersgrid">
+  </div>
 </div>
 {% end %}

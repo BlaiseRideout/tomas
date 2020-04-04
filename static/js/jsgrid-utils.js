@@ -57,7 +57,7 @@
 					function(loadData) { // Return has status = 0 for success
 						if (loadData.status != 0) {
 							$.notify(loadData.message);
-							d.resolve();
+							d.reject();
 						}
 						else {
 							var items = loadData.data.filter(
@@ -90,6 +90,10 @@
 	};
 	playerStatLinkTemplate = function(value, item) {
 		return $('<a>').attr('href', base + 'playerStats/' + item.Id)
+			.text(item.Name)
+	};
+	tournamentLinkTemplate = function(value, item) {
+		return $('<a>').attr('href', base + 't/' + item.Name + '/tournament')
 			.text(item.Name)
 	};
 })();

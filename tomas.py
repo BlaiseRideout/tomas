@@ -65,7 +65,8 @@ class Application(tornado.web.Application):
         handlers = [
             (r"/", home.TournamentHomeHandler),
             (r"/authentication", handler.AuthenticationHandler),
-            (r"/tournaments", tournament.TournamentListHandler),
+            (r"/tournaments", tournament.TournamentsHandler),
+            (r"/tournamentList", tournament.TournamentListHandler),
             (r"/edittournament", tournament.EditTournamentHandler),
             (r"/edittournament/([^/]+)", tournament.EditTournamentHandler),
             (r"/countries", tournament.CountriesHandler),

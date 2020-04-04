@@ -16,30 +16,58 @@ import settings
 
 log = logging.getLogger('WebServer')
 
+def getTournaments(tournamentID=None):
+    """Get list of tournament dictionaries. If a tournament ID is provided
+    the list will either have 1 dictionary, or be empty if the ID is bad.
+    The fields in the dictionary are all the tournament fields in the
+    Tournaments table + Code and Flag_Image for the country, a field
+    for players that has a dictionary that maps keys of each type of player
+    to lists of mini player dictionaries with Id, Name, and Association fields
+    """
+    tmt_fields = db.table_field_names('Tournaments')
+    country_fields = ['Code', 'Flag_Image']
+    player_fields = ['Id', 'Name', 'Association']
+    pFields = ['Type'] + ['Players.{}'.format(f) for f in player_fields]
+    with db.getCur() as cur:
+        sql = """
+        SELECT {} FROM Tournaments JOIN Countries ON Country = Countries.ID
+        """.format(','.join(['Tournaments.{}'.format(f) for f in tmt_fields] +
+                   country_fields))
+        if tournamentID:
+            sql += "WHERE Tournaments.ID = {}".format(tournamentID)
+        cur.execute(sql)
+        tournaments = [dict(zip(tmt_fields + country_fields, row))
+                       for row in cur.fetchall()]
+        for tmt in tournaments:
+            sql = """
+            SELECT {} FROM Compete JOIN Players on Player = Players.Id
+              WHERE Tournament = ?
+            """.format(','.join(pFields))
+            cur.execute(sql, (tmt['Id'],))
+            tmt['players'] = dict(zip(db.playertypes,
+                                      [list() for t in db.playertypes]))
+            for row in cur.fetchall():
+                tmt['players'][db.playertypes[row[0]]].append(
+                    dict(zip(player_fields, row[1:])))
+    return tournaments
+
+class TournamentsHandler(handler.BaseHandler):
+    def get(self):
+        tournaments = getTournaments()
+        return self.render("tournamentlist.html", tournaments=tournaments)
+
 class TournamentListHandler(handler.BaseHandler):
     def get(self):
-        rows = []
-        tournaments = []
-        admintournaments = []
-        tmt_fields = db.table_field_names('Tournaments')
-        with db.getCur() as cur:
-            cur.execute("SELECT COUNT(*) FROM Users")
-            no_user = cur.fetchone()[0] == 0
-            columns = ["Tournaments.{}".format(f) for f in tmt_fields] + [
-                "Code", "Flag_Image"]
-            colnames = [col.split(".")[-1] for col in columns] + [
-                'PlayerCount']
-            sql = ("SELECT {columns}, COUNT(DISTINCT Compete.PLayer)"
-                   " FROM Tournaments"
-                   " LEFT OUTER JOIN Compete"
-                   "   ON Compete.Tournament = Tournaments.Id"
-                   " JOIN Countries ON Tournaments.Country = Countries.Id"
-                   " GROUP BY Tournaments.Id"
-                   " ORDER BY End DESC").format(columns=",".join(columns))
-            cur.execute(sql)
-            tournaments = [dict(zip(colnames, row)) for row in cur.fetchall()]
-        return self.render("tournamentlist.html",
-                tournaments=tournaments, no_user=no_user)
+        result = {'status': 0, 'data': getTournaments()}
+        return self.write(json.dumps(result))
+
+    @tornado.web.authenticated
+    def post(self):
+        encoded_item = self.get_argument('item', None)
+        item = json.loads(encoded_item)
+        log.info('Item posted: {}'.format(item))
+        result = {'status': -400, 'message': 'Not yet implemented'}
+        return self.write(result)
 
 class EditTournamentHandler(handler.BaseHandler):
     tmt_fields = db.table_field_names('Tournaments')
