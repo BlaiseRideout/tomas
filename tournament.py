@@ -35,6 +35,7 @@ def getTournaments(tournamentID=None):
                    country_fields))
         if tournamentID:
             sql += "WHERE Tournaments.ID = {}".format(tournamentID)
+        sql += " ORDER BY End DESC"
         cur.execute(sql)
         tournaments = [dict(zip(tmt_fields + country_fields, row))
                        for row in cur.fetchall()]
