@@ -3,7 +3,8 @@ $(function() {
 		$.getJSON("/authentication", function(auth) {
 			var anyCountry = [{
 					Code: "any",
-					Id: NaN
+			    Id: NaN,
+			    Flag_Image: ""
 				}],
 				selectedPlayers = new Object(), // hash of selected Player Id's
 				createDuplicateButton = function(item) {
@@ -71,17 +72,7 @@ $(function() {
 						valueField: "Id",
 						valueType: "number",
 					    textField: "Code",
-					    width: null,
-					},
-					{
-						name: "Flag",
-					    title: "",
-					    type: "text",
-						css: "FlagImage",
-						editing: false,
-						inserting: false,
-						sorting: false,
-					    filtering: false,
+					    itemTemplate: countryTemplate,
 					    width: null,
 					},
 					{
@@ -116,19 +107,11 @@ $(function() {
 					}
 				],
 				gridController = makeController(base + "tournamentList",
-					tournamentfieldDescriptions);
-			if (!auth['user']) {
-				for (i = 0; i < fieldDescriptions.length; i++) {
-					if (fieldDescriptions[i].css == 'PlayerSelectBox' &&
-						fieldDescriptions[i].type == 'checkbox') {
-						break
-					};
-				}
-				if (i < fieldDescriptions.length) {
-					fieldDescriptions.splice(i, 1);
-				}
-			};
-
+								tournamentfieldDescriptions),
+			    countries = Array(countryList.length + 1);
+		    for (j = 0; j < countryList.length; j++) {
+			countries[countryList[j].Id] = countryList[j]
+		    };
 			function selectedPlayerIDs() {
 				var playerlist = [];
 				for (p in selectedPlayers) {
@@ -184,6 +167,11 @@ $(function() {
 			}
 			return summary;
 		    };
+
+		    function countryTemplate (value, item) {
+			var flag = $('<span class="flagimage">').html(countries[value].Flag_Image);
+			return $('<span class="countrypair">').text(countries[value].Code).append(flag);
+		    }
 
 		    function duplicateTournament(e) {
 			var tourneyID = $(this).data('tourneyid');

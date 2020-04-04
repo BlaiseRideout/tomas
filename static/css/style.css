@@ -209,6 +209,14 @@ button.clearplayercomplete {
 	display: none;
 }
 
+.flagimage {
+    padding-left: 0.4em;
+}
+
+.flagimage img {
+    height: 0.75em;
+}
+
 #delete-tournament-confirmation {
 	display: none;
 }
