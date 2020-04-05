@@ -220,7 +220,7 @@ button.clearplayercomplete {
 #delete-tournament-confirmation {
 	display: none;
 }
-.jsgrid-table .player-merge-button {
+.jsgrid .player-merge-button {
     border: none;
     background-image: url("/static/images/merge-icon-pale-yellow.png");
     background-repeat: no-repeat;
@@ -228,15 +228,14 @@ button.clearplayercomplete {
     display: inline;
 }
 
-.player-merge-button:hover {
-    opacity: .5;
-    transition: opacity 200ms linear;
+.jsgrid .playerviewcontrol {
+    border: none;
+    display: inline;
+    background-image: none;
+    background-color: transparent;
+    padding-right: 4px;
 }
-
-.jsgrid-button + .player-merge-button {
-    margin-left: 5px;
-}
-
+ 
 .confirm-merge-table td, .confirm-merge-table th {
     text-align: center;
     height:1.5em;
@@ -277,6 +276,10 @@ tournamentplayereditmode {
     width: 3em;
 }
 
+.PlayerSelectBox input[type="checkbox"] {
+    height: 1em;
+}
+
 .hidden {
     display: none;
 }
@@ -285,16 +288,17 @@ tournamentplayereditmode {
     display: inline-block;
 }
 
-.duplicate-icon-tl {
+.jsgrid .duplicate-icon-tr {
     padding-left: 0.6em;
     font-size: .7em;
     position: relative;
     top: -.5em;
     left: -.25em;
     margin-right: .125em;
+    background-image: none;
 }
 
-.duplicate-icon-br {
+.jsgrid .duplicate-icon-bl {
     .font-size: .7em;
     position: absolute;
     top: .3em;

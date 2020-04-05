@@ -152,7 +152,9 @@ $(function() {
 			}
 
 			function playerSummaryTemplate(value, item) {
-				var summary = "";
+				var viewControl = $('<span class="playerviewcontrol jsgrid-button">')
+					.data('tourneyid', item.Id).text('▶').click(togglePlayerView),
+					summary = "";
 				for (type in item.players) {
 					if (item.players[type].length > 0) {
 						if (summary.length > 0) {
@@ -161,8 +163,29 @@ $(function() {
 						summary += item.players[type].length + ' ' + type;
 					}
 				}
-				return summary;
+				return $('<span class="playersummary">').text(summary).prepend(viewControl);
 			};
+
+			function togglePlayerView(ev) {
+				var on = $(this).hasClass('view-on');
+				clearPlayerViews(this);
+				if (!on) {
+					$(this).addClass('view-on').text('▼');
+					showPlayerView(this)
+				};
+				ev.stopPropagation();
+			};
+
+			function clearPlayerViews(button) {
+				$(button).parents('#tournamentsGrid').find('.playerviewcontrol')
+					.filter('.view-on').removeClass('view-on').text('▶');
+			}
+
+			function showPlayerView(button) {
+				var row = $(button).parents('tr').first(),
+					tourney = $(button).data('tourneyid');
+				console.log('Show player view for tournament ' + tourney)
+			}
 
 			function duplicateTournament(e) {
 				var tourneyID = $(this).data('tourneyid');

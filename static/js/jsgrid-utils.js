@@ -113,8 +113,8 @@ $(function() {
 
 	createDuplicateButton = function(item, callback, kind) {
 		var name = kind || 'tournament',
-			lowericon = $('<span class="duplicate-icon-br">').text('📄');
-		return $('<span class="duplicate-icon-tl" title="Duplicate ' + name + '">')
+			lowericon = $('<span class="duplicate-icon-bl">').text('📄');
+		return $('<span class="duplicate-icon-tr jsgrid-button" title="Duplicate ' + name + '">')
 			.data(name + 'id', item.Id).text('📄')
 			.append(lowericon).on('click', callback)
 	};
