@@ -18,7 +18,7 @@ $(function() {
 						}).data("playerID", item.Id)
 						.css("display",
 							selected.length > 1 && selectedPlayers[item.Id] ?
-							"inline" : "none").text("Merge")
+							"inline" : "none")
 						.on("click",
 							function(e) {
 								mergeSelectedPlayers(selectedPlayers, e);
