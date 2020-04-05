@@ -285,16 +285,16 @@ tournamentplayereditmode {
 }
 
 .duplicate-icon-tl {
-    font-size: .875em;
+    font-size: .7em;
     position: relative;
-    top: -.25em;
-    left: -.125em;
+    top: -.3em;
+    left: -.25em;
     margin-right: .125em;
 }
 
 .duplicate-icon-br {
-    .font-size: .875em;
+    .font-size: .7em;
     position: absolute;
-    top: .25em;
+    top: .3em;
     left: .25em
 }
