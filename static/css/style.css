@@ -285,9 +285,10 @@ tournamentplayereditmode {
 }
 
 .duplicate-icon-tl {
+    padding-left: 0.6em;
     font-size: .7em;
     position: relative;
-    top: -.3em;
+    top: -.5em;
     left: -.25em;
     margin-right: .125em;
 }
