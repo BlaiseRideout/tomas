@@ -1,9 +1,11 @@
 $(function() {
-	$.getJSON("/countries", function(countryList) {
+	withCountries(function() {
 		$.getJSON("/authentication", function(auth) {
+
 			var anyCountry = [{
 					Code: "any",
-					Id: NaN
+					Id: NaN,
+					Flag_Image: ""
 				}],
 				selectedPlayers = new Object(), // hash of selected Player Id's
 				createMergeButton = function(item) {
@@ -49,7 +51,8 @@ $(function() {
 					{
 						name: "Name",
 						type: "text",
-						width: 150,
+						width: null,
+						css: "playernamecolumn",
 						inserting: auth['user'],
 						editing: auth['user'],
 						validate: "required",
@@ -58,14 +61,16 @@ $(function() {
 					{
 						name: "Association",
 						type: "text",
-						width: 40,
+						width: null,
+						css: "playerassoccolumn",
 						inserting: auth['user'],
 						editing: auth['user']
 					},
 					{
 						name: "Country",
 						type: "select",
-						width: 30,
+						width: null,
+						css: "playercountrycolumn",
 						items: anyCountry.concat(countryList),
 						inserting: auth['user'],
 						editing: auth['user'],
@@ -73,40 +78,34 @@ $(function() {
 						valueField: "Id",
 						valueType: "number",
 						textField: "Code",
-					},
-					{
-						name: "Flag",
-						type: "text",
-						width: 20,
-						css: "FlagImage",
-						editing: false,
-						inserting: false,
-						sorting: false,
-						filtering: false
+						itemTemplate: countryTemplate,
 					},
 					{
 						name: "Tournaments",
 						type: "number",
-						width: 45,
+						width: null,
+						css: "playertourncolumn",
 						editing: false,
 						inserting: false
 					},
 					{
 						name: "Latest",
 						type: "text",
-						width: 50,
+						width: null,
+						css: "playerlatestcolumn",
 						editing: false,
 						inserting: false
 					},
 					{
 						name: "",
 						type: "checkbox",
-						width: 10,
+						width: null,
 						inserting: false,
 						editing: false,
 						css: "PlayerSelectBox",
 						itemTemplate: createPlayerSelectButton(true),
 						editTemplate: createPlayerSelectButton(false),
+						visible: auth['user'] ? true : false,
 					},
 					{
 						type: "control",
@@ -130,17 +129,6 @@ $(function() {
 				],
 				gridController = makeController(base + "playerlist",
 					fieldDescriptions);
-			if (!auth['user']) {
-				for (i = 0; i < fieldDescriptions.length; i++) {
-					if (fieldDescriptions[i].css == 'PlayerSelectBox' &&
-						fieldDescriptions[i].type == 'checkbox') {
-						break
-					};
-				}
-				if (i < fieldDescriptions.length) {
-					fieldDescriptions.splice(i, 1);
-				}
-			};
 
 			function selectedPlayerIDs() {
 				var playerlist = [];
@@ -280,6 +268,11 @@ $(function() {
 				return result
 			};
 
+			function countryTemplate(value, item) {
+				var flag = $('<span class="flagimage">').html(countries[value].Flag_Image);
+				return $('<span class="countrypair">').text(countries[value].Code).append(flag);
+			}
+
 			$("#playersGrid").jsGrid({
 				width: "100%",
 				height: "auto",
@@ -293,16 +286,7 @@ $(function() {
 				pageLoading: false,
 				controller: gridController,
 				fields: fieldDescriptions,
-				onItemUpdating: function(obj) {
-					updateFlagImage(obj, countryList);
-				},
-				onItemInserting: function(obj) {
-					updateFlagImage(obj, countryList);
-				},
 			});
 		});
-	});
-	$(".playerListTitle").click(function() { // Click on grid title reloads
-		$("#playersGrid").jsGrid("loadData"); // all the data
 	});
 });

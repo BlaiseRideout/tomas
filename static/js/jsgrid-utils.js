@@ -1,13 +1,27 @@
-(function() {
-	updateFlagImage = function(updateObj, countries) {
-		var country = countries.find( // Find country ID in countries array
-			function(country) {
-				return country.Id == updateObj.item.Country
+$(function() {
+	withCountries = function(todo) {
+		if (countryList === null) {
+			$.getJSON("/countries", function(countryRecs) {
+				countryList = countryRecs;
+				countries = Array(countryList.length + 1);
+				for (j = 0; j < countryList.length; j++) {
+					countries[countryList[j].Id] = countryList[j]
+				};
+				if (todo) {
+					todo()
+				};
 			});
-		if (country) {
-			updateObj.item['Flag'] = country.Flag_Image;
-			$(updateObj.row).find("td.FlagImage").html(country.Flag_Image);
 		}
+		else {
+			if (todo) {
+				todo()
+			}
+		};
+	};
+
+	countryTemplate = function(value, item) {
+		var flag = $('<span class="flagimage">').html(countries[value].Flag_Image);
+		return $('<span class="countrypair">').text(countries[value].Code).append(flag);
 	};
 
 	makeFilter = function(filterItem, fieldDescriptions) {
@@ -96,4 +110,12 @@
 		return $('<a>').attr('href', base + 't/' + item.Name + '/tournament')
 			.text(item.Name)
 	};
-})();
+
+	createDuplicateButton = function(item, callback, kind) {
+		var name = kind || 'tournament',
+			lowericon = $('<span class="duplicate-icon-br">').text('📄');
+		return $('<span class="duplicate-icon-tl" title="Duplicate ' + name + '">')
+			.data(name + 'id', item.Id).text('📄')
+			.append(lowericon).on('click', callback)
+	};
+});

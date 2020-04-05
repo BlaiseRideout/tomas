@@ -261,7 +261,19 @@ tournamentplayereditmode {
 }
 
 #tournamentsspanel .CountrySelector {
-    width-min: 20em;
+    min-width: 20em;
+}
+
+.playernamecolumn {
+    width: 20em;
+}
+
+.playerassoccolumn, .playercountrycolumn, .playertourncolumn {
+    max-width: 10%;
+}
+
+.PlayerSelectBox {
+    width: 3em;
 }
 
 .hidden {
