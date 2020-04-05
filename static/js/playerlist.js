@@ -10,26 +10,20 @@ $(function() {
 				selectedPlayers = new Object(), // hash of selected Player Id's
 				createMergeButton = function(item) {
 					// icon idea: triple nested greater than ⫸ (u-2AF8)
-					var selected = selectedPlayerIDs(),
-						button = $("<input>").attr({
+					var selected = selectedPlayerIDs();
+					return $("<input>").addClass(
+							"player-merge-button").attr({
 							type: "button",
 							title: "Merge selected players",
-						}).addClass(
-							"player-merge-button jsgrid-button")
-						.data("playerID", item.Id)
+						}).data("playerID", item.Id)
+						.css("display",
+							selected.length > 1 && selectedPlayers[item.Id] ?
+							"inline" : "none")
 						.on("click",
 							function(e) {
 								mergeSelectedPlayers(selectedPlayers, e);
 								e.stopPropagation();
-							});
-					if (selected.length > 1 && selectedPlayers[item.Id]) {
-						button.show()
-					}
-					else {
-						button.hide()
-					}
-					return button
-
+							})
 				},
 				createPlayerSelectButton = function(editable) {
 					return function(value, item) {
@@ -155,14 +149,11 @@ $(function() {
 
 			function updatePlayerMergeButtons() {
 				$("#playersGrid .player-merge-button").each(
-					function(i, elem) {
-						var id = $(elem).data("playerID");
-						if (players.length > 1 && selectedPlayers[id]) {
-							$(elem).show()
-						}
-						else {
-							$(elem).hide()
-						}
+					function(i, e) {
+						var id = $(e).data("playerID");
+						$(e).css("display",
+							players.length > 1 && selectedPlayers[id] ?
+							"inline" : "none")
 					});
 			};
 

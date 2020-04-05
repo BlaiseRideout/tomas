@@ -220,12 +220,11 @@ button.clearplayercomplete {
 #delete-tournament-confirmation {
 	display: none;
 }
-.jsgrid-table .player-merge-button {
+.player-merge-button {
     border: none;
     background-image: url("/static/images/merge-icon-pale-yellow.png");
     background-repeat: no-repeat;
     background-color: transparent;
-    display: inline;
 }
 
 .player-merge-button:hover {
