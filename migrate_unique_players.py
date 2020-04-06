@@ -99,6 +99,7 @@ schema_spec = {
         "FOREIGN KEY(Player) REFERENCES Players(Id) ON DELETE CASCADE",
         "FOREIGN KEY(Tournament) REFERENCES Tournaments(Id) ON DELETE CASCADE",
         "CONSTRAINT NumberInTournament UNIQUE(Number, Tournament)",
+        "CONSTRAINT OncePerTournament UNIQUE(Player, Tournament)",
         "CREATE INDEX TournamentPlayers ON Compete (Tournament, Player)",
     ],
     'Seating': [
