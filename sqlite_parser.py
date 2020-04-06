@@ -301,27 +301,6 @@ def create_index_sqls_from_spec(index_specs, table_pragma_records):
             m.group('cnames'), m.group('partial') or '')
     return result
             
-multi_whitespace = re.compile(r'\s\s+')
-sql_delims = re.compile(r'\s*([,()])\s*')
-optional_declarations = re.compile(
-    r'^CREATE( TEMP(ORARY)?)? TABLE( IF NOT EXISTS)?', re.IGNORECASE)
-dbname_declaration = re.compile(r'^CREATE TABLE (\w+)\.', re.IGNORECASE)
-
-def standardize_create_table_sql(sql):
-    """Standardize create table SQL whitespace usage and simplify for
-    comparison purposes.
-    Convert multiple whitespace characters to single spaces.
-    Replace space around delimiters with no space.
-    Remove TEMP[ORARY] between CREATE and TABLE.
-    Remove IF NOT EXISTS after TABLE.
-    Remove schema name from table name.
-    """
-    return dbname_declaration.sub(
-        'CREATE TABLE ',
-        optional_declarations.sub(
-            'CREATE TABLE',
-            sql_delims.sub(r'\1', multi_whitespace.sub(' ', sql.strip()))))
-    
 def table_pragma_records(
         table_spec, tablename='',
         patterns_to_try = column_def_patterns + post_column_spec_patterns,

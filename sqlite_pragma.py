@@ -6,7 +6,7 @@ records.  It creates named tuples for many of the pragma records that
 can be queried from SQLite.
 """
 
-import sys, os, collections, sqlite3, argparse
+import sys, os, collections, sqlite3, argparse, re
 
 class sqliteCur():
     con = None
@@ -138,14 +138,18 @@ def dict_by_col_name(pragma_records, lower=True):
                  if isinstance(pragma, sqlite_column_record)])
 
 def record_differences(record1, record2, include=None, exclude=None,
-                       exactfields=False, rename={}):
-    """Compare records by comparing some or all fields, ignoring case
-    of fields with string values. Ignore missing fields if exactfields is
-    false. Record types must be the same, otherwise the string 'record types
-    differ is returned'.  The rename parameter contains a dictionary mapping
+                       exactfields=False, rename={}, casesensitive=False,
+                       standardizeSQL=('spec_line',)):
+    """Compare records by comparing some or all fields. Ignore case of
+    fields when casesensitve flag is false and both are string values.
+    Ignore missing fields if exactfields is false. Record types must
+    be the same, otherwise the string 'record types differ is
+    returned'.  The rename parameter contains a dictionary mapping
     values for the 'name' field of record2 to those of record1.
-    Returns a list of strings describing field differences.  The list is
-    empty if no differences were found.
+    Fields with names in the standardizeSQL list are reformatted to
+    standardize whitespace before comparison.  Returns a list of
+    strings describing field differences.  The list is empty if no
+    differences were found.
     """
     if not type(record1) == type(record2):
         return ['Record types differ']
@@ -167,15 +171,42 @@ def record_differences(record1, record2, include=None, exclude=None,
                     result.append("Field '{}' in second but not first".format(
                         field))
         else:
-            v1 = getattr(record1, field)
-            v2 = getattr(record2, field)
+            v1, v2 = getattr(record1, field), getattr(record2, field)
             if field == 'name':
                v2 = rename.get(v2, v2)
-            str1 = isinstance(v1, str)
-            str2 = isinstance(v2, str)
-            if ((v1.lower() != v2.lower()) if (str1 and str2) else v1 != v2):
+            str1, str2 = isinstance(v1, str), isinstance(v2, str)
+            if str1 and str2:
+                if not casesensitive:
+                    v1, v2 = v1.lower(), v2.lower()
+                if field in standardizeSQL:
+                    v1 = standardize_SQL(v1, create_table=False)
+                    v2 = standardize_SQL(v2, create_table=False)
+            if v1 != v2:
                 result.append("Field '{}' differs".format(field))
     return result
+
+multi_whitespace = re.compile(r'\s\s+')
+sql_delims = re.compile(r'\s*([,()])\s*')
+optional_declarations = re.compile(
+    r'^CREATE( TEMP(ORARY)?)? TABLE( IF NOT EXISTS)?', re.IGNORECASE)
+dbname_declaration = re.compile(r'^CREATE TABLE (\w+)\.', re.IGNORECASE)
+
+def standardize_SQL(sql, create_table=True):
+    """Standardize SQL whitespace usage and simplify for
+    comparison purposes. Optionally apply special rules for CREATE TABLE.
+    Convert multiple whitespace characters to single spaces.
+    Replace space around delimiters with no space.
+    If creaate_table is true,
+    * Remove TEMP[ORARY] between CREATE and TABLE.
+    * Remove IF NOT EXISTS after TABLE.
+    * Remove schema name from table name.
+    """
+    std = sql_delims.sub(r'\1', multi_whitespace.sub(' ', sql.strip()))
+    if create_table:
+       std = dbname_declaration.sub('CREATE TABLE ',
+                                    optional_declarations.sub(
+                                       'CREATE TABLE', std))
+    return std
 
 def pprint_table_pragmas(pragma_dict, indent='', tablename=''):
     print('{}Table SQL for {}: "{}"'.format(

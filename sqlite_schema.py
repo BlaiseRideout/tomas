@@ -68,8 +68,8 @@ def compare_constraints(new_table, old_table, rename={}):
     """
     old_sql = std_create_table_pattern.sub( # Get column def section of
         r'\1',                 # create table statement
-        translate_old_field_names(
-            standardize_create_table_sql(old_table['table_sql']), rename))
+        translate_old_field_names(standardize_SQL(old_table['table_sql']),
+                                  rename))
     new_constraints = []
     deleted_constraints = []
     for kind in ['column', 'fkey', 'index']: # Loop over constraint kinds in
@@ -84,7 +84,7 @@ def compare_constraints(new_table, old_table, rename={}):
                         for oldc in old_table[kind]):
                     new_constraints.append(constraint)
             if constraint.spec_line:
-                new_sql = standardize_create_table_sql(constraint.spec_line)
+                new_sql = standardize_SQL(constraint.spec_line)
                 length = len(new_sql)
                 pos = old_sql.lower().find(new_sql.lower())
                 if pos == -1 and kind == 'column':
@@ -260,8 +260,8 @@ def compare_table_schema(
     'different_table' if they differ in some other way.
     """
     if new_table['table_sql'] and old_table['table_sql']:
-        new = standardize_create_table_sql(new_table['table_sql']).lower()
-        old = standardize_create_table_sql(old_table['table_sql']).lower()
+        new = standardize_SQL(new_table['table_sql']).lower()
+        old = standardize_SQL(old_table['table_sql']).lower()
         if new == old:
             if verbose > 1:
                 print('SQL for creating table {} is equivalent'.format(
@@ -579,6 +579,10 @@ def upgrade_database(new_db_schema, old_db_schema, delta, dbfile, verbose=0):
                                     'DROP INDEX {}'.format(idx.name) 
                                     if kind == 'drop' else
                                     idx.spec_line)
+                            if kind == 'add':
+                                if verbose > 1:
+                                    print('Re-indexing all', table, 'indices')
+                                cur.execute('REINDEX {}'.format(table))
                 else:
                     if verbose > 1:
                         print('Creating new {} table'.format(table))
