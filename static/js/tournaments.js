@@ -89,11 +89,12 @@ $(function() {
 						itemTemplate: function(value, item) {
 							var $result = $([]);
 							if (auth['user']) {
-								if (this.editButton && auth['user'] == item.Owner) {
+								var editOK = (auth['admin'] || auth['user'] == item.Owner);
+								if (this.editButton && editOK) {
 									$result = $result.add(
 										this._createEditButton(item));
 								}
-								if (this.deleteButton && (auth['admin'] || auth['user'] == item.Owner)) {
+								if (this.deleteButton && editOK) {
 									$result = $result.add(
 										this._createDeleteButton(item));
 								}
