@@ -40,6 +40,7 @@ def getTournaments(tournamentID=None):
         tournaments = [dict(zip(tmt_fields + country_fields, row))
                        for row in cur.fetchall()]
         for tmt in tournaments:
+            tmt['Dates'] = '{} - {}'.format(tmt['Start'], tmt['End'])
             sql = """
             SELECT {} FROM Compete JOIN Players on Player = Players.Id
               WHERE Tournament = ?
