@@ -147,9 +147,7 @@ $(function() {
 			};
 
 			function clearSelectedPlayers() {
-				for (p in selectedPlayers) {
-					delete selectedPlayers[p]
-				};
+				selectedPlayers = new Object();
 				$("#playersGrid .PlayerSelectBox input").prop("checked", false);
 			};
 
@@ -230,18 +228,10 @@ $(function() {
 					players.map(function(o) {
 						return copyObj(o, merged)
 					})
-					.map(function(player) {
-						var row = '<tr>';
-						for (key in merged) {
-							row += '<td>' + (player[key] || '') + '</td>'
-						};
-						return row + '</tr>'
-					});
+					.map(makePlayerRow(columns)).join(' ');
 				table += '<tr><td colspan=' + columns.length + '>' +
 					'will be merged into the player</td></tr>';
-				table += '<tr>' + columns.map(function(col) {
-					return '<td>' + merged[col] + '</td>';
-				}) + '</tr>';
+				table += '<tr>' + makePlayerRow(columns)(merged) + '</tr>';
 				table += '<tr><td colspan=' + columns.length + '>' +
 					'The operation cannot be undone. </td><tr>';
 				$.confirm({
@@ -277,12 +267,23 @@ $(function() {
 				return result
 			};
 
+			function makePlayerRow(columns) {
+				return function(player) {
+					return '<tr>' +
+						columns.map(function(col) {
+							return '<td>' + (col == 'Country' ?
+								countries[player[col]].Code :
+								player[col] ? player[col] : '') + '</td>';
+						}).join(' ') + '</tr>';
+				}
+			};
+
 			function countryTemplate(value, item) {
 				var flag = $('<span class="flagimage">').html(countries[value].Flag_Image);
 				return $('<span class="countrypair">').text(countries[value].Code).append(flag);
 			}
 
-			$("#playersGrid").jsGrid({
+			$("#playersGrid").text('').jsGrid({
 				width: "100%",
 				height: "auto",
 
