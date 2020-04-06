@@ -35,15 +35,19 @@ class TournamentHomeHandler(handler.BaseHandler):
                        'Flag_Image']
             plr_colnames = ['Name', 'Association',
                             {'label': 'Country', 'key': 'Flag_Image'}]
-            sql = ("SELECT {columns} FROM Players"
-                   " LEFT OUTER JOIN Countries"
-                   "   ON Players.Country = Countries.Id"
-                   " JOIN Compete on Compete.Player = Players.Id"
-                   " WHERE Compete.Tournament in ({tIDlist})"
-                   " ORDER BY Players.Name LIMIT ?").format(
-                       tIDlist=','.join('?' for tmt in tournaments),
-                       columns=",".join(columns))
-            args = tuple(tmt['Id'] for tmt in tournaments) + (summaryNumber,)
+            sql = """
+            SELECT {columns}, SUM(Scores.Score) / COUNT(Scores.Id) AS AvgScore
+            FROM Players LEFT OUTER JOIN Countries
+                ON Players.Country = Countries.Id
+              LEFT OUTER JOIN Compete on Compete.Player = Players.Id
+              LEFT OUTER JOIN Tournaments 
+                ON Compete.Tournament = Tournaments.Id
+              LEFT OUTER JOIN Rounds ON Rounds.Tournament = Tournaments.Id
+              LEFT OUTER JOIN Scores ON Scores.Round = Rounds.Id
+            GROUP BY Players.Id
+            ORDER BY Tournaments.End DESC, AvgScore DESC, Players.Name ASC
+            LIMIT ?""".format(columns=",".join(columns))
+            args = (summaryNumber,)
             cur.execute(sql, args)
             players = [dict(zip(map(db.fieldname, columns), row))
                        for row in cur.fetchall()]
