@@ -186,6 +186,9 @@ $(function() {
 						summary += item.players[type].length + ' ' + type;
 					}
 				}
+				if (summary.length == 0) {
+					summary = "none"
+				};
 				return $('<span class="playersummary">').text(summary).prepend(viewControl);
 			};
 
