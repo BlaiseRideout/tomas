@@ -43,6 +43,7 @@ $(function() {
 						type: "text",
 						inserting: auth['user'],
 						editing: auth['user'],
+						sorting: false,
 						itemTemplate: datesTemplate,
 						editTemplate: datesEditTemplate,
 						insertTemplate: datesEditTemplate,
