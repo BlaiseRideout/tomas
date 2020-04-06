@@ -66,9 +66,112 @@ class TournamentListHandler(handler.BaseHandler):
     def post(self):
         encoded_item = self.get_argument('item', None)
         item = json.loads(encoded_item)
-        log.info('Item posted: {}'.format(item))
-        result = {'status': -400, 'message': 'Not yet implemented'}
+        result = {'status': 0, 'message': ''}
+        tmt_fields = db.table_field_names('Tournaments')
+        columns = [f for f in tmt_fields if f in item and f not in ['Id']]
+        cleanTournamentItem(item, columns, self.current_user)
+        if item.get('Id', None) is None or not isinstance(item['Id'], int):
+            result['message'] = 'Invalid Id field for tournament, {}'.format(
+                item)
+            result['status'] = -1
+            return self.write(result)
+        if (not self.get_is_admin() and item['Id'] != 0 and 
+            str(item.get('Owner', -1)) != self.current_user):
+            result['message'] = 'Only owners and admins may edit tournaments'
+            result['status'] = -2
+            return self.write(result)
+        if not isinstance(item.get('Country', None), int) and item['Id'] >= 0:
+            result['message'] = 'Invalid Country for tournament, {}'.format(
+                item)
+            result['status'] = -3
+            return self.write(result)
+        id = abs(item['Id'])
+        result['message'] = 'Item {}'.format(
+            'inserted' if id == 0 else 'deleted' if item['Id'] < 0 else
+            'updated')
+        if item['Id'] < 0:
+            db.make_backup()
+        try:
+            with db.getCur() as cur:
+                if id > 0:
+                    sql = 'SELECT Id FROM Tournaments WHERE Id = ?'
+                    args = (id, )
+                    cur.execute(sql, args)
+                    matches = len(cur.fetchall())
+                    if matches == 0:
+                        result['message'] = 'No tournament with Id {}'.format(id)
+                        result['status'] = -4
+                    elif matches > 1:
+                        result['message'] = (
+                            'Multiple tournaments with Id {}'.format(id))
+                        result['status'] = -5
+                if item['Id'] >= 0:
+                    sql = 'SELECT Id FROM Countries WHERE Id = ?'
+                    args = (item['Country'], )
+                    cur.execute(sql, args)
+                    matches = len(cur.fetchall())
+                    if matches != 1:
+                        result['message'] = (
+                            'Invalid Country for tournament {}'.format(item))
+                        result['status'] = -6
+                    elif item['End'] < item['Start']:
+                        result['message'] = (
+                            'End date must follow start date {}'.format(
+                                item['Start']))
+                        result['status'] = -7
+                sql = 'SELECT Id FROM Users WHERE Id = ?'
+                args = (item['Owner'], )
+                cur.execute(sql, args)
+                matches = len(cur.fetchall())
+                if matches != 1:
+                    result['message'] = (
+                        'Invalid owner for tournament {}'.format(item))
+                    result['status'] = -10
+                if result['status'] == 0:
+                    values = [item[f] for f in columns]
+                    if item['Id'] < 0:
+                        sql = 'DELETE FROM Tournaments WHERE Id = ?'
+                        args = (id, )
+                    elif item['Id'] == 0:
+                        sql = 'INSERT INTO Tournaments ({}) VALUES ({})'.format(
+                            ', '.join(columns),
+                            ', '.join(['?' for v in values]))
+                        args = values
+                    else:
+                        sql = 'UPDATE Tournaments SET {} WHERE Id = ?'.format(
+                                ', '.join('{} = ?'.format(f) for f in columns))
+                        args = values + [id]
+                    log.debug('Executing "{}" on {}'.format(sql, args))
+                    cur.execute(sql, args)
+                    if item['Id'] == 0:
+                        item['Id'] = cur.lastrowid
+                        log.info('Last Tournament Row ID is now {}'.format(
+                            item['Id']))
+                    item['Id'] = abs(item['Id']) # Put cleaned item record
+                    result['item'] = item # with correct Id in rsespone
+        except sqlite3.DatabaseError as e:
+            result['message'] = (
+                'Exception in database change. SQL = {}. Args = {}. {}'.format(
+                    sql, args, e))
+            log.error(result['message'])
+            result['status'] = -10
+
         return self.write(result)
+
+def cleanTournamentItem(item, columns, current_user):
+    global sql, args
+    for field in ['Name', 'Location', 'Start', 'End', 'Logo', 'LinkURL']:
+        if field in columns and item[field]:
+            item[field] = item[field].strip()
+    item['Owner'] = item.get('Owner', None) or current_user
+    if 'Country' in columns and isinstance(item['Country'], str):
+        with db.getCur() as cur:
+            sql = 'SELECT Id FROM Countries WHERE Code = ?'
+            args = (item['Country'].upper(), )
+            cur.execute(sql, args)
+            result = cur.fetchone()
+            if result:
+                item['Country'] = result[0]
 
 class EditTournamentHandler(handler.BaseHandler):
     tmt_fields = db.table_field_names('Tournaments')

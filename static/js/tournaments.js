@@ -6,6 +6,7 @@ $(function() {
 					Id: NaN,
 					Flag_Image: ""
 				}],
+				lastDatesItemEdited = null,
 				selectedPlayers = new Object(), // hash of selected Player Id's
 				createPlayerSelectButton = function(editable) {
 					return function(value, item) {
@@ -45,7 +46,12 @@ $(function() {
 						itemTemplate: datesTemplate,
 						editTemplate: datesEditTemplate,
 						insertTemplate: datesEditTemplate,
-						editValue: datesEditValue,
+						insertValue: function() {
+							return datesValue(this.insertControl)
+						},
+						editValue: function() {
+							return datesValue(this.editControl)
+						},
 						width: null,
 					},
 					{
@@ -142,14 +148,31 @@ $(function() {
 							defaultDate: i > 0 ? "+1d" : null,
 						});
 				});
+				this[value === undefined && item === undefined ?
+					'insertControl' : 'editControl'] = dom
+				lastDatesItemEdited = item;
 				return dom;
 			};
 
-			function datesEditValue() {
-				var start = $(this).find("input.startdate").val(),
-					end = $(this).find("input.enddate").val();
+			function datesValue(control) {
+				var start = $(control).find("input.startdate").val(),
+					end = $(control).find("input.enddate").val();
+				if (start && end && lastDatesItemEdited &&
+					'Start' in lastDatesItemEdited &&
+					'End' in lastDatesItemEdited) {
+					lastDatesItemEdited.Start = start;
+					lastDatesItemEdited.End = end;
+				};
 				return start + ' - ' + end;
-			}
+			};
+
+			function tournamentItemInserting(obj) {
+				var dateparts = obj.item.Dates && obj.item.Dates.split(' - ');
+				if (dateparts && dateparts.length == 2) {
+					obj.item.Start = dateparts[0];
+					obj.item.End = dateparts[1];
+				}
+			};
 
 			function playerSummaryTemplate(value, item) {
 				var viewControl = $('<span class="playerviewcontrol jsgrid-button">')
@@ -203,8 +226,11 @@ $(function() {
 				autoload: true,
 				paging: false,
 				pageLoading: false,
+				deleteConfirm: 'Are you sure you want to delete this tournament?',
 				controller: gridController,
 				fields: tournamentfieldDescriptions,
+				onItemInserting: tournamentItemInserting,
+				onItemEditing: tournamentItemInserting,
 			});
 		});
 	});
