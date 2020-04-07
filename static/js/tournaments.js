@@ -325,7 +325,7 @@ $(function() {
 				};
 				selectedTourneyPlayers = new Object();
 				var grid = $('<div id="tourneyplayers" class="tourneyplayersgrid">').jsGrid({
-						width: '100%',
+						width: '90%',
 						inserting: false,
 						editing: false,
 						sorting: true,
@@ -344,8 +344,6 @@ $(function() {
 					.addClass($(tourneyRow).hasClass('jsgrid-alt-row') ?
 						'jsgrid-row' : 'jsgrid-alt-row').append(cell);
 				$(tourneyRow).after(innerRow);
-
-				console.log('Show ' + playerList.length + ' players for tournament ' + tourney.Id)
 			}
 
 			function duplicateTournament(e) {
