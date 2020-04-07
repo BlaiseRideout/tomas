@@ -12,6 +12,8 @@ import logging
 
 import util
 import settings
+from sqlite_pragma import *
+from sqlite_parser import *
 from sqlite_schema import *
 
 log = logging.getLogger("WebServer")
@@ -225,9 +227,9 @@ def fieldname(columnspec):
     return columnspec.split('.')[-1]
 
 def table_field_names(tablename):
-    return [words(fs)[0] for fs in schema.get(tablename, [])
-            if not words(fs)[0].upper() in [
-                    'FOREIGN', 'UNIQUE', 'CONSTRAINT', 'PRIMARY', 'CHECK']]
+    pragmas = table_pragma_records(schema.get(tablename, []), tablename)
+    return [pragma.name for pragma in pragmas
+            if isinstance(pragma, sqlite_column_record)]
 
 _unusedPointsPlayer = None
 unusedPointsPlayerName = '!#*UnusedPointsPlayer*#!'
