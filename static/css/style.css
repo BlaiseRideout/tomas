@@ -288,6 +288,11 @@ tournamentplayereditmode {
     display: inline-block;
 }
 
+#tourneyplayers.tourneyplayersgrid {
+    float: right;
+    width: 80%;
+}
+
 .jsgrid .duplicate-icon-tr {
     padding-left: 0.6em;
     font-size: .7em;

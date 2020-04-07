@@ -24,7 +24,7 @@ $(function() {
 						return box;
 					}
 				},
-				tournamentfieldDescriptions = [{
+				tournamentFieldDescriptions = [{
 						name: "Id",
 						type: "number",
 						visible: false
@@ -108,8 +108,93 @@ $(function() {
 						width: null,
 					}
 				],
-				gridController = makeController(base + "tournamentList",
-					tournamentfieldDescriptions);
+				tournamentsGridController = makeController(base + "tournamentList",
+					tournamentFieldDescriptions),
+				playerTypes = [],
+				tourneyPlayerGridFields = [{
+						name: "Id",
+						type: "number",
+						visible: false
+					},
+					{
+						name: "Type",
+						type: "select",
+						width: null,
+						css: "playertypecolumn",
+						items: playerTypes,
+						inserting: false,
+						editing: false,
+						css: "PlayerTypeSelector",
+						valueField: "Id",
+						valueType: "number",
+						textField: "Type",
+						itemTemplate: playerTypeTemplate,
+					},
+					{
+						name: "Name",
+						type: "text",
+						inserting: false,
+						editing: false,
+						itemTemplate: playerStatLinkTemplate,
+						width: null,
+					},
+					{
+						name: "Association",
+						type: "text",
+						inserting: false,
+						editing: false,
+						width: null,
+					},
+					{
+						name: "Number",
+						type: "number",
+						inserting: false,
+						editing: false,
+						width: null,
+					},
+					{
+						name: "Pool",
+						type: "text",
+						inserting: false,
+						editing: false,
+						width: null,
+					},
+					{
+						name: "Wheel",
+						type: "text",
+						inserting: false,
+						editing: false,
+						width: null,
+					},
+					{
+						name: "",
+						type: "checkbox",
+						width: null,
+						inserting: false,
+						editing: false,
+						css: "PlayerSelectBox",
+						itemTemplate: createTourneyPlayerSelectButton(true),
+						visible: auth['admin'] || auth['user'],
+					},
+				],
+				tourneyPlayers = null,
+				selectedTourneyPlayers = null,
+				tourneyPlayerGridController = null;
+
+			function createTourneyPlayerSelectButton(editable) {
+				return function(value, item) {
+					var box = this._createCheckbox().prop({
+						checked: false,
+					});
+					if (editable) {
+						box.click(function(e) {
+							selectedTourneyPlayers[item.Id] = $(this).prop("checked");
+							e.stopPropagation();
+						})
+					};
+					return box;
+				}
+			};
 
 			function selectedPlayerIDs() {
 				var playerlist = [];
@@ -177,7 +262,7 @@ $(function() {
 
 			function playerSummaryTemplate(value, item) {
 				var viewControl = $('<span class="playerviewcontrol jsgrid-button">')
-					.data('tourneyid', item.Id).text('▶').click(togglePlayerView),
+					.data('tourney', item).text('▶').click(togglePlayerView),
 					summary = "";
 				for (type in item.players) {
 					if (item.players[type].length > 0) {
@@ -193,6 +278,15 @@ $(function() {
 				return $('<span class="playersummary">').text(summary).prepend(viewControl);
 			};
 
+			function playerTypeTemplate(value, item) {
+				var selector = $('<select class="playertypeselector">');
+				playerTypes.map(function(entry) {
+					$("<option>").attr("value", entry.Id).text(entry.Type)
+						.prop("selected", value == entry.Id).appendTo(selector);
+				});
+				return selector;
+			};
+
 			function togglePlayerView(ev) {
 				var on = $(this).hasClass('view-on');
 				clearPlayerViews(this);
@@ -206,12 +300,52 @@ $(function() {
 			function clearPlayerViews(button) {
 				$(button).parents('#tournamentsGrid').find('.playerviewcontrol')
 					.filter('.view-on').removeClass('view-on').text('▶');
+				$('#tourneyplayers').remove();
+				$('#transferplayersbutton').removeClass('exposed').addClass('hidden');
+				$('#playerspanel').removeClass('exposed').addClass('hidden');
 			}
 
 			function showPlayerView(button) {
-				var row = $(button).parents('tr').first(),
-					tourney = $(button).data('tourneyid');
-				console.log('Show player view for tournament ' + tourney)
+				var tourneyRow = $(button).parents('tr').first(),
+					tourney = $(button).data('tourney'),
+					playerList = [];
+				$('#transferplayersbutton').removeClass('hidden').addClass('exposed');
+				$('#playerspanel').removeClass('hidden').addClass('exposed');
+				tourneyPlayers = new Object();
+				playerTypes = []; // NOTE: Assume entries in players are always in numeric order
+				for (type in tourney.players) {
+					playerTypes.push({
+						'Type': type,
+						'Id': playerTypes.length
+					});
+					tourney.players[type].map(function(player) {
+						tourneyPlayers[player.Id] = 1;
+						playerList.push(player);
+					});
+				};
+				selectedTourneyPlayers = new Object();
+				var grid = $('<div id="tourneyplayers" class="tourneyplayersgrid">').jsGrid({
+						width: '100%',
+						inserting: false,
+						editing: false,
+						sorting: true,
+						filtering: true,
+						data: playerList,
+						paging: false,
+						pageLoading: false,
+						// controller: tourneyPlayerGridController,
+						fields: tourneyPlayerGridFields,
+					}),
+					cell = $('<td>').attr('colspan', tournamentFieldDescriptions.filter(
+						function(field) {
+							return field.visible != false
+						}).length).append(grid),
+					innerRow = $('<tr class="tourneyPlayersRow">')
+					.addClass($(tourneyRow).hasClass('jsgrid-alt-row') ?
+						'jsgrid-row' : 'jsgrid-alt-row').append(cell);
+				$(tourneyRow).after(innerRow);
+
+				console.log('Show ' + playerList.length + ' players for tournament ' + tourney.Id)
 			}
 
 			function duplicateTournament(e) {
@@ -222,7 +356,6 @@ $(function() {
 
 			$("#tournamentsGrid").text('').jsGrid({
 				height: "auto",
-
 				inserting: auth['user'] ? true : false,
 				editing: auth['user'] ? true : false,
 				sorting: true,
@@ -231,8 +364,8 @@ $(function() {
 				paging: false,
 				pageLoading: false,
 				deleteConfirm: 'Are you sure you want to delete this tournament?',
-				controller: gridController,
-				fields: tournamentfieldDescriptions,
+				controller: tournamentsGridController,
+				fields: tournamentFieldDescriptions,
 				onItemInserting: tournamentItemInserting,
 				onItemEditing: tournamentItemInserting,
 			});

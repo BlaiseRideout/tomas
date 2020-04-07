@@ -27,7 +27,9 @@ def getTournaments(tournamentID=None):
     tmt_fields = db.table_field_names('Tournaments')
     country_fields = ['Code', 'Flag_Image']
     player_fields = ['Id', 'Name', 'Association']
-    pFields = ['Type'] + ['Players.{}'.format(f) for f in player_fields]
+    pFields = [f for f in db.table_field_names('Compete')
+               if f not in ('Id', 'Player')] + [
+                       'Players.{}'.format(f) for f in player_fields]
     with db.getCur() as cur:
         sql = """
         SELECT {} FROM Tournaments JOIN Countries ON Country = Countries.ID
@@ -49,8 +51,8 @@ def getTournaments(tournamentID=None):
             tmt['players'] = dict(zip(db.playertypes,
                                       [list() for t in db.playertypes]))
             for row in cur.fetchall():
-                tmt['players'][db.playertypes[row[0]]].append(
-                    dict(zip(player_fields, row[1:])))
+                player = dict(zip(map(db.fieldname, pFields), row))
+                tmt['players'][db.playertypes[player['Type']]].append(player)
     return tournaments
 
 class TournamentsHandler(handler.BaseHandler):
