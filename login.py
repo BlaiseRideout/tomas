@@ -346,7 +346,7 @@ class LoginHandler(handler.BaseHandler):
 class LogoutHandler(handler.BaseHandler):
     def get(self):
         uri = self.get_argument('next', '..')
-        userID = handler.stringify(self.get_secure_cookie("user"))
+        userID = util.stringify(self.get_secure_cookie("user"))
         log.info("Explicit logout for user ID {0}".format(userID))
         self.clear_cookie("user")
         self.clear_cookie("admin")
