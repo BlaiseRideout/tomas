@@ -25,6 +25,9 @@
 	{% end %}
       </tr>
     </thead>
+    {% if len(tournaments) == 0 %}
+    <tr><td colspan="{{ len(tmt_colnames) }}">None found</td></tr>
+    {% end %}
     {% for tournament in tournaments %}
     <tr>
       <td><a href="/t/{{ tournament['Name'] }}/tournament">
@@ -60,6 +63,9 @@
 	{% end %}
       </tr>
     </thead>
+    {% if len(players) == 0 %}
+    <tr><td colspan="{{ len(plr_colnames) }}">None found</td></tr>
+    {% end %}
     {% for player in players %}
     <tr>
       <td><a href="/playerStats/{{ player['Name'] }}">
