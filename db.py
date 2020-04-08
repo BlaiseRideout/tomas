@@ -178,8 +178,10 @@ playertypes = ['Regular', 'Inactive', 'Substitute']
 playertypecode = dict([(val, i) for i, val in enumerate(playertypes)])
 
 def init(force=False, dbfile=settings.DBFILE, verbose=0):
-    existing_schema = get_sqlite_db_schema(dbfile)
     desired_schema = parse_database_schema(schema)
+    if not os.path.exists(dbfile):
+        create_database(desired_schema, dbfile, verbose)
+    existing_schema = get_sqlite_db_schema(dbfile)
     if not compare_and_prompt_to_upgrade_database(
             desired_schema, existing_schema, dbfile,
             ordermatters=False, prompt_prefix='SCHEMA CHANGE: ',
