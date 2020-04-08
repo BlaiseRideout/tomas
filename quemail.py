@@ -21,6 +21,7 @@ Example of use:
 import smtplib
 import logging
 import time
+import pdb
 
 from email.mime.text import MIMEText
 from email.utils import make_msgid, formatdate
@@ -35,7 +36,8 @@ log = logging.getLogger("QueMail")
 class QueMail(Thread):
     instance = None
 
-    def init(self, smtp_host, smtp_login, smtp_pswd, smtp_port = 25, use_tls = False, queue_size = 100):
+    def init(self, smtp_host, smtp_login, smtp_pswd, smtp_port = 25,
+             use_tls = False, queue_size = 100, debug_level=0):
         self._queue = Queue(queue_size)
         log.info("Initializing QueMail with queue size %i. Using SMTP server: %s:%i." % (queue_size, smtp_host, smtp_port))
         self.smtp_host = smtp_host
@@ -43,6 +45,7 @@ class QueMail(Thread):
         self.smtp_password = smtp_pswd
         self.smtp_port = smtp_port
         self.use_tls = use_tls
+        self.debug_level = debug_level
 
     def __init__(self):
         Thread.__init__(self)
@@ -54,6 +57,7 @@ class QueMail(Thread):
         self.smtp_password = None
         self.smtp_port = None
         self.use_tls = False
+        self.debug_level = 0
         self.check_interval = 5          # the number of seconds to check the queue
 
     def end(self):
@@ -68,11 +72,17 @@ class QueMail(Thread):
     def run(self):
         while not self._do_quit:
             if not self._queue.empty():
+                # pdb.set_trace() # Uncomment to usePython debugger
                 log.debug(u"Connecting to SMTP server: %s:%i" % (self.smtp_host, self.smtp_port))
                 smtp = None
                 try:
                     smtp = smtplib.SMTP()
-                    smtp.connect(self.smtp_host, self.smtp_port)
+                    smtp.set_debuglevel(self.debug_level)
+                    resp = smtp.connect(self.smtp_host, self.smtp_port)
+                    if resp[0] < 200 or 252 > resp[0]:
+                        raise Exception(
+                            "Unexpected respone from SMTP server {}:{}, {}"
+                            .format(self.smtp_host, self.smtp_port, resp))
                     if self.use_tls:
                       smtp.starttls()
                       smtp.ehlo()
@@ -88,7 +98,7 @@ class QueMail(Thread):
                             log.debug(u"with content: %s" % content)
                             smtp.sendmail(eml.adr_from, eml.adr_to, content)
                             log.warning(u"Sent (qs=%i,t=%f): %s" % (self._queue.qsize(),time.time()-t, eml))
-                        except Exception as e:
+                        except smtplib.SMTPException as e:
                             log.error(u"Exception occured while sending email: %s" % eml)
                             log.exception(e)
                             # FIXME not good idea: when exception occured, add email at end of queue
