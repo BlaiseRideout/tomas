@@ -58,7 +58,7 @@ $(function() {
 						name: "Name",
 						type: "text",
 						width: null,
-						css: "playernamecolumn",
+						css: "playernamefield",
 						inserting: auth['user'],
 						editing: auth['user'],
 						validate: "required",
@@ -68,7 +68,7 @@ $(function() {
 						name: "Association",
 						type: "text",
 						width: null,
-						css: "playerassoccolumn",
+						css: "playerassociationfield",
 						inserting: auth['user'],
 						editing: auth['user']
 					},
@@ -76,11 +76,10 @@ $(function() {
 						name: "Country",
 						type: "select",
 						width: null,
-						css: "playercountrycolumn",
+						css: "playercountryfield",
 						items: anyCountry.concat(countryList),
 						inserting: auth['user'],
 						editing: auth['user'],
-						css: "CountrySelector",
 						valueField: "Id",
 						valueType: "number",
 						textField: "Code",
@@ -90,7 +89,7 @@ $(function() {
 						name: "Tournaments",
 						type: "number",
 						width: null,
-						css: "playertourncolumn",
+						css: "playertournamentsfield",
 						editing: false,
 						inserting: false
 					},
@@ -98,7 +97,7 @@ $(function() {
 						name: "Latest",
 						type: "text",
 						width: null,
-						css: "playerlatestcolumn",
+						css: "playerlatestfield",
 						editing: false,
 						inserting: false
 					},
@@ -108,7 +107,7 @@ $(function() {
 						width: null,
 						inserting: false,
 						editing: false,
-						css: "PlayerSelectBox",
+						css: "playerselectboxfield",
 						itemTemplate: createPlayerSelectButton(true),
 						editTemplate: createPlayerSelectButton(false),
 						visible: auth['user'] ? true : false,
@@ -130,7 +129,8 @@ $(function() {
 								$result = $result.add(createMergeButton(item));
 							}
 							return $result;
-						}
+						},
+						css: "playercontrolfield",
 					}
 				],
 				gridController = makeController(base + "playerlist",
@@ -296,6 +296,7 @@ $(function() {
 				pageLoading: false,
 				controller: gridController,
 				fields: fieldDescriptions,
+				noDataContent: 'None found',
 			});
 		});
 	});

@@ -38,7 +38,6 @@ html, body {
 
 #content {
 	width:96%;
-	max-width:1500px;
 	position:relative;
 	display:inline-block;
 	margin-top:1em;
@@ -76,7 +75,6 @@ button:hover, input[type="submit"]:hover, a:hover, .colheader:hover {
     cursor:pointer;
     opacity: .5;
     transition: opacity 200ms linear;
-}
 }
 
 button[disabled] {
@@ -248,44 +246,61 @@ button.clearplayercomplete {
     display: inline-block;
 }
 
-#transferplayers {
+#tournamentsEditingPanel {
+    width: 100%;
+}
+
+#tournamentspanel {
+    min-width: 300;
+    display: inline-block;
+}
+
+#tournamentspanel:not(.tournamentplayereditmode) {
+    width: 95%;
+}
+
+.sidelabelwrapper {
+    display: inline-block;
+    transform: rotate(90deg);
+    position: relative;
+    padding-bottom: 5%;
+    position: relative;
+    top: 5em;
+}
+
+#transferplayersbutton {
     font-size: large;
 }
 
-#tournamentspanel, #playerspanel {
-    width-min: 300;
+#playerspanel {
+    font-size: 0.8em;
+    width: 45%;
+    display: inline-block;
 }
 
-tournamentplayereditmode {
-    width: 45%
+.tournamentplayereditmode {
+    width: 45%;
 }
 
-#tournamentsspanel .CountrySelector {
+.playercountryfield select {
     min-width: 20em;
 }
 
-.playernamecolumn {
-    width: 20em;
-}
-
-.playerassoccolumn, .playercountrycolumn, .playertourncolumn {
+.playerassociationfield, .playercountryfield, .playertournamentsfeld,
+.playerlatestfield {
     max-width: 10%;
 }
 
-.PlayerSelectBox {
+.playerselectboxfield {
     width: 3em;
 }
 
-.PlayerSelectBox input[type="checkbox"] {
+.playerselectboxfield input[type="checkbox"] {
     height: 1em;
 }
 
-.hidden {
+.hidden, .hidden * {
     display: none;
-}
-
-.exposed {
-    display: inline-block;
 }
 
 #tourneyplayers.tourneyplayersgrid {

@@ -67,6 +67,7 @@ class Application(tornado.web.Application):
             (r"/authentication", handler.AuthenticationHandler),
             (r"/tournaments", tournament.TournamentsHandler),
             (r"/tournamentList", tournament.TournamentListHandler),
+            (r"/updatePlayerRole", tournament.TournamentPlayerHandler),
             (r"/edittournament", tournament.EditTournamentHandler),
             (r"/edittournament/([^/]+)", tournament.EditTournamentHandler),
             (r"/countries", tournament.CountriesHandler),
@@ -130,20 +131,20 @@ def main():
     force = False
     i = 1
     errors = []
-    usage = ["usage: {0} [-f|--force] [tornado-options] [Port|Socket]",
-             "positional arguments:",
-             "  Port|Socket   Port number or unix socket to listen on",
-             "                (default: {0})".format(default_socket),
-             "",
-             "optional arguments:",
-             "  -f|--force    Force database schema updates without prompting",
-             "                (default: {0})".format(force),
-             "  -h|--help     show help information and exit",
-             "  -v|--verbose  Add verbosity in messages about database",
-             "",
-             "tornado options:",
-             ]
-    usage = __doc__ + "\n" + "\n".join(usage)
+    usage = """
+usage: {prog} [-f|--force] [tornado-options] [Port|Socket]
+positional arguments:
+  Port|Socket   Port number or unix socket to listen on
+                (default: {port})
+optional arguments:
+  -f|--force    Force database schema updates without prompting
+                (default: {force})
+  -h|--help     show help information and exit
+  -v|--verbose  Add verbosity in messages about database and SMTP
+
+tornado options:
+""".format(prog=os.path.basename(sys.argv[0]), port=default_socket, force=force)
+    usage = __doc__ + usage
     verbose = 0
     while i < len(sys.argv):
         if sys.argv[i].isdigit():
@@ -185,7 +186,9 @@ def main():
 
     if hasattr(settings, 'EMAILSERVER'):
         qm = QueMail.get_instance()
-        qm.init(settings.EMAILSERVER, settings.EMAILUSER, settings.EMAILPASSWORD, settings.EMAILPORT, True)
+        qm.init(settings.EMAILSERVER, settings.EMAILUSER,
+                settings.EMAILPASSWORD, settings.EMAILPORT, use_tls=True,
+                debug_level=min(verbose, 2))
         qm.start()
 
     http_server = tornado.httpserver.HTTPServer(

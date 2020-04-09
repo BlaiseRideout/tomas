@@ -1,4 +1,29 @@
 $(function() {
+	var valueChangingKeys = {
+		'Backspace': 1,
+		'Delete': 1,
+		'+': 1,
+		'-': 1,
+		'0': 1,
+		'1': 1,
+		'2': 1,
+		'3': 1,
+		'4': 1,
+		'5': 1,
+		'6': 1,
+		'7': 1,
+		'8': 1,
+		'9': 1,
+		'.': 1,
+	};
+
+	function onlyNumericKeys(eventHandler) { // Run an event handler only on keyboard events
+		return function(ev) { //  that change numeric inputs
+			if (ev && 'key' in ev && ev.key in valueChangingKeys) {
+				eventHandler.apply(this, [ev])
+			}
+		}
+	};
 	withCountries(function() {
 		$.getJSON("/authentication", function(auth) {
 			var anyCountry = [{
@@ -24,6 +49,7 @@ $(function() {
 						return box;
 					}
 				},
+				tournamentFieldWidth = 150,
 				tournamentFieldDescriptions = [{
 						name: "Id",
 						type: "number",
@@ -36,7 +62,8 @@ $(function() {
 						editing: auth['user'],
 						validate: "required",
 						itemTemplate: tournamentLinkTemplate,
-						width: null,
+						css: "tourneynamefield",
+						width: tournamentFieldWidth * 2,
 					},
 					{
 						name: "Dates",
@@ -52,14 +79,16 @@ $(function() {
 						editValue: function() {
 							return datesValue(this.editControl)
 						},
-						width: null,
+						css: "tourneydatesfield",
+						width: tournamentFieldWidth,
 					},
 					{
 						name: "Location",
 						type: "text",
 						inserting: auth['user'],
 						editing: auth['user'],
-						width: null,
+						css: "tourneylocationfield",
+						width: tournamentFieldWidth,
 					},
 					{
 						name: "Country",
@@ -67,12 +96,12 @@ $(function() {
 						items: anyCountry.concat(countryList),
 						inserting: auth['user'],
 						editing: auth['user'],
-						css: "CountrySelector",
+						css: "tourneycountryfield",
 						valueField: "Id",
 						valueType: "number",
 						textField: "Code",
 						itemTemplate: countryTemplate,
-						width: null,
+						width: tournamentFieldWidth,
 					},
 					{
 						name: "Players",
@@ -82,7 +111,8 @@ $(function() {
 						itemTemplate: playerSummaryTemplate,
 						sorting: false,
 						filtering: false,
-						width: null,
+						css: "playersummaryfield",
+						width: tournamentFieldWidth,
 					},
 					{
 						type: "control",
@@ -105,12 +135,17 @@ $(function() {
 							}
 							return $result;
 						},
-						width: null,
+						css: "tourneycontrolfield",
+						width: tournamentFieldWidth * 3 / 4,
 					}
 				],
 				tournamentsGridController = makeController(base + "tournamentList",
 					tournamentFieldDescriptions),
+				switchedtourneyfieldselectors = [],
+				//				'.tourneylocationfield', '.tourneycontrolfield'],
+
 				playerTypes = [],
+				playerGridFieldWidth = 50,
 				tourneyPlayerGridFields = [{
 						name: "Id",
 						type: "number",
@@ -119,74 +154,76 @@ $(function() {
 					{
 						name: "Type",
 						type: "select",
-						width: null,
-						css: "playertypecolumn",
+						css: "playertypefield",
 						items: playerTypes,
 						inserting: false,
 						editing: false,
-						css: "PlayerTypeSelector",
+						filtering: false,
 						valueField: "Id",
 						valueType: "number",
 						textField: "Type",
 						itemTemplate: playerTypeTemplate,
+						width: playerGridFieldWidth,
 					},
 					{
-						name: "Name",
+						name: "Name / Association",
 						type: "text",
 						inserting: false,
 						editing: false,
-						itemTemplate: playerStatLinkTemplate,
-						width: null,
-					},
-					{
-						name: "Association",
-						type: "text",
-						inserting: false,
-						editing: false,
-						width: null,
+						itemTemplate: playerNameAssociationTemplate,
+						css: "playernameassociationfield",
+						width: playerGridFieldWidth * 2,
 					},
 					{
 						name: "Number",
+						title: "#",
 						type: "number",
 						inserting: false,
 						editing: false,
-						width: null,
+						css: "playernumberfield",
+						itemTemplate: makePlayerFieldTemplate('Number', true),
+						width: playerGridFieldWidth,
 					},
 					{
 						name: "Pool",
 						type: "text",
 						inserting: false,
 						editing: false,
-						width: null,
+						css: "playerpoolfield",
+						itemTemplate: makePlayerFieldTemplate('Pool', false),
+						width: playerGridFieldWidth,
 					},
 					{
 						name: "Wheel",
-						type: "text",
+						type: "number",
 						inserting: false,
 						editing: false,
-						width: null,
+						css: "playerwheelfield",
+						itemTemplate: makePlayerFieldTemplate('Wheel', true),
+						width: playerGridFieldWidth,
 					},
 					{
 						name: "",
 						type: "checkbox",
-						width: null,
+						width: "2em",
 						inserting: false,
 						editing: false,
-						css: "PlayerSelectBox",
+						filtering: false,
+						css: "playerselectboxfield",
 						itemTemplate: createTourneyPlayerSelectButton(true),
-						visible: auth['admin'] || auth['user'],
+						visible: auth['user'],
 					},
 				],
 				tourneyPlayers = null,
 				selectedTourneyPlayers = null,
 				tourneyPlayerGridController = null;
 
-			function createTourneyPlayerSelectButton(editable) {
+			function createTourneyPlayerSelectButton(enable) {
 				return function(value, item) {
 					var box = this._createCheckbox().prop({
 						checked: false,
 					});
-					if (editable) {
+					if (enable) {
 						box.click(function(e) {
 							selectedTourneyPlayers[item.Id] = $(this).prop("checked");
 							e.stopPropagation();
@@ -219,6 +256,7 @@ $(function() {
 
 			function datesEditTemplate(value, item) {
 				var fields = ['Start', 'End'],
+					forInsert = value === undefined && item === undefined,
 					dom = $('<div class="datepair">')
 					.append('<span class="fieldlabel">Start:</span>')
 					.append('<input class="startdate" type="text">')
@@ -234,8 +272,7 @@ $(function() {
 							defaultDate: i > 0 ? "+1d" : null,
 						});
 				});
-				this[value === undefined && item === undefined ?
-					'insertControl' : 'editControl'] = dom
+				this[forInsert ? 'insertControl' : 'editControl'] = dom
 				lastDatesItemEdited = item;
 				return dom;
 			};
@@ -263,28 +300,103 @@ $(function() {
 			function playerSummaryTemplate(value, item) {
 				var viewControl = $('<span class="playerviewcontrol jsgrid-button">')
 					.data('tourney', item).text('▶').click(togglePlayerView),
-					summary = "";
-				for (type in item.players) {
-					if (item.players[type].length > 0) {
+					summary = playerTypeSummary(item.players);
+				return $('<span class="playersummary">')
+					.data('item', item).data('tourneyid', item.Id)
+					.text(summary).prepend(viewControl);
+			};
+
+			function playerTypeSummary(players) {
+				var summary = '';
+				for (type in players) {
+					if (players[type].length > 0) {
 						if (summary.length > 0) {
 							summary += ', '
 						};
-						summary += item.players[type].length + ' ' + type;
+						summary += players[type].length + ' ' + type;
 					}
 				}
-				if (summary.length == 0) {
-					summary = "none"
-				};
-				return $('<span class="playersummary">').text(summary).prepend(viewControl);
-			};
+				return summary.length == 0 ? "none" : summary;
+			}
 
 			function playerTypeTemplate(value, item) {
-				var selector = $('<select class="playertypeselector">');
+				var selector = $('<select class="playertypeselector">')
+					.data('field', 'Type').data('item', item)
+					.change(playerFieldChange);
 				playerTypes.map(function(entry) {
 					$("<option>").attr("value", entry.Id).text(entry.Type)
 						.prop("selected", value == entry.Id).appendTo(selector);
 				});
 				return selector;
+			};
+
+			function makePlayerFieldTemplate(field, numeric) {
+				return function(value, item) {
+					if (auth['admin'] || auth['user'] == item.Owner) {
+						return $('<input>').attr('type', numeric ? 'number' : 'text').val(value)
+							.attr('size', 5).data('field', field).data('item', item)
+							.change(playerFieldChange).keyup(
+								numeric ? onlyNumericKeys(playerFieldChange) : playerFieldChange)
+					}
+					else {
+						return value
+					}
+				}
+			};
+
+			function playerFieldChange(ev) {
+				var etype = ev && 'type' in ev && ev.type,
+					control = $(this),
+					field = $(this).data('field'),
+					item = $(this).data('item');
+				$.post(base + 'updatePlayerRole', {
+						update: JSON.stringify({
+							'item': item,
+							'field': field,
+							'value': control.val(),
+						})
+					},
+					function(resp) {
+						if (resp.status != 0) {
+							$.notify(resp.message);
+							control.addClass('bad');
+						}
+						else {
+							control.removeClass('bad');
+							updateItemField(item, field, control.val(), control);
+						}
+					});
+			};
+
+			function updateItemField(item, field, value, control) {
+				item[field] = value;
+				if (field == 'Type') { // For updates to player type, find and redo the type summary
+					$('#tournamentsgrid .playersummary').each(function(i, elem) {
+						if ($(elem).data('tourneyid') == item.Tournament) {
+							var players = $(elem).data('item').players;
+							for (type in players) {
+								for (j = 0; j < players[type].length; j++) {
+									if (players[type][j].Id == item.Id) {
+										break
+									}
+								}
+								if (j < players[type].length) {
+									players[type].splice(j, 1)
+								}
+							};
+							players[playerTypes[value - 0].Type].push(item);
+							$(elem).text(playerTypeSummary(players));
+						}
+					});
+				}
+			};
+
+			function playerNameAssociationTemplate(value, item) {
+				var playerStatLink = $('<a>')
+					.attr('href', base + 'playerStats/' + item.Id)
+					.text(item.Name);
+				return $('<span>').text(item.Association ? ' / ' + item.Association : '')
+					.prepend(playerStatLink);
 			};
 
 			function togglePlayerView(ev) {
@@ -298,19 +410,23 @@ $(function() {
 			};
 
 			function clearPlayerViews(button) {
-				$(button).parents('#tournamentsGrid').find('.playerviewcontrol')
+				$(button).parents('#tournamentsgrid').find('.playerviewcontrol')
 					.filter('.view-on').removeClass('view-on').text('▶');
-				$('#tourneyplayers').remove();
-				$('#transferplayersbutton').removeClass('exposed').addClass('hidden');
-				$('#playerspanel').removeClass('exposed').addClass('hidden');
+				$('.tourneyplayersrow').remove();
+				$('#transferplayersbutton, #playerspanel').hide();
+				$(switchedtourneyfieldselectors.join(', ')).show();
+				$('#tournamentspanel').removeClass('tournamentplayereditmode');
 			}
 
 			function showPlayerView(button) {
 				var tourneyRow = $(button).parents('tr').first(),
 					tourney = $(button).data('tourney'),
 					playerList = [];
-				$('#transferplayersbutton').removeClass('hidden').addClass('exposed');
-				$('#playerspanel').removeClass('hidden').addClass('exposed');
+				if (auth['admin'] || auth['user'] == tourney.Owner) {
+					$('#transferplayersbutton, #playerspanel').show().removeClass('hidden');
+					$(switchedtourneyfieldselectors.join(', ')).hide();
+					$('#tournamentspanel, #playerspanel').addClass('tournamentplayereditmode');
+				}
 				tourneyPlayers = new Object();
 				playerTypes = []; // NOTE: Assume entries in players are always in numeric order
 				for (type in tourney.players) {
@@ -335,12 +451,14 @@ $(function() {
 						pageLoading: false,
 						// controller: tourneyPlayerGridController,
 						fields: tourneyPlayerGridFields,
+						noDataContent: 'None found',
 					}),
+					label = $('<div class="sidelabelwrapper">').text('Players'),
 					cell = $('<td>').attr('colspan', tournamentFieldDescriptions.filter(
 						function(field) {
 							return field.visible != false
-						}).length).append(grid),
-					innerRow = $('<tr class="tourneyPlayersRow">')
+						}).length).append(label).append(grid),
+					innerRow = $('<tr class="tourneyplayersrow">')
 					.addClass($(tourneyRow).hasClass('jsgrid-alt-row') ?
 						'jsgrid-row' : 'jsgrid-alt-row').append(cell);
 				$(tourneyRow).after(innerRow);
@@ -352,7 +470,7 @@ $(function() {
 				e.stopPropagation();
 			};
 
-			$("#tournamentsGrid").text('').jsGrid({
+			$("#tournamentsgrid").text('').jsGrid({
 				height: "auto",
 				inserting: auth['user'] ? true : false,
 				editing: auth['user'] ? true : false,
@@ -362,6 +480,7 @@ $(function() {
 				paging: false,
 				pageLoading: false,
 				deleteConfirm: 'Are you sure you want to delete this tournament?',
+				noDataContent: 'None found',
 				controller: tournamentsGridController,
 				fields: tournamentFieldDescriptions,
 				onItemInserting: tournamentItemInserting,

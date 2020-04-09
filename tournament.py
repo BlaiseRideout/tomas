@@ -176,6 +176,99 @@ def cleanTournamentItem(item, columns, current_user):
             if result:
                 item['Country'] = result[0]
 
+class TournamentPlayerHandler(handler.BaseHandler):
+    @tornado.web.authenticated
+    def post(self):
+        encoded_update = self.get_argument('update', None)
+        update = json.loads(encoded_update)
+        result = {'status': 0, 'message': ''}
+        compete_fields = [f for f in db.table_field_names('Compete')
+                          if f not in ('Id', 'Player', 'Tournament')]
+        if (update.get('item', None) is None or
+            not isinstance(update['item'].get('Id', None), int)):
+            result['message'] = 'Invalid item or ID field for player'
+            result['status'] = -1
+            return self.write(result)
+        item = update['item']
+        if (update.get('field', None) not in ['all'] + compete_fields):
+            result['message'] = 'Invalid field to update in player'.format(
+                update.get('field', None))
+            result['status'] = -2
+            return self.write(result)
+        field = update['field']
+        if 'value' not in update or not isinstance(update['value'], (int, str)):
+            result['message'] = (
+                'Invalid or missing value in player update'.format(
+                    update.get('value', None)))
+            result['status'] = -3
+            return self.write(result)
+        value = update['value']
+        if not (self.get_is_admin() or
+                str(item.get('Owner', -1)) == self.current_user):
+            result['message'] = (
+                'Only owners and admins may edit tournament players')
+            result['status'] = -4
+            return self.write(result)
+        id = abs(item['Id'])
+        result['message'] = 'Player {}'.format(
+            'inserted' if field == 'all' else 'deleted' if item['Id'] < 0 else
+            'updated')
+        try:
+            with db.getCur() as cur:
+                sql = """SELECT Id FROM Compete WHERE Player = ? AND
+                Tournament = ?"""
+                args = (id, item.get('Tournament', -1))
+                cur.execute(sql, args)
+                matches = cur.fetchall()
+                if len(matches) == 0 and field != 'all':
+                    result['message'] = 'No player {} in tournament {}'.format(
+                        args)
+                    result['status'] = -5
+                elif len(matches) == 1 and field == 'all':
+                    result['message'] = (
+                        'Player {} already in tournament {}'.format(args))
+                    result['status'] = -6
+                elif len(matches) > 1:
+                    result['message'] = (
+                        'Internal error: multiple compete records {}-{}'
+                        .format(args))
+                    result['status'] = -7
+                else:
+                    competeID = matches[0][0]
+                if result['status'] == 0:
+                    if item['Id'] < 0:
+                        sql = 'DELETE FROM Compete WHERE Id = ?'
+                        args = (competeID, )
+                    elif field == 'all':
+                        values = [value if f == field else item[f]
+                                  for f in compete_fields] + [id]
+                        sql = 'INSERT INTO Compete ({}) VALUES ({})'.format(
+                            ', '.join(compete_fields + ['Player']),
+                            ', '.join(['?' for v in values]))
+                        args = values
+                    else:
+                        log.info('Update {} to {} for player {} in tournament {}'.format(
+                            field, value, item['Id'], item['Tournament']))
+                        sql = 'UPDATE Compete SET {} = ? WHERE Id = ?'.format(
+                            field)
+                        args = (value, competeID)
+                    log.debug('Executing "{}" on {}'.format(sql, args))
+                    cur.execute(sql, args)
+                    if field == 'all':
+                        log.info('Last Compete row ID is now {}'.format(
+                            cur.lastrowid))
+                    item[field] = value     # Update item from browser
+                    item['Id'] = abs(item['Id']) # Put cleaned item record
+                    result['item'] = item # with correct Player Id in rsespone
+        except sqlite3.DatabaseError as e:
+            result['message'] = (
+                'Exception in database change. SQL = {}. Args = {}. {}'.format(
+                    sql, args, e))
+            log.error(result['message'])
+            result['status'] = -10
+
+        return self.write(result)
+
 class EditTournamentHandler(handler.BaseHandler):
     tmt_fields = db.table_field_names('Tournaments')
     @tornado.web.authenticated

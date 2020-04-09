@@ -12,20 +12,22 @@
 	All Tournaments
 {% end %}
 {% block content %}
-<div id="tournamentspanel">
-  <h2>All Tournaments</h2>
-  <p>Click ▶ to see players</p>
-  <div id="tournamentsGrid">
-    Loading...
+<div id="tournamentsEditingPanel">
+  <div id="tournamentspanel">
+    <h2>All Tournaments</h2>
+    <p>Click ▶ to {% if current_user %}manage{% else %}see{% end %} players</p>
+    <div id="tournamentsgrid">
+      Loading...
+    </div>
   </div>
-</div>
 
-<div id="transferplayersbutton" class="button hidden"
-     title"Transfer selected players">⇔</div>
+  <span id="transferplayersbutton" class="button hidden"
+	title="Transfer selected players">⇔</span>
 
-<div id="playerspanel" class="hidden">
-  <h2>Available Players</h2>
-  <div id="playersgrid">
+  <div id="playerspanel" class="hidden">
+    <h2>Available Players</h2>
+    <div id="playersgrid">
+    </div>
   </div>
 </div>
 {% end %}
