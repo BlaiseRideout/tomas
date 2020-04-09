@@ -177,6 +177,16 @@ schema = {
 playertypes = ['Regular', 'Inactive', 'Substitute']
 playertypecode = dict([(val, i) for i, val in enumerate(playertypes)])
 
+def getCountriesFromFile(filename='countries.csv'):
+    fields = ('Name', 'Code', 'IOC_Code', 'IOC_Name', 'Flag_Image')
+    vars = {'URLprefix': (settings.SERVERPREFIX or '') + settings.PROXYPREFIX}
+    with open(filename, "r", encoding='utf-8') as countriesfile:
+        reader = csv.reader(countriesfile)
+        log.info('Reading countries from {} with subsititions {}'.format(
+            filename, vars))
+        return [dict(zip(fields, [f.format(**vars) for f in row]))
+                for row in reader]
+
 def init(force=False, dbfile=settings.DBFILE, verbose=0):
     desired_schema = parse_database_schema(schema)
     if not os.path.exists(dbfile):
@@ -194,25 +204,22 @@ def init(force=False, dbfile=settings.DBFILE, verbose=0):
     with getCur() as cur:
         cur.execute("SELECT COUNT(*) FROM Countries")
         if cur.fetchone()[0] == 0:
-            countries_file = 'countries.csv'
+            log.info("Countries table is empty.")
             try:
-                vars = {
-                    'URLprefix': (settings.SERVERPREFIX or '') +
-                    settings.PROXYPREFIX
-                }
-                log.info("Countries table is empty.  Loading {} with substitutions {}"
-                         .format(countries_file, vars))
-                with open(countries_file, "r", encoding='utf-8') as countriesfile:
-                    reader = csv.reader(countriesfile)
-                    for row in reader:
-                        cur.execute(
-                            "INSERT INTO Countries"
-                            " (Name, Code, IOC_Code, IOC_Name, Flag_Image)"
-                            " VALUES(?, ?, ?, ?, ?)",
-                            list(map(lambda x: x.format(**vars), row)))
+                countries = getCountriesFromFile()
             except Exception as e:
-                log.error("Error loading countries from {}: {}".format(
-                    countries_file, e))
+                log.error('Unable to load countries from file: {}'.format(e))
+                return
+            log.info("Loading {} countr{} into Countries table.".format(
+                len(countries), 'y' if len(countries) == 1 else 'ies'))
+            try:
+                for country in countries:
+                    keys = list(country.keys())
+                    cur.execute("INSERT INTO Countries ({}) VALUES ({})".format(
+                        ','.join(keys), ','.join('?' for k in keys)),
+                                list(country.values()))
+            except Exception as e:
+                log.error("Error loading countries from file: {}".format(e))
 
 def make_backup():
     backupdb = datetime.datetime.now().strftime(settings.DBDATEFORMAT) + "-" + os.path.split(settings.DBFILE)[1]
