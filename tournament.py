@@ -828,6 +828,13 @@ class CountriesHandler(handler.BaseHandler):
             cols = ["Id", "Name", "Code", "IOC_Code", "IOC_Name", "Flag_Image"]
             cur.execute("SELECT {cols} FROM Countries".format(cols=",".join(cols)))
             countries = [dict(zip(cols, row)) for row in cur.fetchall()]
+            countries.sort(key=lambda country: country['Code'])
+            for j in range(len(countries)):
+                if countries[j]['Code'] == 'SUB':
+                    sub = countries[j]
+                    countries[j:j+1] = []
+                    countries.append(sub)
+                    break
         return self.write(json.dumps(countries))
 
 class AssociationsHandler(handler.BaseHandler):
