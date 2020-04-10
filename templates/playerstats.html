@@ -92,7 +92,7 @@
 	      </tr>
 	      <tr>
 		<td>Penalties</td>
-		<td colspan="2">{{ tourney['penalties'] }}</td>
+		<td colspan="2">{{ tourney['totalpenalties'] }}</td>
 	      </tr>
 	      <tr>
 		<td>Average Rank</td>
@@ -124,7 +124,7 @@
 		<th>Rank</th><th>Name</th><th colspan="2">Country</th><th>Score</th>
 	      </tr>
 	      {% for result in game['scores'] %}
-	      <tr>
+	      <tr {% if game['penalties'] and result['id'] == tourney['playerID'] %} class="penaltyscore" {% end %} >
 		<td>{{ result['rank'] }}</td>
 		<td><a href="{{ proxyprefix }}playerStats/{{ result['id'] }}?tournament={{ tourney['Id'] }}">
 		    {{ result['name'] }}
@@ -134,6 +134,13 @@
 		<td>{{ result['score'] }}</td>
 	      </tr>
 	      {% end %} <!-- for result in game['scores'] -->
+	      {% for penalty in game['penalties'] %}
+	      <tr class="penaltyscore">
+		<td>Penalty</td>
+		<td colspan="3">{{ penalty['description'] }}</td>
+		<td>{{ penalty['penalty'] }}</td>
+	      </tr>
+	      {% end %}
 	    </table>
 	  </div>
 	  {% end %}  <!-- game in tourney -->

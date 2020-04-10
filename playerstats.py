@@ -2,6 +2,7 @@
 
 import json
 import logging
+from collections import *
 
 import db
 import handler
@@ -39,12 +40,15 @@ def getPlayerTournamentData(playerID, playerTourneys, cur):
         {'Name': '{} Stats'.format(
             'All Tournament' if tourney['Id'] == 'all' else tourney['Name']),
          'scoresSubquery': 
-         """FROM Scores LEFT OUTER JOIN Penalties ON ScoreId = Scores.Id
+         """FROM Scores
                  LEFT JOIN Rounds ON Round = Rounds.Id
             WHERE PlayerId = ? {}""".format(
                 '' if tourney['Id'] == 'all' else
                 'AND Tournament = {}'.format(tourney['Id'])),
          'scoresParams': (playerID,),
+         'penaltyCondition': 'Tournament {}'.format(
+             'NOTNULL' if tourney['Id'] == 'all' else
+             '= ' + str(tourney['Id'])),
          'gamesCondition': 'AND Tournament = {}'.format(
              'NULL' if tourney['Id'] == 'all' else tourney['Id']),
          'seatingCondition': 'AND Rounds.Tournament = {}'.format(
@@ -63,19 +67,28 @@ _statquery = """
       ROUND(SUM(Score) * 1.0/COUNT(*) * 100) / 100,
       ROUND(SUM(Rank) * 1.0/COUNT(*) * 100) / 100,
       MIN(Rank), MAX(Rank),
-      MIN(Round), MAX(Round),
-      SUM(COALESCE(Penalties.Penalty, 0))
+      MIN(Round), MAX(Round)
     {scoresSubquery} """
 _statqfields = ('maxscore', 'minscore', 'numgames', 'avgscore',
                 'avgrank', 'maxrank', 'minrank',
-                'minround', 'maxround',
-                'penalties')
+                'minround', 'maxround')
+
+_penaltiesquery = """
+    SELECT Penalty, Description, Referee, Round, Tournament, GameId 
+    FROM Penalties
+      JOIN Scores ON ScoreId = Scores.Id
+      JOIN Rounds ON Round = Rounds.Id
+    WHERE {penaltyCondition} AND PlayerId = ?
+"""
+_penaltiesqfields = [
+    'penalty', 'description', 'referee', 'round', 'tournament', 'game']
+
 _rankhistogramquery = """
     SELECT Rank, COUNT(*) {scoresSubquery} GROUP BY Rank ORDER BY Rank"""
 _rankhfields = ['rank', 'rankcount']
     
 _gamesQuery = """
-    SELECT Scores2.Round, Rounds.Number, Rounds.Name,
+    SELECT Scores2.Round, Rounds.Number, Rounds.Name, Scores.GameId,
       Scores2.Rank, ROUND(Scores2.Score * 100) / 100, Players.Name, Players.Id,
       Countries.Code, Countries.Flag_Image
     FROM Scores JOIN Scores AS Scores2
@@ -83,10 +96,10 @@ _gamesQuery = """
       JOIN Players ON Players.Id = Scores2.PlayerId
       JOIN Countries ON Players.Country = Countries.Id
       JOIN Rounds ON Rounds.Id = Scores2.Round
-    WHERE Scores.PlayerId = ? AND Scores2.PlayerId != ? {gamesCondition}
+     WHERE Scores.PlayerId = ? AND Scores2.PlayerId != ? {gamesCondition}
     ORDER BY Scores2.Round, Scores2.Rank"""
-_gamesqfields = ('roundID', 'rNumber', 'rName', 'rank', 'score',
-                 'name', 'id', 'country', 'flag')
+_gamesqfields = ('roundID', 'rNumber', 'rName', 'game', 'rank', 'score',
+    'name', 'id', 'country', 'flag')
 
 _seatingQuery = """
     SELECT Seating.Round, Rounds.Name, Rounds.Winds,
@@ -107,7 +120,8 @@ _seatingplayerfields = ['wind', 'name', 'country', 'flag']
 #        (SELECT Id FROM Scores WHERE PlayerId = ? AND Round = Seating.Round) 
 
 def populate_queries(tourney_dict, cur):
-    "Update the tourney dictionary with the results of stats queries"
+    """Update the tourney dictionary for a single tournament with the results
+    of all the stats queries"""
     cur.execute(_statquery.format(**tourney_dict), tourney_dict['scoresParams'])
     tourney_dict.update(
         dict(zip(_statqfields,
@@ -126,15 +140,31 @@ def populate_queries(tourney_dict, cur):
         score = dict(zip(_gamesqfields, row))
         if len(games) == 0 or games[-1]['round'] != score['roundID']:
             games += [{
+                'game': score['game'],
                 'round': score['roundID'],
                 'number': score['rNumber'],
                 'roundname': score['rName'],
-                'scores': []
+                'scores': [],
+                'penalties': [],
             }]
         games[-1]['scores'] += [score]
+    cur.execute(_penaltiesquery.format(**tourney_dict),
+                (tourney_dict['playerID'],))
+    tourney_dict['totalpenalties'] = 0
+    games_with_penalties = defaultdict(lambda: list())
+    for row in cur.fetchall():
+        penalty = dict(zip(_penaltiesqfields, row))
+        tourney_dict['totalpenalties'] += penalty['penalty']
+        key = '{}-{}'.format(penalty['game'], penalty['round'])
+        games_with_penalties[key].append(penalty)
+    for game in games:
+        key = '{}-{}'.format(game['game'], game['round'])
+        if key in games_with_penalties:
+            game['penalties'] = games_with_penalties[key]
+    tourney_dict['playergames'] = games
+
     cur.execute(_seatingQuery.format(**tourney_dict),
                 (tourney_dict['playerID'], tourney_dict['playerID']))
-    tourney_dict['playergames'] = games
     futuregames = []
     for row in cur.fetchall():
         table = dict(zip(_seatingtablefields, row[0:len(_seatingtablefields)]))
