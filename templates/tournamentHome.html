@@ -8,7 +8,21 @@
 {% if no_user %}
 	<p>It appears the database is empty and there are no users.
 	  Would you like to create one?</p>
-	<a class="button" href="setup">SETUP</a>
+	<a class="button bad" href="setup">SETUP</a>
+{% else %}
+    {% if no_countries %}
+	<p>The database has no countries yet.
+	</p>
+	{% if is_admin %}
+	<p> Would you like to create them? </p>
+	<a class="button" href="updateCountries">Initialize Countries</a>
+	{% else %}
+	<p> Please log in as an adminstrator to create them. <p>
+	<a class="button" href="login?next=/updateCountries">
+	  Log in to initialize countries
+	</a>
+	{% end %}
+    {% end %}
 {% end %}
 	<h1>{{ websitename }}</h1>
 	🀄 A website for managing mahjong tournaments. 🀄

@@ -13,6 +13,7 @@ import handler
 import db
 import seating
 import settings
+import util
 
 log = logging.getLogger('WebServer')
 
@@ -355,7 +356,7 @@ class EditTournamentHandler(handler.BaseHandler):
                     "message.html",
                     message="ERROR only the tournament owner or administrators"
                     " may edit tournament attributes".format(id),
-                    next="Return to Tournament List",
+                    next="Return to Tournaments Home",
                     next_url=settings.PROXYPREFIX)
 
     @tornado.web.authenticated
@@ -821,21 +822,61 @@ class TourneySettingsHandler(handler.BaseHandler):
         settings = getTourney(self, self.tournamentid)
         return self.render("tourney.html", **settings)
 
+countryColumns = ('Id', 'Name', 'Code', 'IOC_Code', 'IOC_Name', 'Flag_Image')
+def getCountries():
+    countries = []
+    with db.getCur() as cur:
+        cur.execute("SELECT {cols} FROM Countries".format(
+            cols=",".join(countryColumns)))
+        countries = [dict(zip(countryColumns, row)) for row in cur.fetchall()]
+        countries.sort(key=lambda country: country['Code'])
+        for j in range(len(countries)):
+            if countries[j]['Code'] == 'SUB':
+                sub = countries[j]
+                countries[j:j+1] = []
+                countries.append(sub)
+                break
+    return countries
+
 class CountriesHandler(handler.BaseHandler):
     def get(self):
-        countries = []
+        return self.write(json.dumps(getCountries()))
+
+class UpdateCountriesHandler(handler.BaseHandler):
+    @handler.is_admin
+    def get(self):
+        countriesDB = dict((country['Code'], country) 
+                           for country in getCountries())
+        countriesFile = dict((country['Code'], country) 
+                             for country in db.getCountriesFromFile())
+        adds, mods = [], []
+        fields = [f for f in countryColumns if f not in ('Id', 'Code')]
+        updateSQL = "UPDATE Countries SET {} WHERE Id = ?".format(
+            ', '.join('{} = ?'.format(f) for f in fields))
+        insertSQL = "INSERT INTO Countries ({}) VALUES ({})".format(
+            ', '.join(fields + ['Code']),
+            ', '.join('?' for f in fields + ['Code']))
         with db.getCur() as cur:
-            cols = ["Id", "Name", "Code", "IOC_Code", "IOC_Name", "Flag_Image"]
-            cur.execute("SELECT {cols} FROM Countries".format(cols=",".join(cols)))
-            countries = [dict(zip(cols, row)) for row in cur.fetchall()]
-            countries.sort(key=lambda country: country['Code'])
-            for j in range(len(countries)):
-                if countries[j]['Code'] == 'SUB':
-                    sub = countries[j]
-                    countries[j:j+1] = []
-                    countries.append(sub)
-                    break
-        return self.write(json.dumps(countries))
+            for code in countriesFile:
+                fileCountry = countriesFile[code]
+                dbCountry = countriesDB.get(code, None)
+                if dbCountry and util.dict_differences( 
+                        fileCountry, dbCountry, fields):
+                    args = [fileCountry[f] for f in fields] + [dbCountry['Id']]
+                    cur.execute(updateSQL, args)
+                    mods.append(code)
+                elif dbCountry is None:
+                    args = [fileCountry[f] for f in fields + ['Code']]
+                    cur.execute(insertSQL, args)
+                    adds.append(code)
+        return self.render(
+            'message.html',
+            message=('<p>Among {} countries in the database:</p>'
+                     '<p>Countries updated ({}):</p> <p>{}</p>'
+                     '<p>Countries inserted ({}):</p> <p>{}</p>'.format(
+                         len(countriesDB), len(mods), mods, len(adds), adds)),
+            next='Return to Tournaments Home',
+            next_url=settings.PROXYPREFIX)
 
 class AssociationsHandler(handler.BaseHandler):
     @handler.tournament_handler

@@ -45,7 +45,7 @@ def is_admin(func):
     def func_wrapper(self, *args, **kwargs):
         if not self.get_is_admin():
             self.render("message.html",
-                        message = "You must be admin to do that")
+                        message = "You must be an administrator to do that")
         else:
             func(self, *args, **kwargs)
 

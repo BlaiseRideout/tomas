@@ -71,6 +71,7 @@ class Application(tornado.web.Application):
             (r"/edittournament", tournament.EditTournamentHandler),
             (r"/edittournament/([^/]+)", tournament.EditTournamentHandler),
             (r"/countries", tournament.CountriesHandler),
+            (r"/update[Cc]ountries", tournament.UpdateCountriesHandler),
             (r"/algorithms", seating.AlgorithmsHandler),
             (r"/orderings", seating.OrderingsHandler),
             (r"/t/([^/]*)/tournament", tournament.TournamentHandler),

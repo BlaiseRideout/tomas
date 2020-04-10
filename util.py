@@ -77,7 +77,45 @@ def useLocal(URL):
             os.path.join(localDirRoot, ext[1:], name)):
         return settings.PROXYPREFIX + os.path.join(localDirRoot, ext[1:], name)
     return URL
-        
+
+def dict_differences(dict1, dict2, include=None, exclude=None,
+                       exactfields=False, casesensitive=False):
+    """Compare dictionaries by comparing some or all entries. Ignore case of
+    values when casesensitve flag is false and both are string values.
+    Ignore missing fields if exactfields is false. Returns a list of
+    strings describing field differences.  The list is empty if no
+    differences were found.
+    """
+    if not type(dict1) == type(dict2):
+        return ['Argument types differ']
+    if not isinstance(dict1, dict):
+        return ['Arguments must be of type dict']
+    result = []
+    fields = set(include if include else dict1.keys())
+    if exactfields:
+        fields |= set(dict2.keys())
+    if exclude:
+        fields -= set(exclude)
+    for field in fields:
+        in1 = field in dict1
+        in2 = field in dict2
+        if not (in1 and in2):
+            if exactfields:
+                if in1:
+                    result.append("Field '{}' in first but not second".format(
+                        field))
+                else:
+                    result.append("Field '{}' in second but not first".format(
+                        field))
+        else:
+            v1, v2 = dict1[field], dict2[field]
+            str1, str2 = isinstance(v1, str), isinstance(v2, str)
+            if str1 and str2 and not casesensitive:
+                v1, v2 = v1.lower(), v2.lower()
+            if v1 != v2:
+                result.append("Field '{}' differs".format(field))
+    return result
+
     
     
 

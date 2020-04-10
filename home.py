@@ -10,6 +10,7 @@ import tornado.web
 import handler
 import db
 import settings
+import tournament
 
 log = logging.getLogger('WebServer')
 
@@ -18,9 +19,11 @@ summaryNumber = 3      # Show this many items in summary
 class TournamentHomeHandler(handler.BaseHandler):
     def get(self):
         rows = []
+        countries = tournament.getCountries()
         with db.getCur() as cur:
             cur.execute("SELECT COUNT(*) FROM Users")
             no_user = cur.fetchone()[0] == 0
+            no_countries = len(countries) == 0
             columns = ['Id', 'Name', 'Start', 'End', 'Logo']
             tmt_colnames = ['Name', 'Start', 'End',]
             sql = ("SELECT {columns} FROM Tournaments"
@@ -56,5 +59,5 @@ class TournamentHomeHandler(handler.BaseHandler):
             "tournamentHome.html",
             tournaments=tournaments, tmt_colnames=tmt_colnames,
             players=players, plr_colnames=plr_colnames,
-            no_user=no_user)
+            no_user=no_user, no_countries=no_countries)
 

@@ -201,26 +201,6 @@ def init(force=False, dbfile=settings.DBFILE, verbose=0):
         log.error('Database upgrade during initialization {}.'.format(
             'failed' if force else 'was either cancelled or failed'))
 
-    with getCur() as cur:
-        cur.execute("SELECT COUNT(*) FROM Countries")
-        if cur.fetchone()[0] == 0:
-            log.info("Countries table is empty.")
-            try:
-                countries = getCountriesFromFile()
-            except Exception as e:
-                log.error('Unable to load countries from file: {}'.format(e))
-                return
-            log.info("Loading {} countr{} into Countries table.".format(
-                len(countries), 'y' if len(countries) == 1 else 'ies'))
-            try:
-                for country in countries:
-                    keys = list(country.keys())
-                    cur.execute("INSERT INTO Countries ({}) VALUES ({})".format(
-                        ','.join(keys), ','.join('?' for k in keys)),
-                                list(country.values()))
-            except Exception as e:
-                log.error("Error loading countries from file: {}".format(e))
-
 def make_backup():
     backupdb = datetime.datetime.now().strftime(settings.DBDATEFORMAT) + "-" + os.path.split(settings.DBFILE)[1]
     backupdb = os.path.join(settings.DBBACKUPS, backupdb)
