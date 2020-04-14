@@ -133,7 +133,7 @@ $(function() {
 						css: "playercontrolfield",
 					}
 				],
-				gridController = makeController(base + "playerlist",
+				gridController = makeController(base + 'playerlist',
 					fieldDescriptions);
 
 			function selectedPlayerIDs() {
@@ -257,14 +257,6 @@ $(function() {
 					},
 				});
 				return defer.promise();
-			};
-
-			function copyObj(obj, template) {
-				var result = new Object();
-				for (field in template) {
-					result[field] = obj[field]
-				};
-				return result
 			};
 
 			function makePlayerRow(columns) {

@@ -138,3 +138,35 @@ def tournament_handler_ajax(func):
         return func(self, *args, **kwargs)
 
     return func_wrapper
+
+def valid_ID(ID, tablename, response=None, msg=None, IDfield='Id'):
+    """Check if the ID is a valid Id field in the table.
+    If a response dictionary is provided, set its status field to -1
+    and its message field to an appropriate message to pass back
+    to the browser in a JSON response.  The msg will be added on
+    to any error message.
+    If a single matching ID is found and the response is a dictionary,
+    the status field of the response is set to 0.
+    Return True if ID is valid, False otherwise."""
+    with db.getCur() as cur:
+        sql = "SELECT {} FROM {} WHERE {} = ?".format(
+            IDfield, tablename, IDfield)
+        args = (ID, )
+        cur.execute(sql, args)
+        rows = cur.fetchall()
+    if len(rows) == 0:
+        if response:
+            response['status'] = -1
+            response['message'] = 'Invalid {} field for {}. {}'.format(
+                IDfield, tablename, msg or '')
+        return False
+    if len(rows) > 1:
+        if response:
+            response['status'] = -1
+            response['message'] = (
+                'Internal error. {} = {} matches multiple rows in {}. {}'
+                .format(IDfield, ID, tablename, msg or ''))
+        return False
+    if isinstance(response, dict):
+        response['status'] = 0
+    return True

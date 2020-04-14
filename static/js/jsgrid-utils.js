@@ -60,25 +60,37 @@ $(function() {
 			}, "json");
 	};
 
-	makeController = function(jsonURL, fieldDescriptions) {
-		return { // Create a controller object for jsGrid
-			loadData: function(filterItem) { // Load GETs jsonURL
-				var d = $.Deferred();
-				$.ajax({
-					url: jsonURL,
-					dataType: "json"
-				}).done(
-					function(loadData) { // Return has status = 0 for success
-						if (loadData.status != 0) {
-							$.notify(loadData.message);
-							d.reject();
-						}
-						else {
-							var items = loadData.data.filter(
-								makeFilter(filterItem, fieldDescriptions));
-							d.resolve(items)
-						}
-					});
+	/* Create a controller object for jsGrid widgets. The jsonURL should
+	   accept GET requests to get all the data, and POST requests to insert,
+	   update, and delete individual row items.  If inputData is provided,
+	   the GET request is skipped and the data array is loaded. When inserting
+	   row items, the item Id will be set to 0.  When deleting row items,
+	   the item Id will be set to the negative of the Id in the item record.
+	 */
+	makeController = function(jsonURL, fieldDescriptions, inputData) {
+		return {
+			loadData: function(filterItem) {
+				if (inputData) {
+					return inputData.filter(makeFilter(filterItem, fieldDescriptions));
+				}
+				else {
+					var d = $.Deferred();
+					$.ajax({
+						url: jsonURL,
+						dataType: "json"
+					}).done(
+						function(loadData) { // Return has status = 0 for success
+							if (loadData.status != 0) {
+								$.notify(loadData.message);
+								d.reject();
+							}
+							else {
+								var items = loadData.data.filter(
+									makeFilter(filterItem, fieldDescriptions));
+								d.resolve(items)
+							}
+						});
+				}
 				return d.promise();
 			},
 			insertItem: function(item) {
@@ -118,4 +130,21 @@ $(function() {
 			.data(name + 'id', item.Id).text('📄')
 			.append(lowericon).on('click', callback)
 	};
+
+	copyObj = function(obj, template, exclude) {
+		var result = new Object();
+		for (field in (template || obj)) {
+			if (exclude === undefined || !(field in exclude)) {
+				result[field] = obj[field]
+			}
+		};
+		return result
+	};
+
+	clearObject = function(obj) {
+		for (attr in obj) {
+			delete obj[attr]
+		}
+	};
+
 });

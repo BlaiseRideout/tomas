@@ -23,14 +23,11 @@ def getTournaments(tournamentID=None):
     The fields in the dictionary are all the tournament fields in the
     Tournaments table + Code and Flag_Image for the country, a field
     for players that has a dictionary that maps keys of each type of player
-    to lists of mini player dictionaries with Id, Name, and Association fields
+    to lists of player dictionaries with Id, Name, Association, and
+    NumberScores fields
     """
     tmt_fields = db.table_field_names('Tournaments')
     country_fields = ['Code', 'Flag_Image']
-    player_fields = ['Id', 'Name', 'Association']
-    pFields = [f for f in db.table_field_names('Compete')
-               if f not in ('Id', 'Player')] + [
-                       'Players.{}'.format(f) for f in player_fields]
     with db.getCur() as cur:
         sql = """
         SELECT {} FROM Tournaments JOIN Countries ON Country = Countries.ID
@@ -42,19 +39,34 @@ def getTournaments(tournamentID=None):
         cur.execute(sql)
         tournaments = [dict(zip(tmt_fields + country_fields, row))
                        for row in cur.fetchall()]
-        for tmt in tournaments:
-            tmt['Dates'] = '{} - {}'.format(tmt['Start'], tmt['End'])
-            sql = """
-            SELECT {} FROM Compete JOIN Players on Player = Players.Id
-              WHERE Tournament = ?
-            """.format(','.join(pFields))
-            cur.execute(sql, (tmt['Id'],))
-            tmt['players'] = dict(zip(db.playertypes,
-                                      [list() for t in db.playertypes]))
-            for row in cur.fetchall():
-                player = dict(zip(map(db.fieldname, pFields), row))
-                tmt['players'][db.playertypes[player['Type']]].append(player)
+    for tmt in tournaments:
+        tmt['Dates'] = '{} - {}'.format(tmt['Start'], tmt['End'])
+        tmt['players'] = dict((t, list()) for t in db.playertypes)
+        for compete in getCompetitors(tmt['Id']):
+            tmt['players'][db.playertypes[compete['Type']]].append(compete)
     return tournaments
+
+def getCompetitors(tournamentID):
+    player_fields = ['Name', 'Association']
+    cFields = ['Compete.{}'.format(f)
+               for f in db.table_field_names('Compete')] + [
+                       'Players.{}'.format(f) for f in player_fields]
+    sql = """
+    SELECT {}, COUNT(DISTINCT Scores.Id)
+      FROM Compete JOIN Players on Player = Players.Id
+        LEFT OUTER JOIN Rounds ON Rounds.Tournament = Compete.Tournament
+        LEFT OUTER JOIN Scores
+          ON Scores.Round = Rounds.Id AND Scores.PlayerId = Players.Id
+    WHERE Compete.Tournament = ?
+    GROUP BY Player
+    """.format(','.join(cFields))
+    args = (tournamentID,)
+    with db.getCur() as cur:
+        cur.execute(sql, args)
+        competitors = [dict(zip(
+            map(db.fieldname, cFields + ['NumberScores']), row))
+                       for row in cur.fetchall()]
+    return competitors
 
 class TournamentsHandler(handler.BaseHandler):
     def get(self):
@@ -84,12 +96,21 @@ class TournamentListHandler(handler.BaseHandler):
             result['message'] = 'Only owners and admins may edit tournaments'
             result['status'] = -2
             return self.write(result)
-        if not isinstance(item.get('Country', None), int) and item['Id'] >= 0:
-            result['message'] = 'Invalid Country for tournament, {}'.format(
-                item)
-            result['status'] = -3
+        if (not isinstance(item.get('Country', None), int) or
+            not handler.valid_ID(item['Country'], 'Countries',
+                                 response=result)):
             return self.write(result)
         id = abs(item['Id'])
+        if id !=0 and not handler.valid_ID(id, 'Tournaments', response=result):
+            return self.write(result)
+        if not handler.valid_ID(item.get('Owner', -1), 'Users', response=result,
+                                msg='Invalid tournament owner'):
+            return self.write(result)
+        if item['Id'] >= 0 and item['End'] < item['Start']:
+            result['message'] = 'End date must follow start date {}'.format(
+                item['Start'])
+            result['status'] = -7
+            return self.write(result)
         result['message'] = 'Item {}'.format(
             'inserted' if id == 0 else 'deleted' if item['Id'] < 0 else
             'updated')
@@ -97,62 +118,27 @@ class TournamentListHandler(handler.BaseHandler):
             db.make_backup()
         try:
             with db.getCur() as cur:
-                if id > 0:
-                    sql = 'SELECT Id FROM Tournaments WHERE Id = ?'
+                values = [item[f] for f in columns]
+                if item['Id'] < 0:
+                    sql = 'DELETE FROM Tournaments WHERE Id = ?'
                     args = (id, )
-                    cur.execute(sql, args)
-                    matches = len(cur.fetchall())
-                    if matches == 0:
-                        result['message'] = 'No tournament with Id {}'.format(id)
-                        result['status'] = -4
-                    elif matches > 1:
-                        result['message'] = (
-                            'Multiple tournaments with Id {}'.format(id))
-                        result['status'] = -5
-                if item['Id'] >= 0:
-                    sql = 'SELECT Id FROM Countries WHERE Id = ?'
-                    args = (item['Country'], )
-                    cur.execute(sql, args)
-                    matches = len(cur.fetchall())
-                    if matches != 1:
-                        result['message'] = (
-                            'Invalid Country for tournament {}'.format(item))
-                        result['status'] = -6
-                    elif item['End'] < item['Start']:
-                        result['message'] = (
-                            'End date must follow start date {}'.format(
-                                item['Start']))
-                        result['status'] = -7
-                sql = 'SELECT Id FROM Users WHERE Id = ?'
-                args = (item['Owner'], )
+                elif item['Id'] == 0:
+                    sql = 'INSERT INTO Tournaments ({}) VALUES ({})'.format(
+                        ', '.join(columns),
+                        ', '.join(['?' for v in values]))
+                    args = values
+                else:
+                    sql = 'UPDATE Tournaments SET {} WHERE Id = ?'.format(
+                        ', '.join('{} = ?'.format(f) for f in columns))
+                    args = values + [id]
+                log.debug('Executing "{}" on {}'.format(sql, args))
                 cur.execute(sql, args)
-                matches = len(cur.fetchall())
-                if matches != 1:
-                    result['message'] = (
-                        'Invalid owner for tournament {}'.format(item))
-                    result['status'] = -10
-                if result['status'] == 0:
-                    values = [item[f] for f in columns]
-                    if item['Id'] < 0:
-                        sql = 'DELETE FROM Tournaments WHERE Id = ?'
-                        args = (id, )
-                    elif item['Id'] == 0:
-                        sql = 'INSERT INTO Tournaments ({}) VALUES ({})'.format(
-                            ', '.join(columns),
-                            ', '.join(['?' for v in values]))
-                        args = values
-                    else:
-                        sql = 'UPDATE Tournaments SET {} WHERE Id = ?'.format(
-                                ', '.join('{} = ?'.format(f) for f in columns))
-                        args = values + [id]
-                    log.debug('Executing "{}" on {}'.format(sql, args))
-                    cur.execute(sql, args)
-                    if item['Id'] == 0:
-                        item['Id'] = cur.lastrowid
-                        log.info('Last Tournament Row ID is now {}'.format(
-                            item['Id']))
-                    item['Id'] = abs(item['Id']) # Put cleaned item record
-                    result['item'] = item # with correct Id in rsespone
+                if item['Id'] == 0:
+                    item['Id'] = cur.lastrowid
+                    log.info('Last Tournament Row ID is now {}'.format(
+                        item['Id']))
+                item['Id'] = abs(item['Id']) # Put cleaned item record
+                result['item'] = item # with correct Id in rsespone
         except sqlite3.DatabaseError as e:
             result['message'] = (
                 'Exception in database change. SQL = {}. Args = {}. {}'.format(
@@ -180,87 +166,82 @@ def cleanTournamentItem(item, columns, current_user):
 class TournamentPlayerHandler(handler.BaseHandler):
     @tornado.web.authenticated
     def post(self):
-        encoded_update = self.get_argument('update', None)
-        update = json.loads(encoded_update)
+        encoded_item = self.get_argument('item', None)
+        item = json.loads(encoded_item)
         result = {'status': 0, 'message': ''}
-        compete_fields = [f for f in db.table_field_names('Compete')
-                          if f not in ('Id', 'Player', 'Tournament')]
-        if (update.get('item', None) is None or
-            not isinstance(update['item'].get('Id', None), int)):
-            result['message'] = 'Invalid item or ID field for player'
+        ID_fields = ('Id', 'Player', 'Tournament')
+        update_fields = [f for f in db.table_field_names('Compete')
+                         if f not in ID_fields]
+        if not all(isinstance(item.get(field, None), int) 
+                   for field in ID_fields):
+            result['message'] = 'Invalid item in request'
             result['status'] = -1
             return self.write(result)
-        item = update['item']
-        if (update.get('field', None) not in ['all'] + compete_fields):
-            result['message'] = 'Invalid field to update in player'.format(
-                update.get('field', None))
-            result['status'] = -2
+        id = abs(item['Id'])
+        if id != 0 and not handler.valid_ID(
+                id, 'Compete', response=result,
+                msg='Invalid competitor in tournament.'):
             return self.write(result)
-        field = update['field']
-        if 'value' not in update or not isinstance(update['value'], (int, str)):
-            result['message'] = (
-                'Invalid or missing value in player update'.format(
-                    update.get('value', None)))
-            result['status'] = -3
+        if not handler.valid_ID(item['Player'], 'Players', response=result):
             return self.write(result)
-        value = update['value']
-        if not (self.get_is_admin() or
-                str(item.get('Owner', -1)) == self.current_user):
-            result['message'] = (
-                'Only owners and admins may edit tournament players')
-            result['status'] = -4
+        if not handler.valid_ID(item['Tournament'], 'Tournaments',
+                                response=result):
             return self.write(result)
         id = abs(item['Id'])
-        result['message'] = 'Player {}'.format(
-            'inserted' if field == 'all' else 'deleted' if item['Id'] < 0 else
+        result['message'] = 'Competitor {}'.format(
+            'inserted' if id == 0 else 'deleted' if item['Id'] < 0 else
             'updated')
         try:
             with db.getCur() as cur:
                 sql = """SELECT Id FROM Compete WHERE Player = ? AND
                 Tournament = ?"""
-                args = (id, item.get('Tournament', -1))
+                args = (item['Player'], item['Tournament'])
                 cur.execute(sql, args)
                 matches = cur.fetchall()
-                if len(matches) == 0 and field != 'all':
+                if len(matches) != 1 and id != 0:
                     result['message'] = 'No player {} in tournament {}'.format(
                         args)
-                    result['status'] = -5
-                elif len(matches) == 1 and field == 'all':
+                    result['status'] = -6
+                elif len(matches) == 1 and id == 0:
                     result['message'] = (
                         'Player {} already in tournament {}'.format(args))
+                    result['status'] = -6
+                elif len(matches) == 1 and id != matches[0][0]:
+                    result['message'] = (
+                        'Internal error: Player {} already in tournament {} '
+                        'with a different compete ID {}'.format(
+                            args + matches[0]))
                     result['status'] = -6
                 elif len(matches) > 1:
                     result['message'] = (
                         'Internal error: multiple compete records {}-{}'
                         .format(args))
                     result['status'] = -7
-                else:
-                    competeID = matches[0][0]
+                    
                 if result['status'] == 0:
                     if item['Id'] < 0:
                         sql = 'DELETE FROM Compete WHERE Id = ?'
-                        args = (competeID, )
-                    elif field == 'all':
-                        values = [value if f == field else item[f]
-                                  for f in compete_fields] + [id]
-                        sql = 'INSERT INTO Compete ({}) VALUES ({})'.format(
-                            ', '.join(compete_fields + ['Player']),
-                            ', '.join(['?' for v in values]))
-                        args = values
+                        args = (id, )
                     else:
-                        log.info('Update {} to {} for player {} in tournament {}'.format(
-                            field, value, item['Id'], item['Tournament']))
-                        sql = 'UPDATE Compete SET {} = ? WHERE Id = ?'.format(
-                            field)
-                        args = (value, competeID)
-                    log.debug('Executing "{}" on {}'.format(sql, args))
+                        fields = ['Player', 'Tournament'] + [
+                            f for f in update_fields
+                            if f in item and item[f] is not None]
+                        if id > 0:
+                            fields.append('Id')
+                        values = [item[f] for f in fields]
+                        sql = '''
+                        INSERT OR REPLACE INTO Compete ({}) VALUES ({})
+                        '''.format(', '.join(fields),
+                                   ', '.join(['?' for v in values]))
+                        args = values
+                    log.debug('Executing "{}" on {}'.format(sql.strip(), args))
                     cur.execute(sql, args)
-                    if field == 'all':
-                        log.info('Last Compete row ID is now {}'.format(
-                            cur.lastrowid))
-                    item[field] = value     # Update item from browser
+                    if id == 0:
+                        item['Id'] = cur.lastrowid
+                        log.debug('Last Compete row ID is now {}'.format(
+                            item['Id']))
                     item['Id'] = abs(item['Id']) # Put cleaned item record
-                    result['item'] = item # with correct Player Id in rsespone
+                    result['item'] = item # with correct Compete Id in respone
         except sqlite3.DatabaseError as e:
             result['message'] = (
                 'Exception in database change. SQL = {}. Args = {}. {}'.format(

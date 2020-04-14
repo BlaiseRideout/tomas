@@ -251,21 +251,25 @@ button.clearplayercomplete {
 }
 
 #tournamentspanel {
-    min-width: 300;
+    width: 80%;
     display: inline-block;
 }
 
 #tournamentspanel:not(.tournamentplayereditmode) {
-    width: 95%;
+    width: 65%;
 }
 
+#tournamentsgrid {
+    width: 1000px;
+}
+    
 .sidelabelwrapper {
     display: inline-block;
     transform: rotate(90deg);
     position: relative;
     padding-bottom: 5%;
     position: relative;
-    top: 5em;
+    top: 3em;
 }
 
 #transferplayersbutton {
@@ -274,16 +278,15 @@ button.clearplayercomplete {
 
 #playerspanel {
     font-size: 0.8em;
-    width: 45%;
+    width: 30%;
     display: inline-block;
+}
+
+#availableplayersgrid {
 }
 
 .tournamentplayereditmode {
     width: 45%;
-}
-
-.playercountryfield select {
-    min-width: 20em;
 }
 
 .playerassociationfield, .playercountryfield, .playertournamentsfeld,
@@ -303,7 +306,7 @@ button.clearplayercomplete {
     display: none;
 }
 
-#tourneyplayers.tourneyplayersgrid {
+#tourneyplayersgrid {
     font-size: 0.8em;
     float: right;
     margin: auto;
