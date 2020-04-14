@@ -110,8 +110,8 @@ schema = {
     ],
     'Compete': [
         "Id INTEGER PRIMARY KEY AUTOINCREMENT",
-        "Player INTEGER",
-        "Tournament INTEGER",
+        "Player INTEGER NOT NULL",
+        "Tournament INTEGER NOT NULL",
         "Number INTEGER",
         "Pool TEXT",
         "Wheel TINYINT DEFAULT 0",
