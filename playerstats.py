@@ -218,7 +218,9 @@ class PlayerStatsHandler(handler.BaseHandler):
             if player is None or len(player) == 0:
                 return self.render(
                     "playerstats.html", player = {'Name':name},
-                    error = "Couldn't find player {}".format(name))
+                    error = "Couldn't find player {}".format(name),
+                    tourneys=[], history=[], playertypes=db.playertypes,
+                    selectedTournament='all')
             player = dict(zip(map(db.fieldname, cols), player))
 
             playerTourneys = playersTournaments(player['Id'], cur)

@@ -376,7 +376,8 @@ $(function() {
 
 			function playerNameAssociationTemplate(value, item) {
 				var playerStatLink = $('<a>')
-					.attr('href', base + 'playerStats/' + (item.Player || item.Id))
+					.attr('href', base + 'playerStats/' + (item.Player || item.Id) +
+						'?tournament=' + (item.Tournament || 'all'))
 					.text(item.Name);
 				return $('<span>').text(item.Association ? ' / ' + item.Association : '')
 					.prepend(playerStatLink);

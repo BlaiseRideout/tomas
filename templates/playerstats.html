@@ -10,7 +10,7 @@
   activeTab = 0;
   rank_histograms = new Object();
   {% for i, tourney in enumerate(tourneys) %}
-    {% if tourney['Id'] == selectedTournament %}
+    {% if str(tourney['Id']) == str(selectedTournament) %}
     activeTab = {{ i }};
     {% end %} <!-- if tourney['Id'] -->
   rank_histograms[{% raw repr(tourney['Id']) %}] = [];
