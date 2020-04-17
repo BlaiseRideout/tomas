@@ -13,9 +13,13 @@
 {% block content %}
 <div id="tournament">
 	<div id="tournament_title">
-		 {{ tournamentname }}
+	  <h3>{{ tournamentname }}
+	    <a href="tournament.xlsx" class="jsgrid-button"
+	       title="Download Tournament Spreadsheet">
+	      📄 {% comment Document emoji %}
+	    </a>
+	  </h3>
 	</div>
-	<a href="tournament.xlsx">Download Tournament Spreadsheet</a>
 	<ul>
 		<li data-refresh="5000">
 		  <a href="leaderboard.html">Standings</a></li>
