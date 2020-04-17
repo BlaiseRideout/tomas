@@ -36,6 +36,7 @@ import leaderboard
 import players
 import playerstats
 import tournament
+import spreadsheet
 import preferences
 import admin
 
@@ -76,9 +77,9 @@ class Application(tornado.web.Application):
             (r"/orderings", seating.OrderingsHandler),
             (r"/t/([^/]*)/tournament", tournament.TournamentHandler),
             (r"/t/([^/]*)/players", tournament.PlayersHandler),
-            (r"/t/([^/]*)/uploadplayers", tournament.UploadPlayersHandler),
+            (r"/t/([^/]*)/uploadplayers", spreadsheet.UploadPlayersHandler),
             (r"/t/([^/]*)/tournament.xlsx", 
-             tournament.DownloadTournamentSheetHandler),
+             spreadsheet.DownloadTournamentSheetHandler),
             (r"/t/([^/]*)/deleteplayer", tournament.DeletePlayerHandler),
             (r"/t/([^/]*)/players.html", tournament.ShowPlayersHandler),
             (r"/t/([^/]*)/addround", tournament.AddRoundHandler),
