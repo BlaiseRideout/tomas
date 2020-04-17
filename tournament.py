@@ -7,8 +7,11 @@ import io
 import logging
 import datetime
 import sqlite3
+import os.path
 
 import tornado.web
+import openpyxl
+import tempfile
 import handler
 import db
 import seating
@@ -397,37 +400,41 @@ class TournamentHandler(handler.BaseHandler):
             log.debug('Requested tab = {}'.format(tab))
         return self.render("tournament.html", tab=tab)
 
-player_fields = ["id", "name", "number", "country", "countryid", "flag_image",
+player_columns = ['Players.Id', 'Players.Name', 'Number', 'Countries.Code',
+                  'Countries.Id', 'Flag_Image',
+                  'Association', 'Pool', 'Type', 'Wheel']
+player_fields = ["id", "name", "number", "country", 
+                 "countryid", "flag_image",
                  "association", "pool", "type", "wheel"]
 
-def getPlayers(self, tournamentid):
+def getPlayers(tournamentid):
     global player_fields
     with db.getCur() as cur:
-        cur.execute(
-            "SELECT Players.Id, Players.Name, Number, Countries.Code,"
-            " Countries.Id, Flag_Image, Association, Pool, Type, Wheel"
-            " FROM Players"
-            " LEFT OUTER JOIN Countries"
-            "   ON Countries.Id = Players.Country"
-            " LEFT JOIN Compete ON Compete.Player = Players.Id"
-            " INNER JOIN Tournaments"
-            "   ON Tournaments.Id = Compete.Tournament"
-            " WHERE Tournaments.Id = ?"
-            " ORDER BY Players.Name asc",
-            (tournamentid,))
-        rows = [dict(zip(player_fields, row)) for row in cur.fetchall()]
-        for row in rows:
-            row['type'] = db.playertypes[int(row['type'] or 0)]
-        editable = self.get_is_admin() or (self.current_user and
-                                           self.current_user == str(self.owner))
-    return {'players':rows, 'editable': editable}
+        sql = """
+        SELECT {} FROM Players
+          LEFT OUTER JOIN Countries
+            ON Countries.Id = Players.Country
+          LEFT JOIN Compete ON Compete.Player = Players.Id
+          INNER JOIN Tournaments
+            ON Tournaments.Id = Compete.Tournament
+        WHERE Tournaments.Id = ?
+        ORDER BY Players.Name ASC
+        """.format(','.join(player_columns)).strip()
+        args = (tournamentid,)
+        cur.execute(sql, args)
+        players = [dict(zip(player_fields, row)) for row in cur.fetchall()]
+        for player in players:
+            player['type'] = db.playertypes[int(player['type'] or 0)]
+    return players
 
 class ShowPlayersHandler(handler.BaseHandler):
     @handler.tournament_handler
     def get(self):
-        data = getPlayers(self, self.tournamentid)
-        return self.render("players.html", editable = data['editable'],
-                           players = data['players'])
+        players = getPlayers(self.tournamentid)
+        editable = self.get_is_admin() or (
+            self.current_user and self.current_user == str(self.owner))
+        return self.render("players.html", editable = editable,
+                           players = players)
 
 class DeletePlayerHandler(handler.BaseHandler):
     @handler.tournament_handler_ajax
@@ -454,7 +461,13 @@ class DeletePlayerHandler(handler.BaseHandler):
 class PlayersHandler(handler.BaseHandler):
     @handler.tournament_handler_ajax
     def get(self):
-        return self.write(getPlayers(self, self.tournamentid))
+        data = {'players': getPlayers(self.tournamentid),
+                'editable': self.get_is_admin() or (
+                    self.current_user and
+                    self.current_user == str(self.owner))
+                }
+        return self.write(data)
+    
     @handler.tournament_handler_ajax
     @handler.is_owner_ajax
     def post(self):
@@ -503,43 +516,59 @@ class PlayersHandler(handler.BaseHandler):
             return self.write({'status':"error",
                  'message':"Invalid info provided"})
 
-PlayerColumns = ["Name", "Number", "Country", "Association", "Pool", "Type", "Wheel"]
-CountriesColumns = {"Country": "Code"}
+SS_Player_Columns = [f.capitalize() for f in player_fields
+                     if f not in ('id', 'countryid', 'flag_image')]
+excel_mime_type = '''
+application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'''.strip()
 
-class DownloadPlayersHandler(handler.BaseHandler):
+class DownloadTournamentSheetHandler(handler.BaseHandler):
     @handler.tournament_handler
     def get(self):
-        global PlayerColumns, CountriesColumns
-        colnames = [ 'Countries.{}'.format(CountriesColumns[c])
-                     if c in CountriesColumns else 'Players.{}'.format(c)
-                     for c in PlayerColumns ]
-        with db.getCur() as cur:
-            cur.execute(
-                ("SELECT {colnames} FROM Players "
-                 " LEFT OUTER JOIN Countries ON Countries.Id = Players.Country"
-                 " LEFT JOIN Compete ON Compete.Player = Players.Id"
-                 " WHERE Tournament = ?")
-                .format(colnames=', '.join(colnames)), (self.tournamentid,))
-            output = io.StringIO()
-            writer = csv.writer(output)
-            writer.writerow(PlayerColumns)
-            for row in cur.fetchall():
-                row = list(row)
-                row[5] = db.playertypes[row[5]]
-                writer.writerow(row)
-            self.set_header("Content-Type", "text/csv")
-            return self.write(output.getvalue())
-
+        players = getPlayers(self.tournamentid)
+        book = openpyxl.Workbook()
+        sheet = book.active
+        sheet.title = 'Players'
+        header_row = 3
+        first_column = 1
+        top_center_align = openpyxl.styles.Alignment(
+            horizontal='center', vertical='top', wrap_text=True)
+        sheet.merge_cells(
+            start_row=header_row - 2, end_row=header_row - 2,
+            start_column=first_column, 
+            end_column=first_column + len(SS_Player_Columns) - 1)
+        title_cell = sheet.cell(
+            row=header_row - 2, column=first_column,
+            value='{} Players'.format(self.tournamentname))
+        title_cell.alignment = top_center_align
+        row = header_row
+        for i, column in enumerate(SS_Player_Columns):
+            sheet.cell(row=row, column=first_column + i,
+                       value=column)
+        for player in players:
+            row += 1
+            for i, f in enumerate(SS_Player_Columns):
+                sheet.cell(row=row, column=first_column + i,
+                           value=player[f.lower()])
+        with tempfile.NamedTemporaryFile(
+                suffix='.xlsx',
+                prefix='{}_'.format(self.tournamentname)) as outf:
+            book.save(outf.name)
+            outf.seek(0)
+            self.write(outf.read())
+            self.set_header('Content-type', excel_mime_type)
+            self.set_header(
+                'Content-Disposition',
+                'attachment; filename="{}"'.format(os.path.basename(outf.name)))
+        return
 
 class UploadPlayersHandler(handler.BaseHandler):
     @handler.tournament_handler_ajax
     @handler.is_owner_ajax
     def post(self):
-        global PlayerColumns, CountriesColumns
         if 'file' not in self.request.files or len(self.request.files['file']) == 0:
             return self.write({'status':"error", 'message':"Please provide a players file"})
         players = self.request.files['file'][0]['body']
-        colnames = [c.lower() for c in PlayerColumns]
+        colnames = [c.lower() for c in SS_Player_Columns]
         try:
             with db.getCur() as cur:
                 reader = csv.reader(players.decode('utf-8').splitlines())
@@ -555,7 +584,7 @@ class UploadPlayersHandler(handler.BaseHandler):
                         unrecognized = [v for v in row
                                         if v.lower() not in colnames]
                         colnames = [v.lower() for v in row]
-                        colnames += [c.lower() for c in PlayerColumns
+                        colnames += [c.lower() for c in SS_Player_Columns
                                      if c.lower() not in colnames]
                         continue
                     if len(row) < 3:
