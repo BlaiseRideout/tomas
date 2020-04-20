@@ -92,21 +92,16 @@ $(function() {
 		}, reload);
 	}
 
+	var refresh = $('#tournament').tabs().find('li').first().data('refresh');
 
-	var first_tab = null;
-	if (tab) {
-		$("#tournament").tabs().find('li').find('a').each(
-			function(i, e) {
-				var href = $(this).attr('href'),
-					pos = href && href.lastIndexOf(tab);
-				if (pos && 0 <= pos &&
-					pos == href.length - tab.length) {
-					console.log('Changing first tab to index ' + i);
-					first_tab = i;
-				}
-			});
+	if (typeof tab == 'string') {
+		$('#tournament ul li a').each(function(i, elem) {
+			if ($(elem).attr('href') == tab) {
+				tab = i;
+				refresh = $(elem).parent('li').data('refresh');
+			}
+		})
 	};
-
 	$("#tournament").tabs({
 		beforeLoad: function(event, ui) {
 			ui.jqXHR.fail(function() {
@@ -114,7 +109,7 @@ $(function() {
 					"Couldn't load this tab. We'll try to fix this as soon as possible.");
 			});
 		},
-		active: first_tab || 0
+		active: (tab || 0) - 0
 	});
 
 	var updateUser = function(usercmd, callback) {
@@ -194,11 +189,7 @@ $(function() {
 
 	$("#tournament").tabs().find('li').click(function(ev) {
 		var tabs = $(ev.target).parents('li'),
-			id = tabs.data('id'),
 			refresh = tabs.data('refresh');
-		if (id && id != 'players') {
-			console.log('Unexpected click event for data-id = ' + id)
-		};
 		if (refresh) {
 			updateTournamentTab($("#tournament").tabs("option", "active"),
 				refresh + 0);
@@ -245,6 +236,5 @@ $(function() {
 	}
 
 	/* Start auto refresh for first tab if needed */
-	var refresh = $('#tournament').tabs().find('li').first().data('refresh');
 	if (refresh) updateTournamentTab(0, refresh + 0);
 });

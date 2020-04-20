@@ -455,7 +455,7 @@ class DeletePlayerHandler(handler.BaseHandler):
             return self.write({'status':"error",
                  'message':"Couldn't delete player from tournament"})
 
-class TournamentPlayersHandler(handler.BaseHandler):
+class TournamentPlayersAjaxHandler(handler.BaseHandler):
     @handler.tournament_handler_ajax
     def get(self):
         data = {'players': getPlayers(self.tournamentid),
@@ -465,6 +465,11 @@ class TournamentPlayersHandler(handler.BaseHandler):
                 }
         return self.write(data)
 
+class TournamentPlayersHandler(handler.BaseHandler):
+    @handler.tournament_handler
+    def get(self):
+        return self.render("players.html");
+    
 class AddRoundHandler(handler.BaseHandler):
     @handler.tournament_handler_ajax
     @handler.is_owner_ajax

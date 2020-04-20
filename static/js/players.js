@@ -111,6 +111,7 @@ $(function() {
 			},
 			paging: false,
 			pageLoading: false,
+			autoload: true,
 			fields: tourneyPlayerGridFields,
 			noDataContent: 'None found',
 		});
