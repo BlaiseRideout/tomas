@@ -1,7 +1,11 @@
 {% extends "template.html" %}
 {% block head %}
 		<link href="{{ proxyprefix.rstrip('/') + static_url("css/tournament.css") }}" type="text/css" rel="stylesheet" />
-		<script src="{{ proxyprefix.rstrip('/') + static_url("js/tournament.js") }}"></script>
+<script src="{{ proxyprefix.rstrip('/') + static_url("js/jsgrid-utils.js") }}"
+	type="text/javascript"></script>
+<script src="{{ proxyprefix.rstrip('/') + static_url("js/tournament.js") }}"></script>
+<script src="{{ proxyprefix.rstrip('/') + static_url("js/players.js") }}" 
+	type="text/javascript"></script>
 		<script>
 		  var tab = {% if tab %}"{{ tab }}"{% else %}null{% end %};
 			var tournamentid = {{ tournamentid }};
@@ -28,10 +32,13 @@
 		<li data-id="players"><a href="#players">Players</a></li>
 	  {% if is_admin or (current_user and current_user == str(owner)) %}
 		<li><a href="settings.html">Settings</a></li>
-{% comment <li><a href="tourney.html">Tourney</a></li>  %}
+     {% comment <li><a href="tourney.html">Tourney</a></li>  %}
 	  {% end %}
 	</ul>
 	<div id="players">
+	  <div id="tourneyplayersgrid">
+	    Loading...
+	  </div>
 	</div>
      {% if is_admin %}
 	<div id="users">

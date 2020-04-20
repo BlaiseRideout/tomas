@@ -1,171 +1,4 @@
 $(function() {
-	var templates = {},
-		templatedata = {};
-	window.renderTemplate = function(template, endpoint, selector, callback, extra, reload) {
-		if (templates[template] === undefined)
-			$.get(base + "static/mustache/" + template,
-				function(data) {
-					Mustache.parse(data);
-					templates[template] = data;
-					renderTemplate(template, endpoint, selector, callback, extra, reload);
-				})
-		else if (templatedata[template] === undefined || reload)
-			$.getJSON(endpoint, function(data) {
-				templatedata[template] = data;
-				renderTemplate(template, endpoint, selector, callback, extra, false);
-			});
-		else {
-			for (k in extra) {
-				templatedata[template][k] = extra[k]
-			}
-			if (sortkeys[template]) {
-				var toSort = templatedata[template][sortkeys[template]['table']];
-				toSort.sort(compareFunc(sortkeys[template]['keys']));
-				templatedata[template][sortkeys[template]['table']] = toSort
-			}
-			/* console.log(templatedata[template]); */
-			$(selector).html(Mustache.render(
-				templates[template], templatedata[template]));
-			if (typeof callback === "function")
-				callback(templatedata[template]);
-		};
-	}
-
-	var showInactive = true;
-	var sortkeys = {}; /* Most recent sorting for each template */
-	/* Structure sortkeys[templatename] =
-	    {'table': list of rows (table) in data to be sorted,
-	     'keys': list of keyspecs: ['field', +1 or -1, 'str' or 'num']
-	    }  */
-	var sortkeys = {
-		'players.mst': {
-			'table': 'players',
-			'keys': [
-				['type', 1, 'str'],
-				['name', 1, 'str'],
-				['country', 1, 'str']
-			]
-		},
-	};
-
-	/* Build a comparison function that compares keys in order specified */
-	function compareFunc(keyspecs) {
-		if (keyspecs.length > 0) {
-			var spec = keyspecs[0],
-				inner = compareFunc(keyspecs.slice(1)),
-				fld = spec[0];
-			return function(a, b) {
-				if (spec[2] == 'str') {
-					if (a[fld] < b[fld]) {
-						return -1 * spec[1]
-					}
-					else if (a[fld] > b[fld]) {
-						return spec[1]
-					}
-					else {
-						return (inner && inner(a, b)) || 0
-					}
-				}
-				else {
-					if (a[fld] - b[fld] == 0) {
-						return (inner && inner(a, b)) || 0
-					}
-					else {
-						return (a[fld] - b[fld]) * spec[1]
-					}
-				}
-			}
-		}
-	}
-
-	function updateSortKeys(template, fieldname, fieldtype, table, callback) {
-		var newkey = [fieldname, 1, fieldtype];
-		if (!table && template.indexOf('.mst') > 0) {
-			table = template.slice(0, -4);
-		}
-		if (sortkeys[template] && sortkeys[template]['keys'] &&
-			sortkeys[template]['keys'][0][0] == fieldname) {
-			sortkeys[template]['keys'][0][1] *= -1
-		}
-		else if (sortkeys[template]) {
-			var keys = sortkeys[template]['keys'] || [];
-			for (var j = 1; j < keys.length; j++) {
-				if (keys[j][0] == fieldname) break;
-			}
-			if (j < keys.length) {
-				newkey = keys[j];
-				keys = keys.slice(0, j).concat(keys.slice(j + 1));
-			}
-			sortkeys[template]['keys'] = [newkey].concat(keys);
-		}
-		else {
-			sortkeys[template] = {
-				'table': table,
-				'keys': [newkey]
-			};
-		};
-		if (typeof callback === "function") callback();
-	}
-
-	var updatePlayer = function(callback) {
-		var player = $(this).parents(".player").data("id");
-		var colname = $(this).data("colname");
-		var newVal = $(this).val();
-		var info = {};
-		var input = $(this);
-		info[colname] = newVal;
-		console.log('Player ' + player + ' update');
-		console.log(info);
-		$.post("players", {
-				'player': player,
-				'info': JSON.stringify(info)
-			},
-			function(data) {
-				if (data['status'] == "success") {
-					input.removeClass("bad");
-					input.addClass("good");
-					if (typeof callback === 'function')
-						callback.call(this);
-				}
-				else {
-					console.log(data);
-					input.removeClass("good");
-					input.addClass("bad");
-				}
-				if (data["message"])
-					$.notify(data["message"], data["status"]);
-			}.bind(this), "json")
-	};
-	var addNewPlayer = function() {
-		$.post("players", {
-				'player': '-1',
-				'info': JSON.stringify({
-					'name': ' '
-				})
-			},
-			function(data) {
-				if (data['status'] === "success") {
-					$("#showinactive").prop("checked", true);
-					showInactive = true;
-					updatePlayers();
-				}
-				else {
-					console.log(data);
-				}
-				if (data["message"])
-					$.notify(data["message"], data["status"]);
-			}, "json");
-	};
-	var showHideInactive = function() {
-		showInactive = $('#showinactive').prop('checked');
-		if (showInactive) {
-			$(".player").not("[data-status='']").show();
-		}
-		else {
-			$(".player").not("[data-status='']").hide();
-		};
-	};
-
 	function updatePlayers(reload) {
 		if (reload === undefined) {
 			reload = true
@@ -363,10 +196,7 @@ $(function() {
 		var tabs = $(ev.target).parents('li'),
 			id = tabs.data('id'),
 			refresh = tabs.data('refresh');
-		if (id == 'players') {
-			return updatePlayers()
-		}
-		else if (id) {
+		if (id && id != 'players') {
 			console.log('Unexpected click event for data-id = ' + id)
 		};
 		if (refresh) {
@@ -391,7 +221,6 @@ $(function() {
 		refreshTimer = setInterval(updater, refresh_interval);
 	};
 
-	updatePlayers();
 	window.updateTab = function(callback) {
 		var current_index = $("#tournament").tabs("option", "active");
 		$("#tournament").tabs('load', current_index);

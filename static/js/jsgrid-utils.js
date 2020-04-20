@@ -1,4 +1,5 @@
 $(function() {
+	countryList = null;
 	withCountries = function(todo) {
 		if (countryList === null) {
 			$.getJSON("/countries", function(countryRecs) {
@@ -114,10 +115,21 @@ $(function() {
 			},
 		};
 	};
+
 	playerStatLinkTemplate = function(value, item) {
 		return $('<a>').attr('href', base + 'playerStats/' + item.Id)
 			.text(item.Name)
 	};
+
+	playerNameAssociationTemplate = function(value, item) {
+		var playerStatLink = $('<a>')
+			.attr('href', base + 'playerStats/' + (item.Player || item.Id) +
+				'?tournament=' + (item.Tournament || 'all'))
+			.text(item.Name);
+		return $('<span>').text(item.Association ? ' / ' + item.Association : '')
+			.prepend(playerStatLink);
+	};
+
 	tournamentLinkTemplate = function(value, item) {
 		return $('<a>').attr('href', base + 't/' + item.Name + '/tournament')
 			.text(item.Name)

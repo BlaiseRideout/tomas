@@ -33,7 +33,7 @@ def getTournaments(tournamentID=None):
         SELECT {} FROM Tournaments JOIN Countries ON Country = Countries.ID
         """.format(','.join(['Tournaments.{}'.format(f) for f in tmt_fields] +
                    country_fields))
-        if tournamentID:
+        if isinstance(tournamentID, int):
             sql += "WHERE Tournaments.ID = {}".format(tournamentID)
         sql += " ORDER BY End DESC"
         cur.execute(sql)
@@ -47,7 +47,7 @@ def getTournaments(tournamentID=None):
     return tournaments
 
 def getCompetitors(tournamentID):
-    player_fields = ['Name', 'Association']
+    player_fields = ['Name', 'Association', 'Country']
     cFields = ['Compete.{}'.format(f)
                for f in db.table_field_names('Compete')] + [
                        'Players.{}'.format(f) for f in player_fields]
@@ -75,7 +75,10 @@ class TournamentsHandler(handler.BaseHandler):
 
 class TournamentListHandler(handler.BaseHandler):
     def get(self):
-        result = {'status': 0, 'data': getTournaments()}
+        selectedTournament = self.get_argument("tournament", None)
+        if isinstance(selectedTournament, str) and selectedTournament.isdigit():
+            selectedTournament = int(selectedTournament)
+        result = {'status': 0, 'data': getTournaments(selectedTournament)}
         return self.write(json.dumps(result))
 
     @tornado.web.authenticated
@@ -164,6 +167,11 @@ def cleanTournamentItem(item, columns, current_user):
                 item['Country'] = result[0]
 
 class TournamentPlayerHandler(handler.BaseHandler):
+    @handler.tournament_handler
+    def get(self):
+        players = getPlayers(self.tournamentid)
+        return self.write(json.dumps(players))
+
     @tornado.web.authenticated
     def post(self):
         encoded_item = self.get_argument('item', None)
@@ -424,15 +432,6 @@ def getPlayers(tournamentid):
             player['type'] = db.playertypes[int(player['type'] or 0)]
     return players
 
-class ShowPlayersHandler(handler.BaseHandler):
-    @handler.tournament_handler
-    def get(self):
-        players = getPlayers(self.tournamentid)
-        editable = self.get_is_admin() or (
-            self.current_user and self.current_user == str(self.owner))
-        return self.render("players.html", editable = editable,
-                           players = players)
-
 class DeletePlayerHandler(handler.BaseHandler):
     @handler.tournament_handler_ajax
     @handler.is_owner_ajax
@@ -455,7 +454,7 @@ class DeletePlayerHandler(handler.BaseHandler):
             return self.write({'status':"error",
                  'message':"Couldn't delete player from tournament"})
 
-class PlayersHandler(handler.BaseHandler):
+class TournamentPlayersHandler(handler.BaseHandler):
     @handler.tournament_handler_ajax
     def get(self):
         data = {'players': getPlayers(self.tournamentid),
@@ -464,54 +463,6 @@ class PlayersHandler(handler.BaseHandler):
                     self.current_user == str(self.owner))
                 }
         return self.write(data)
-    
-    @handler.tournament_handler_ajax
-    @handler.is_owner_ajax
-    def post(self):
-        global player_fields
-        player = self.get_argument("player", None)
-        if player is None or not (player.isdigit() or player == '-1'):
-            return self.write({'status':"error", 'message':"Please provide a player"})
-        info = self.get_argument("info", None)
-        if info is None:
-            return self.write({'status':"error", 'message':"Please provide an info object"})
-        info = json.loads(info)
-        try:
-            fields = []
-            with db.getCur() as cur:
-                for colname, val in info.items():
-                    col = colname.lower()
-                    if not (col in player_fields and
-                            (db.valid[col if col in db.valid else 'all'].match(
-                                val))):
-                        fields.append(col)
-                    if player == '-1':
-                        cur.execute("INSERT INTO Players (Name, Country, Tournament) VALUES"
-                                    " ('\u202Fnewplayer',"
-                                    "  (select Id from Countries limit 1), ?)", (self.tournamentid,))
-                    else:
-                        if colname == "Type" and val == str(
-                                db.playertypecode['Substitute']):
-                            cur.execute(
-                                "UPDATE Players SET Country ="
-                                "   (SELECT Id FROM Countries WHERE"
-                                "      Name = 'Substitute' OR 'Code' = 'SUB'"
-                                "             OR IOC_Code = 'SUB')"
-                                " WHERE Id = ? AND Tournament = ?",
-                                (player, self.tournamentid))
-                        cur.execute("UPDATE Players SET {0} = ? WHERE Id = ? AND Tournament = ?"
-                                    .format(colname),
-                                    (val, player, self.tournamentid))
-            if len(fields) > 0:
-                return self.write(
-                    {'status':"error",
-                     'message':
-                     "Invalid column(s) or value provided: {0}".format(
-                         ", ".join(fields))})
-            return self.write({'status':"success"})
-        except:
-            return self.write({'status':"error",
-                 'message':"Invalid info provided"})
 
 class AddRoundHandler(handler.BaseHandler):
     @handler.tournament_handler_ajax
