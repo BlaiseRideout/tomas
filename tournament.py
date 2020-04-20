@@ -59,6 +59,7 @@ def getCompetitors(tournamentID):
           ON Scores.Round = Rounds.Id AND Scores.PlayerId = Players.Id
     WHERE Compete.Tournament = ?
     GROUP BY Player
+    ORDER BY Type ASC, Players.Name ASC
     """.format(','.join(cFields))
     args = (tournamentID,)
     with db.getCur() as cur:

@@ -58,13 +58,12 @@ $(function() {
 					itemTemplate: playerTypeTemplate,
 					width: playerGridFieldWidth,
 				},
-			],
-			tourneyid = '16'; // FIX THIS
+			];
 
 		function loadTourneyPlayerData(filterItem) {
 			var d = $.Deferred();
 			$.ajax({
-				url: base + 'tournamentList?tournament=' + tourneyid,
+				url: base + 'tournamentList?tournament=' + tournamentid,
 				dataType: "json"
 			}).done(
 				function(loadData) { // Return has status = 0 for success
