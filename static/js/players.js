@@ -99,6 +99,24 @@ $(function() {
 			return playerType;
 		};
 
+		function playerItemChanged(args) {
+			args.data.map(function(item) {
+				$(args.grid._bodyGrid).find('.jsgrid-row').add('.jsgrid-alt-row')
+					.each(function(i, elem) {
+						if ($(elem).data('JSGridItem') == item) {
+							playerTypes.map(function(entry) {
+								if (item.Type == entry.Id) {
+									$(elem).addClass(entry.Type)
+								}
+								else {
+									$(elem).removeClass(entry.Type)
+								}
+							})
+						}
+					});
+			});
+		};
+
 		$('#tourneyplayersgrid').text('').jsGrid({
 			width: '100%',
 			inserting: false,
@@ -113,6 +131,7 @@ $(function() {
 			pageLoading: false,
 			autoload: true,
 			fields: tourneyPlayerGridFields,
+			onDataLoaded: playerItemChanged,
 			noDataContent: 'None found',
 		});
 	});

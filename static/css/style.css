@@ -306,10 +306,18 @@ button.clearplayercomplete {
     display: none;
 }
 
-#tourneyplayersgrid {
+#tournamentsgrid #tourneyplayersgrid {
     font-size: 0.8em;
     float: right;
     margin: auto;
+}
+
+.Inactive {
+    text-decoration: line-through;
+}
+
+.Substitute {
+    font-style: oblique;
 }
 
 .jsgrid .duplicate-icon-tr {

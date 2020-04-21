@@ -319,6 +319,28 @@ $(function() {
 				return selector;
 			};
 
+			function playerItemChanged(args) {
+				if ('item' in args) {
+					args.data = [args.item]
+				};
+				args.data.map(function(item) {
+					$(args.grid._bodyGrid).find('.jsgrid-row').add('.jsgrid-alt-row')
+						.each(function(i, elem) {
+							if ($(elem).data('JSGridItem') == item) {
+								playerTypes.map(function(entry) {
+									if (item.Type == entry.Id) {
+										$(elem).addClass(entry.Type)
+									}
+									else {
+										$(elem).removeClass(entry.Type)
+									}
+								})
+							}
+						});
+				});
+				updateAvailablePlayers();
+			};
+
 			function makePlayerFieldTemplate(field, numeric) {
 				return function(value, item) {
 					if (auth['admin'] || auth['user'] == item.Owner) {
@@ -337,16 +359,21 @@ $(function() {
 				var control = $(this),
 					field = $(this).data('field'),
 					item = $(this).data('item'),
-					newitem = copyObj(item);
+					newitem = copyObj(item),
+					$grid = control.parents('#tourneyplayersgrid');
 				newitem[field] = control.val();
 				if (control.attr('type') == 'number' && typeof(newitem[field]) == 'string') {
 					newitem[field] = newitem[field] - 0;
 				};
-				control.parents('#tourneyplayersgrid').jsGrid("updateItem", newitem)
+				$grid.jsGrid("updateItem", newitem)
 					.done(function() {
 						item[field] = newitem[field];
 						control.removeClass('bad');
 						if (field == 'Type') {
+							playerItemChanged({
+								item: item,
+								grid: $grid.data('JSGrid')
+							});
 							updatePlayerSummary()
 						};
 					})
@@ -426,8 +453,8 @@ $(function() {
 						confirmDeleting: false,
 						data: playerList,
 						controller: makeController(base + 'updatePlayerRole', tourneyPlayerGridFields, playerList),
-						onItemDeleted: updateAvailablePlayers,
-						onItemInserted: updateAvailablePlayers,
+						onItemDeleted: playerItemChanged,
+						onItemInserted: playerItemChanged,
 						paging: false,
 						pageLoading: false,
 						fields: tourneyPlayerGridFields,
@@ -442,7 +469,10 @@ $(function() {
 					.addClass($(tourneyRow).hasClass('jsgrid-alt-row') ?
 						'jsgrid-row' : 'jsgrid-alt-row').append(cell);
 				$(tourneyRow).after(innerRow);
-				updateAvailablePlayers();
+				playerItemChanged({
+					data: playerList,
+					grid: $(grid).data('JSGrid')
+				});
 			}
 
 			function duplicateTournament(e) {

@@ -69,7 +69,8 @@
             {% if tp[f] is not None %}
 	    <div class="playerrole">
 	      {{ 'Player ' if f == 'Type' else ''}}{{ f }}:
-	      {{ playertypes[tp[f]] if f == 'Type' else tp[f] }}
+	      {% raw '<span class={0}>{0}</span>'.format(
+	         playertypes[tp[f]]) if f == 'Type' else tp[f] %}
 	    </div>
 	    {% end %} <!-- if tourney[f] is not None -->
 	  {% end %} <!-- for f in ['Type' -->
