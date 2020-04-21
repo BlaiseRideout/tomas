@@ -96,7 +96,9 @@ $(function() {
 
 	if (typeof tab == 'string') {
 		$('#tournament ul li a').each(function(i, elem) {
-			if ($(elem).attr('href') == tab) {
+			if (typeof tab == 'string' && tab.match(/^\d+$/) ?
+				tab - 0 == i :
+				$(elem).attr('href') == tab) {
 				tab = i;
 				refresh = $(elem).parent('li').data('refresh');
 			}
@@ -191,8 +193,12 @@ $(function() {
 		var tabs = $(ev.target).parents('li'),
 			refresh = tabs.data('refresh');
 		if (refresh) {
+			$('#refreshcontrol').show();
 			updateTournamentTab($("#tournament").tabs("option", "active"),
 				refresh + 0);
+		}
+		else {
+			$('#refreshcontrol').hide();
 		};
 	});
 
@@ -200,7 +206,7 @@ $(function() {
 		var refreshTimer,
 			updater = function() {
 				indexnow = $("#tournament").tabs("option", "active");
-				if (indexnow == tabindex) {
+				if (indexnow == tabindex && $('#refreshcheckbox').prop('checked')) {
 					/* console.log('Refresh tab index ' + tabindex); */
 					$("#tournament").tabs('load', tabindex);
 				}
@@ -209,8 +215,17 @@ $(function() {
 					clearInterval(refreshTimer);
 				}
 			};
-		refreshTimer = setInterval(updater, refresh_interval);
+
+		if ($('#refreshcheckbox').prop('checked')) {
+			refreshTimer = setInterval(updater, refresh_interval)
+		};
 	};
+
+	$('#refreshcheckbox').change(function(event) {
+		var active = $("#tournament").tabs("option", "active");
+		refresh = $("#tournament").tabs().find('li:eq(' + active + ')').data('refresh');
+		updateTournamentTab(active, refresh);
+	});
 
 	window.updateTab = function(callback) {
 		var current_index = $("#tournament").tabs("option", "active");
@@ -236,5 +251,11 @@ $(function() {
 	}
 
 	/* Start auto refresh for first tab if needed */
-	if (refresh) updateTournamentTab(0, refresh + 0);
+	if (refresh) {
+		$('#refreshcontrol').show();
+		updateTournamentTab(0, refresh + 0);
+	}
+	else {
+		$('#refreshcontrol').hide();
+	};
 });

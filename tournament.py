@@ -5,7 +5,7 @@ import csv
 import re
 import io
 import logging
-import datetime
+from datetime import *
 import sqlite3
 
 import tornado.web
@@ -310,8 +310,8 @@ class EditTournamentHandler(handler.BaseHandler):
                 tournament['ScoreCount'] = cur.fetchone()[0]
             else:
                 tournament = dict(zip(tmt_fields, [''] * len(tmt_fields)))
-                today = datetime.date.today()
-                tomorrow = today + datetime.timedelta(days=1)
+                today = date.today()
+                tomorrow = today + timedelta(days=1)
                 tournament['Start'] = today.strftime(settings.DATEFORMAT)
                 tournament['End'] = tomorrow.strftime(settings.DATEFORMAT)
                 tournament['Country'] = def_country_id
@@ -401,10 +401,25 @@ class EditTournamentHandler(handler.BaseHandler):
 class TournamentHandler(handler.BaseHandler):
     @handler.tournament_handler
     def get(self):
+        sql = "SELECT Start, End FROM Tournaments WHERE Id = ?"
+        args = (self.tournamentid,)
+        refreshOn = False
+        with db.getCur() as cur:
+            cur.execute(sql, args)
+            result = cur.fetchall()
+            if len(result) == 1:
+                today = date.today()
+                try:
+                    oneday = timedelta(days=1)
+                    start, end = (
+                        datetime.strptime(v, settings.DATEFORMAT).date()
+                        for v in result[0])
+                    refreshOn = (start - oneday <= today and
+                                 today <= end + oneday)
+                except:
+                    pass
         tab = self.get_argument('tab', None)
-        if tab:
-            log.debug('Requested tab = {}'.format(tab))
-        return self.render("tournament.html", tab=tab)
+        return self.render("tournament.html", tab=tab, refreshOn=refreshOn)
 
 player_columns = ['Players.Id', 'Players.Name', 'Number', 'Countries.Code',
                   'Countries.Id', 'Flag_Image',

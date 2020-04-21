@@ -33,9 +33,10 @@
      {% comment <li><a href="tourney.html">Tourney</a></li>  %}
 	  {% end %}
 	</ul>
-     {% if is_admin %}
-	<div id="users">
+	<div id="refreshcontrol">
+	  <input id="refreshcheckbox" type="checkbox" 
+		 {% if refreshOn %} checked {% end %} />
+	  Automatically refresh this page.
 	</div>
-     {% end %}
 </div>
 {% end %}
