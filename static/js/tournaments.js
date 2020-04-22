@@ -588,9 +588,19 @@ $(function() {
 				return entry;
 			};
 
+			function openInitialTournament(args) {
+				if (typeof tournament == 'number') {
+					$('#tournamentsgrid .playerviewcontrol').each(function(i, elem) {
+						var tourney = $(elem).data('tourney');
+						if (tourney && tourney.Id == tournament) {
+							showPlayerView(elem);
+						}
+					})
+				};
+			};
+
 			$("#tournamentsgrid").text('').jsGrid({
 				height: "auto",
-				// width: "700",
 				inserting: auth['user'] ? true : false,
 				editing: auth['user'] ? true : false,
 				sorting: true,
@@ -606,6 +616,7 @@ $(function() {
 				fields: tournamentFieldDescriptions,
 				onItemInserting: tournamentItemInserting,
 				onItemEditing: tournamentItemInserting,
+				onDataLoaded: openInitialTournament,
 			});
 			// if ($("#tournamentsgrid").css("width")) {$("#tournamentsgrid").css("width", "")}; HACK
 			$("#availableplayersgrid").jsGrid({

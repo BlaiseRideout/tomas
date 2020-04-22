@@ -72,14 +72,20 @@ def getCompetitors(tournamentID):
 class TournamentsHandler(handler.BaseHandler):
     def get(self):
         tournaments = getTournaments()
-        return self.render("tournamentlist.html", tournaments=tournaments)
+        tournament = self.get_argument("tournament", None)
+        if (isinstance(tournament, str) and
+            tournament.isdigit() and
+            int(tournament) in [t['Id'] for t in tournaments]):
+            tournament = int(tournament)
+        return self.render("tournamentlist.html", tournaments=tournaments,
+                           tournament=tournament)
 
 class TournamentListHandler(handler.BaseHandler):
     def get(self):
-        selectedTournament = self.get_argument("tournament", None)
-        if isinstance(selectedTournament, str) and selectedTournament.isdigit():
-            selectedTournament = int(selectedTournament)
-        result = {'status': 0, 'data': getTournaments(selectedTournament)}
+        tournament = self.get_argument("tournament", None)
+        if isinstance(tournament, str) and tournament.isdigit():
+            tournament = int(tournament)
+        result = {'status': 0, 'data': getTournaments(tournament)}
         return self.write(json.dumps(result))
 
     @tornado.web.authenticated

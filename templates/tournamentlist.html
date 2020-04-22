@@ -1,7 +1,8 @@
 {% extends "template.html" %}
 {% block head %}
 <script>
-  var countryList = null, countries = null;
+  var countryList = null, countries = null,
+      tournament = {{ tournament if isinstance(tournament, int) else 'null' }};
 </script>
 <script src="{{ proxyprefix.rstrip('/') + static_url("js/jsgrid-utils.js") }}"
 	type="text/javascript"></script>
