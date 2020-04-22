@@ -2,6 +2,11 @@
 <script src="{{ proxyprefix.rstrip('/') + static_url("js/players.js") }}"
 	type="text/javascript"></script>
 {% end %}
+{% if is_admin or (current_user and current_user == str(owner)) %}
+  <a href="{{ proxyprefix }}tournaments?tournament={{ tournamentid }}">
+    Edit players
+  </a>
+{% end %}
 <div id="players">
   <div id="tourneyplayersgrid">
     Loading...
