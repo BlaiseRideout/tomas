@@ -58,7 +58,10 @@ $(function() {
 				else {
 					deferred.resolve(resp.item);
 				}
-			}, "json");
+			}, "json").fail(function(jqXHR, textStatus, errorThrown) {
+			$.notify('Posting change failed. ' + textStatus);
+			deferred.reject(textStatus);
+		});
 	};
 
 	/* Create a controller object for jsGrid widgets. The jsonURL should

@@ -1,6 +1,7 @@
 *.pyc
 *.retry
 mysettings.py
+DEVELOPERMODE
 *.db
 *~
 \#*\#

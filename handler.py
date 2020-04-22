@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import tornado.web
 import json
+import os.path
 
 import util
 import settings
@@ -11,7 +12,7 @@ class BaseHandler(tornado.web.RequestHandler):
     tournamentid = None
     tournamentname = None
     def get_current_user(self):
-        if settings.DEVELOPERMODE:
+        if settings.DEVELOPERMODE or os.path.exists('DEVELOPERMODE'):
             return "1"
         else:
             return util.stringify(self.get_secure_cookie("user"))
@@ -71,7 +72,6 @@ def is_owner(func):
 
     return func_wrapper
 
-
 class AuthenticationHandler(BaseHandler):
     def get(self):
         status = {'user': self.get_current_user(), 'admin': False }
@@ -82,6 +82,17 @@ class AuthenticationHandler(BaseHandler):
                         (self.get_current_user(),))
             status['admin'] = cur.fetchone()[0] == 1
         return self.write(json.dumps(status))
+
+def is_authenticated_ajax(func):
+    def func_wrapper(self, *args, **kwargs):
+        user = self.get_current_user()
+        if not (user and isinstance(user, str) and user.isdigit()):
+            self.write({"status": "error",
+                        "message":"You must log in to do that"})
+        else:
+            func(self, *args, **kwargs)
+
+    return func_wrapper
 
 def is_admin_ajax(func):
     def func_wrapper(self, *args, **kwargs):

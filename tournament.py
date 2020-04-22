@@ -42,11 +42,11 @@ def getTournaments(tournamentID=None):
     for tmt in tournaments:
         tmt['Dates'] = '{} - {}'.format(tmt['Start'], tmt['End'])
         tmt['players'] = dict((t, list()) for t in db.playertypes)
-        for compete in getCompetitors(tmt['Id']):
+        for compete in getCompetitors(tmt['Id'], tmt['Owner']):
             tmt['players'][db.playertypes[compete['Type']]].append(compete)
     return tournaments
 
-def getCompetitors(tournamentID):
+def getCompetitors(tournamentID, tournamentOwner=0):
     player_fields = ['Name', 'Association', 'Country']
     cFields = ['Compete.{}'.format(f)
                for f in db.table_field_names('Compete')] + [
@@ -65,7 +65,8 @@ def getCompetitors(tournamentID):
     with db.getCur() as cur:
         cur.execute(sql, args)
         competitors = [dict(zip(
-            map(db.fieldname, cFields + ['NumberScores']), row))
+            map(db.fieldname, cFields + ['NumberScores', 'Owner']),
+            row + (tournamentOwner,)))
                        for row in cur.fetchall()]
     return competitors
 
@@ -179,7 +180,7 @@ class TournamentPlayerHandler(handler.BaseHandler):
         players = getPlayers(self.tournamentid)
         return self.write(json.dumps(players))
 
-    @tornado.web.authenticated
+    @handler.is_authenticated_ajax
     def post(self):
         encoded_item = self.get_argument('item', None)
         item = json.loads(encoded_item)

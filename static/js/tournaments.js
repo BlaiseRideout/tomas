@@ -131,7 +131,7 @@ $(function() {
 
 				playerTypes = [],
 				playerGridFieldWidth = 50,
-				tourneyPlayerGridFields = [{
+				tourneyPlayersGridFields = [{
 						name: "Type",
 						type: "select",
 						css: "playertypefield",
@@ -309,14 +309,24 @@ $(function() {
 			}
 
 			function playerTypeTemplate(value, item) {
-				var selector = $('<select class="playertypeselector">')
-					.data('field', 'Type').data('item', item)
-					.change(playerFieldChange);
-				playerTypes.map(function(entry) {
-					$("<option>").attr("value", entry.Id).text(entry.Type)
-						.prop("selected", value == entry.Id).appendTo(selector);
-				});
-				return selector;
+				if ((auth['admin'] || auth['user'] == item.Owner)) {
+					var selector = $('<select class="playertypeselector">')
+						.data('field', 'Type').data('item', item)
+						.change(playerFieldChange);
+					playerTypes.map(function(entry) {
+						$("<option>").attr("value", entry.Id).text(entry.Type)
+							.prop("selected", value == entry.Id).appendTo(selector);
+					});
+					return selector;
+				}
+				else {
+					for (j = 0; j < playerTypes.length; j++) {
+						if (playerTypes[j].Id == value) {
+							return playerTypes[j].Type;
+						};
+					};
+					return 'type???';
+				}
 			};
 
 			function playerItemChanged(args) {
@@ -408,7 +418,9 @@ $(function() {
 					$(this).addClass('view-on').text('▼');
 					showPlayerView(this)
 				};
-				ev.stopPropagation();
+				if (ev) {
+					ev.stopPropagation()
+				}
 			};
 
 			function clearPlayerViews(button) {
@@ -452,12 +464,13 @@ $(function() {
 						filtering: true,
 						confirmDeleting: false,
 						data: playerList,
-						controller: makeController(base + 'updatePlayerRole', tourneyPlayerGridFields, playerList),
+						controller: makeController(
+							base + 'updatePlayerRole', tourneyPlayersGridFields, playerList),
 						onItemDeleted: playerItemChanged,
 						onItemInserted: playerItemChanged,
 						paging: false,
 						pageLoading: false,
-						fields: tourneyPlayerGridFields,
+						fields: tourneyPlayersGridFields,
 						noDataContent: 'None found',
 					}),
 					label = $('<div class="sidelabelwrapper">').text('Players'),
@@ -593,7 +606,7 @@ $(function() {
 					$('#tournamentsgrid .playerviewcontrol').each(function(i, elem) {
 						var tourney = $(elem).data('tourney');
 						if (tourney && tourney.Id == tournament) {
-							showPlayerView(elem);
+							togglePlayerView.apply(elem);
 						}
 					})
 				};
