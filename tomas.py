@@ -85,7 +85,7 @@ class Application(tornado.web.Application):
             (r"/t/([^/]*)/addround", tournament.AddRoundHandler),
             (r"/t/([^/]*)/deleteround", tournament.DeleteRoundHandler),
             (r"/t/([^/]*)/settings", tournament.SettingsHandler),
-            (r"/t/([^/]*)/settings.html", tournament.ShowSettingsHandler),
+            (r"/t/([^/]*)/roundsettings.html", tournament.ShowSettingsHandler),
             (r"/t/([^/]*)/tourney", tournament.TourneySettingsAjaxHandler),
             (r"/t/([^/]*)/tourney.html", tournament.TourneySettingsHandler),
             (r"/t/([^/]*)/associations", tournament.AssociationsHandler),

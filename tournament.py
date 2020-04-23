@@ -517,7 +517,7 @@ class DeleteRoundHandler(handler.BaseHandler):
             cur.execute("DELETE FROM Rounds WHERE Id = ? AND Tournament = ?", (round, self.tournamentid))
             return self.write({'status':"success"})
 
-def getSettings(self, tournamentid):
+def getSettings(tournamentID):
     with db.getCur() as cur:
         cur.execute("""SELECT Id, Number, Name, COALESCE(Ordering, 0),
                         COALESCE(Algorithm, 0), Seed,
@@ -525,7 +525,7 @@ def getSettings(self, tournamentid):
                         CombineLastCut, CutCount,
                         Duplicates, Diversity, UsePools, Winds, Games
                     FROM Rounds WHERE Tournament = ?
-                    ORDER BY Number""", (tournamentid,))
+                    ORDER BY Number""", (tournamentID,))
 
         cols = ["id", "number", "name", "ordering", "algorithm", "seed",
                 "cut", "softcut", "cutsize", "cutmobility",
@@ -544,7 +544,7 @@ def getSettings(self, tournamentid):
 
         cur.execute('SELECT COALESCE(ScorePerPlayer, {}) FROM Tournaments'
                     ' WHERE Id = ?'.format(settings.DEFAULTSCOREPERPLAYER),
-                    (tournamentid,))
+                    (tournamentID,))
         result = cur.fetchone()
         if result is None:
             return None
@@ -553,12 +553,11 @@ def getSettings(self, tournamentid):
                 'scoreperplayer': scorePerPlayer,
                 'unusedscoreincrement': settings.UNUSEDSCOREINCREMENT,
                 'cutsize':settings.DEFAULTCUTSIZE}
-    return None
 
 class SettingsHandler(handler.BaseHandler):
     @handler.tournament_handler_ajax
     def get(self):
-        return self.write(getSettings(self, self.tournamentid))
+        return self.write(getSettings(self.tournamentid))
     @handler.tournament_handler_ajax
     @handler.is_owner_ajax
     def post(self):
@@ -580,8 +579,9 @@ class SettingsHandler(handler.BaseHandler):
 class ShowSettingsHandler(handler.BaseHandler):
     @handler.tournament_handler
     def get(self):
-        roundsettings = getSettings(self, self.tournamentid)
-        return self.render("roundsettings.html", rounds=roundsettings['rounds'], cutsize=roundsettings['cutsize'])
+        roundsettings = getSettings(self.tournamentid)
+        return self.render("roundsettings.html", rounds=roundsettings['rounds'],
+                           cutsize=roundsettings['cutsize'])
 
 def getTourney(self, tournamentid):
     stage_fields = db.table_field_names('Stages')

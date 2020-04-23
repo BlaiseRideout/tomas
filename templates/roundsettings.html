@@ -1,5 +1,4 @@
-<script src="{{ proxyprefix.rstrip('/') + static_url('js/roundsettings.js') }}"
-	type="text/javascript" />
+<div id="roundsettings.html">
 {% for round in rounds %}
 	<div class="round" data-roundid="{{ round['id'] }}">
 		<h2> {{ '{name} ({number})'.format(**round) }}</h2>
@@ -170,3 +169,6 @@
 {% end %}
 <br />
 <button id="addround">Add Round</button>
+</div>
+<script src="{{ proxyprefix.rstrip('/') + static_url('js/roundsettings.js') }}"
+	type="text/javascript" />
