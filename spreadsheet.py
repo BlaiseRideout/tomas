@@ -5,6 +5,7 @@ import logging
 import sqlite3
 import os.path
 from collections import *
+import math
 
 import tornado.web
 import openpyxl
@@ -12,6 +13,7 @@ import tempfile
 import handler
 import db
 import tournament
+import seating
 
 log = logging.getLogger('WebServer')
 
@@ -31,7 +33,8 @@ thin_outline = openpyxl.styles.Border(
 min_column_width = 10
 
 def merge_cells(sheet, row, column, height=1, width=1, 
-                font=title_font, align=top_center_align, border=no_border):
+                font=title_font, align=top_center_align, border=no_border,
+                value=None):
    if height > 1 or width > 1:
       sheet.merge_cells(
          start_row=row, start_column=column,
@@ -40,40 +43,130 @@ def merge_cells(sheet, row, column, height=1, width=1,
    top_left.alignment = align
    top_left.font = font
    top_left.border = border
+   if value:
+       top_left.value = value
    return top_left
 
+def resizeColumn(sheet, column, min_row=None, max_row=None, characterWidth=1):
+    width = 0
+    for value in sheet.iter_rows(
+            min_col=column, max_col=column, min_row=min_row, max_row=max_row,
+            values_only=True):
+        width = max(width, len(str(value)))
+    letter = openpyxl.utils.cell.get_column_letter(column)
+    sheet.column_dimensions[letter].width = int(
+        math.ceil(width * characterWidth))
+        
+def makePlayersSheet(book, tournamentID, tournamentName, sheet=None):
+    if sheet is None:
+        sheet = book.create_sheet()
+    sheet.title = 'Players'
+    players = tournament.getPlayers(tournamentID)
+    header_row = 3
+    first_column = 1
+    row = header_row
+    columns = Player_Columns + ['Tournament']
+    merge_cells(sheet, header_row - 2, first_column, 1, len(columns),
+                font=title_font, border=thin_outline,
+                value='{} Players'.format(tournamentName))
+    sheet.row_dimensions[header_row - 2].height = title_font.size * 3 // 2
+    for i, column in enumerate(columns):
+        cell = sheet.cell(row=row, column=first_column + i, value = column)
+        cell.font = column_header_font
+        cell.alignment = top_center_align
+    for player in players:
+        row += 1
+        for i, f in enumerate(columns):
+            cell = sheet.cell(
+                row=row, column=first_column + i,
+                value=tournamentName if f == 'Tournament'
+                else player[f.lower()])
+    for col in range(first_column, first_column + len(columns)):
+        resizeColumn(sheet, col, min_row=header_row)
+    return sheet
+
+def makeSettingsSheet(book, tournamentID, tournamentName, sheet=None):
+    if sheet is None:
+        sheet = book.create_sheet() 
+    sheet.title = 'Settings'
+    tmt_fields = [f for f in db.table_field_names('Tournaments')
+                  if f not in ('Id', 'Name', 'Country', 'Owner')]
+    rounds_fields = [f for f in db.table_field_names('Rounds') 
+                     if f not in ('Id', 'Tournament')]
+    query_fields = ['Countries.Code', 'Email'] + [
+        'Tournaments.{}'.format(f) for f in tmt_fields] + [
+        'Rounds.{}'.format(f) for f in rounds_fields]
+    round_display_fields = [
+        'Name', 'Number', 'Ordering', 'Algorithm', 'CutSize', 'Games']
+    sql = """
+    SELECT {} FROM Tournaments
+      LEFT OUTER JOIN Countries ON Countries.Id = Tournaments.Country
+      LEFT OUTER JOIN Users ON Users.Id = Tournaments.Owner
+      LEFT OUTER JOIN Rounds ON Rounds.Tournament = Tournaments.Id
+    WHERE Tournaments.Id = ?
+    """.strip().format(','.join(query_fields))
+    args = (tournamentID,)
+    with db.getCur() as cur:
+        cur.execute(sql, args)
+        rounds = [dict(zip(map(db.fieldname, query_fields), row))
+                  for row in cur.fetchall()]
+    header_row = 3
+    first_column = 1
+    row = header_row
+    merge_cells(sheet, header_row - 2, first_column, 
+                1, max(2, len(round_display_fields)),
+                font=title_font, border=thin_outline,
+                value='{} Settings'.format(tournamentName))
+    sheet.row_dimensions[header_row - 2].height = title_font.size * 3 // 2
+    top_left = first_column + (len(round_display_fields) - 2) // 2
+    for field in tmt_fields + ['Code']:
+        if field not in ('Name', ):
+            namecell = sheet.cell(
+                row=row, column=top_left,
+                value='Country ' + field if field == 'Code' else
+                'Owner ' + field if field == 'Email' else field)
+            valuecell = sheet.cell(row=row, column=top_left + 1,
+                                   value=rounds[0][field])
+            row += 1
+    row += 2
+    for i, field in enumerate(round_display_fields):
+        cell = sheet.cell(
+            row = row, column = first_column + i,
+            value = 'Seating Algorithm' if field == 'Algortihm' else
+            'Cut Size' if field == 'CutSize' else
+            'Round Name' if field == 'Name' else
+            'Round Number' if field == 'Number' else
+            field)
+        cell.font = column_header_font
+        cell.alignment = top_center_align
+    if len(rounds) == 1 and not rounds[0].Name:
+        row += 1
+        merge_cells(sheet, row, first_column, 1,
+                    len(round_display_fields), 
+                    value='No rounds defined')
+    else:
+        for round in rounds:
+            row += 1
+            for i, field in enumerate(round_display_fields):
+                cell = sheet.cell(
+                    row = row, column = first_column + i,
+                    value = seating.ALGORITHMS[round[field] or 0].name
+                    if field == 'Algorithm' else
+                    seating.ORDERINGS[round[field] or 0][0]
+                    if field == 'Orderings' else
+                    round[field])
+    for col in range(first_column, 
+                     first_column + max(2, len(round_display_fields))):
+        resizeColumn(sheet, col, min_row = header_row)
+       
 class DownloadTournamentSheetHandler(handler.BaseHandler):
     @handler.tournament_handler
     def get(self):
-        players = tournament.getPlayers(self.tournamentid)
         book = openpyxl.Workbook()
-        sheet = book.active
-        sheet.title = 'Players'
-        header_row = 3
-        first_column = 1
-        row = header_row
-        widths = defaultdict(lambda: min_column_width)
-        merge_cells(sheet, header_row - 2, first_column, 1, len(Player_Columns),
-                    font=title_font, border=thin_outline).value=(
-                       '{} Players'.format(self.tournamentname))
-        sheet.row_dimensions[header_row - 2].height = title_font.size * 3 // 2
-        for i, column in enumerate(Player_Columns):
-            cell = merge_cells(sheet, row, first_column + i, 1, 1,
-                               font=column_header_font)
-            cell.value = column
-            widths[cell.column_letter] = max(
-                widths[cell.column_letter], 
-                len(column) * column_header_font.size // 10)
-        for player in players:
-            row += 1
-            for i, f in enumerate(Player_Columns):
-                cell = sheet.cell(row=row, column=first_column + i,
-                                  value=player[f.lower()])
-                widths[cell.column_letter] = max(
-                    widths[cell.column_letter], len(str(player[f.lower()])))
-        for col in range(first_column, first_column + len(Player_Columns)):
-            letter = openpyxl.utils.cell.get_column_letter(col)
-            sheet.column_dimensions[letter].width = widths[letter]
+        playersSheet = makePlayersSheet(
+            book, self.tournamentid, self.tournamentname, book.active)
+        settingsSheet = makeSettingsSheet(
+            book, self.tournamentid, self.tournamentname)
         with tempfile.NamedTemporaryFile(
                 suffix='.xlsx',
                 prefix='{}_'.format(self.tournamentname)) as outf:
