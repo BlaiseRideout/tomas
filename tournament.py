@@ -426,7 +426,9 @@ class TournamentHandler(handler.BaseHandler):
                 except:
                     pass
         tab = self.get_argument('tab', None)
-        return self.render("tournament.html", tab=tab, refreshOn=refreshOn)
+        round = self.get_argument('round', None)
+        return self.render("tournament.html", tab=tab, round=round,
+                           refreshOn=refreshOn)
 
 player_columns = ['Players.Id', 'Players.Name', 'Number', 'Countries.Code',
                   'Countries.Id', 'Flag_Image',

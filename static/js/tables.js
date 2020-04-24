@@ -1,4 +1,11 @@
 $(function() {
+	if (showRound) {
+		$('#seating ul li').each(function(i, elem) {
+			if ($(elem).data('round') == showRound) {
+				window.currentTab = i
+			}
+		})
+	};
 	if (window.currentTab !== undefined)
 		$("#seating").tabs({
 			active: currentTab

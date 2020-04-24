@@ -119,7 +119,9 @@
 	<div id="playergames" data-tourneyID="{{ tourney['Id'] }}">
 	  {% for game in tourney['playergames'] %}
 	  <div class="game">
-	    <h3>{{ game['roundname'] }} Scores</h3>
+	    <h3><a href="{{ proxyprefix }}t/{{ tourney['Id'] }}/tournament?tab=seating.html&round={{ game['number'] }}">
+		{{ game['roundname'] }} Scores
+	    </a></h3>
 	    <table>
 	      <tr>
 		<th>Rank</th><th>Name</th><th colspan="2">Country</th><th>Score</th>
@@ -137,9 +139,21 @@
 	      {% end %} <!-- for result in game['scores'] -->
 	      {% for penalty in game['penalties'] %}
 	      <tr class="penaltyscore">
-		<td>Penalty</td>
-		<td colspan="3">{{ penalty['description'] }}</td>
-		<td>{{ penalty['penalty'] }}</td>
+		<td>
+		  <a href="{{ proxyprefix }}t/{{ tourney['Id'] }}/tournament?tab=seating.html&round={{ game['number'] }}">
+		    Penalty
+		  </a>
+		</td>
+		<td colspan="3">
+		  <a href="{{ proxyprefix }}t/{{ tourney['Id'] }}/tournament?tab=seating.html&round={{ game['number'] }}">
+		  {{ penalty['description'] }}
+		  </a>
+		</td>
+		<td>
+		  <a href="{{ proxyprefix }}t/{{ tourney['Id'] }}/tournament?tab=seating.html&round={{ game['number'] }}">
+		  {{ penalty['penalty'] }}
+		  </a>
+		</td>
 	      </tr>
 	      {% end %}
 	    </table>
