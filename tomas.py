@@ -93,7 +93,6 @@ class Application(tornado.web.Application):
             (r"/t/([^/]*)/swapseating", seating.SwapSeatingHandler),
             (r"/t/([^/]*)/seating.html", seating.ShowSeatingHandler),
             (r"/t/([^/]*)/seating.csv", seating.SeatingCsvHandler),
-            (r"/t/([^/]*)/scoreboard", leaderboard.ScoreboardHandler),
             (r"/t/([^/]*)/leaderboard", leaderboard.LeaderDataHandler),
             (r"/t/([^/]*)/leaderboard.html", leaderboard.LeaderboardHandler),
             (r"/players(.*)", players.PlayersHandler),

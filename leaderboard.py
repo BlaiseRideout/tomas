@@ -213,9 +213,3 @@ def getTournamentScores(tournamentID):
         scoreboard.sort(key = operator.itemgetter('type', 'name'))
         rounds.sort()
     return scoreboard, rounds
-    
-class ScoreboardHandler(handler.BaseHandler):
-    @handler.tournament_handler
-    def get(self):
-        scoreboard, rounds = getTournamentScores(self.tournamentid)
-        self.render("scoreboard.html", scoreboard = scoreboard, rounds = rounds)
