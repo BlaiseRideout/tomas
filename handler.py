@@ -18,7 +18,7 @@ class BaseHandler(tornado.web.RequestHandler):
             return util.stringify(self.get_secure_cookie("user"))
 
     def get_is_admin(self):
-        if settings.DEVELOPERMODE:
+        if settings.DEVELOPERMODE or os.path.exists('DEVELOPERMODE'):
             return True
         else:
             return util.stringify(self.get_secure_cookie("admin")) == "1"
