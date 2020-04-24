@@ -14,6 +14,7 @@ import handler
 import db
 import tournament
 import seating
+import leaderboard
 
 log = logging.getLogger('WebServer')
 
@@ -22,15 +23,20 @@ Player_Columns = [f.capitalize() for f in tournament.player_fields
 excel_mime_type = '''
 application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'''.strip()
 
+# OpenPyXL formatting definitions
 top_center_align = openpyxl.styles.Alignment(
    horizontal='center', vertical='top', wrap_text=True)
 title_font = openpyxl.styles.Font(name='Arial', size=14, bold=True)
+default_font = openpyxl.styles.Font()
 column_header_font = openpyxl.styles.Font(name='Arial', size=12, bold=True)
 no_border = openpyxl.styles.Border()
 thin_outline = openpyxl.styles.Border(
    outline=openpyxl.styles.Side(border_style="thin")
 )
-min_column_width = 10
+paleGreenFill = openpyxl.styles.fills.PatternFill(
+    patternType='solid', fgColor="DDFFDD", fill_type='solid')
+paleBlueFill = openpyxl.styles.fills.PatternFill(
+    patternType='solid', fgColor="DDDDFF", fill_type='solid')
 
 def merge_cells(sheet, row, column, height=1, width=1, 
                 font=title_font, align=top_center_align, border=no_border,
@@ -142,7 +148,7 @@ def makeSettingsSheet(book, tournamentID, tournamentName, sheet=None):
     if len(rounds) == 1 and not rounds[0].Name:
         row += 1
         merge_cells(sheet, row, first_column, 1,
-                    len(round_display_fields), 
+                    len(round_display_fields), font=default_font,
                     value='No rounds defined')
     else:
         for round in rounds:
@@ -158,6 +164,63 @@ def makeSettingsSheet(book, tournamentID, tournamentName, sheet=None):
     for col in range(first_column, 
                      first_column + max(2, len(round_display_fields))):
         resizeColumn(sheet, col, min_row = header_row)
+
+def makeScoresSheet(book, tournamentID, tournamentName, sheet=None):
+    if sheet is None:
+        sheet = book.create_sheet() 
+    sheet.title = 'All Scores'
+    player_fields = ['Name', 'Country', 'Status']
+    round_display_fields = ['Rank', 'Points', 'Penalty', 'Total']
+    scoreboard, rounds = leaderboard.getTournamentScores(tournamentID)
+    header_row = 3
+    first_column = 1
+    total_columns = len(player_fields) + len(round_display_fields) * len(rounds)
+    row = header_row
+    roundColorFills = [paleGreenFill, paleBlueFill]
+    merge_cells(sheet, header_row - 2, first_column, 
+                1, min(total_columns, 20),
+                font=title_font, border=thin_outline,
+                value='{} Scores'.format(tournamentName))
+    sheet.row_dimensions[header_row - 2].height = title_font.size * 3 // 2
+    for i, field in enumerate(player_fields):
+        cell = sheet.cell(
+            row = row + 1, column = first_column + i, value = field)
+        cell.font = column_header_font
+        cell.alignment = top_center_align
+    col = first_column + len(player_fields)
+    color = 0
+    for roundID, roundName in rounds:
+        round_cell = merge_cells(
+            sheet, row, col, 1, len(round_display_fields), value=roundName)
+        round_cell.fill = roundColorFills[color]
+        for j, rfield in enumerate(round_display_fields):
+            cell = sheet.cell(row = row + 1, column = col + j, value=rfield)
+            cell.font = column_header_font
+            cell.alignment = top_center_align
+            cell.fill = roundColorFills[color]
+        col += len(round_display_fields)
+        color = 1 - color
+    row += 1
+    for player in scoreboard:
+        row += 1
+        for i, field in enumerate(player_fields):
+            cell = sheet.cell(
+                row = row, column = first_column + i, 
+                value = player['type' if field == 'Status' else field.lower()])
+        col = first_column + len(player_fields)
+        color = 0
+        for roundID, roundName in rounds:
+            for j, rfield in enumerate(round_display_fields):
+                cell = sheet.cell(
+                    row = row, column = col + j,
+                    value=player['scores'][roundID][
+                        'score' if rfield == 'Points' else rfield.lower()])
+                cell.fill = roundColorFills[color]
+            col += len(round_display_fields)
+            color = 1 - color
+        
+    for col in range(first_column, first_column + total_columns):
+        resizeColumn(sheet, col, min_row = header_row)
        
 class DownloadTournamentSheetHandler(handler.BaseHandler):
     @handler.tournament_handler
@@ -165,6 +228,8 @@ class DownloadTournamentSheetHandler(handler.BaseHandler):
         book = openpyxl.Workbook()
         playersSheet = makePlayersSheet(
             book, self.tournamentid, self.tournamentname, book.active)
+        scoresSheet = makeScoresSheet(
+            book, self.tournamentid, self.tournamentname)
         settingsSheet = makeSettingsSheet(
             book, self.tournamentid, self.tournamentname)
         with tempfile.NamedTemporaryFile(

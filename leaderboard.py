@@ -170,47 +170,52 @@ class LeaderboardHandler(handler.BaseHandler):
         self.render("leaderboard.html", leaderboard = leaderboard,
                     allTied = allTied)
 
+def getTournamentScores(tournamentID):
+    # Note: using Compete.Tournament instead of Rounds.Tournament in the
+    # following query avoids selecting unusedpointplayer scores
+    query = """SELECT
+    Players.Id, Players.Name, Countries.Code, flag_image, Type,
+    Rounds.Number, Rounds.Name, Scores.Rank,
+    ROUND(Scores.Score * 100) / 100,
+    COALESCE(SUM(Penalties.Penalty), 0),
+    COALESCE(ROUND((Scores.Score + COALESCE(SUM(Penalties.Penalty), 0)) * 100) /
+                   100, 0)
+    FROM Scores LEFT JOIN Rounds ON Scores.Round = Rounds.Id
+      LEFT JOIN Players ON Scores.PlayerId = Players.Id
+      LEFT JOIN Compete ON Players.Id = Compete.Player
+      LEFT JOIN Countries ON Players.Country = Countries.Id
+      LEFT OUTER JOIN Penalties ON Scores.Id = Penalties.ScoreId
+    WHERE Compete.Tournament = ?
+    GROUP BY Scores.Id
+    ORDER BY Type ASC, Players.Name ASC
+    """.strip() 
+    fields = ['id', 'name', 'country', 'flag_image', 'type',
+              'round', 'roundname', 'rank', 'points', 'penalty', 'total']
+    scoreboard = {}
+    rounds = []
+    with db.getCur() as cur:
+        cur.execute(query, (tournamentID,))
+        for i, row in enumerate(cur.fetchall()):
+            rec = dict(zip(fields, row))
+            if rec['round'] not in [r[0] for r in rounds]:
+                rounds += [(rec['round'], rec['roundname'])]
+            if rec['id'] not in scoreboard:
+                scoreboard[rec['id']] = dict(zip(fields[0:5], row[0:5]))
+                scoreboard[rec['id']]['type'] = db.playertypes[int(rec['type'])]
+                scoreboard[rec['id']]['scores'] = {}
+            scoreboard[rec['id']]['scores'][rec['round']] = {
+                'rank':rec['rank'],
+                'score': round(rec['points'], 1),
+                'penalty':rec['penalty'],
+                'total': round(rec['total'], 1)
+            }
+        scoreboard = list(scoreboard.values())
+        scoreboard.sort(key = operator.itemgetter('type', 'name'))
+        rounds.sort()
+    return scoreboard, rounds
+    
 class ScoreboardHandler(handler.BaseHandler):
     @handler.tournament_handler
     def get(self):
-        query = """SELECT
-           Players.Id, Players.Name, Countries.Code, flag_image, Type,
-           Rounds.Number, Rounds.Name, Scores.Rank,
-           ROUND(Scores.Score * 100) / 100,
-           COALESCE(SUM(Penalties.Penalty), 0),
-           COALESCE(ROUND((Scores.Score + COALESCE(SUM(Penalties.Penalty), 0))
-                          * 100) / 100, 0)
-           FROM Scores
-           LEFT JOIN Rounds ON Scores.Round = Rounds.Id
-           LEFT JOIN Players ON Scores.PlayerId = Players.Id
-           LEFT JOIN Compete ON Players.Id = Compete.Player
-           LEFT JOIN Countries ON Players.Country = Countries.Id
-           LEFT OUTER JOIN Penalties ON Scores.Id = Penalties.ScoreId
-           WHERE Compete.Tournament = ?
-           GROUP BY Scores.Id
-           ORDER BY Type ASC, Players.Name ASC
-        """
-        fields = ['id', 'name', 'country', 'flag_image', 'type',
-                  'round', 'roundname', 'rank', 'points', 'penalty', 'total']
-        with db.getCur() as cur:
-            scoreboard = {}
-            rounds = []
-            cur.execute(query, (self.tournamentid,))
-            for i, row in enumerate(cur.fetchall()):
-                rec = dict(zip(fields, row))
-                if rec['round'] not in [r[0] for r in rounds]:
-                    rounds += [(rec['round'], rec['roundname'])]
-                if rec['id'] not in scoreboard:
-                    scoreboard[rec['id']] = dict(zip(fields[0:5], row[0:5]))
-                    scoreboard[rec['id']]['type'] = db.playertypes[int(rec['type'])]
-                    scoreboard[rec['id']]['scores'] = {}
-                scoreboard[rec['id']]['scores'][rec['round']] = {
-                        'rank':rec['rank'],
-                        'score': round(rec['points'], 1),
-                        'penalty':rec['penalty'],
-                        'total': round(rec['total'], 1)
-                    }
-            scoreboard = list(scoreboard.values())
-            scoreboard.sort(key = operator.itemgetter('type', 'name'))
-            rounds.sort()
+        scoreboard, rounds = getTournamentScores(self.tournamentid)
         self.render("scoreboard.html", scoreboard = scoreboard, rounds = rounds)
