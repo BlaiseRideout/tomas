@@ -45,7 +45,6 @@ $(function() {
 						type: "text",
 						inserting: auth['user'],
 						editing: auth['user'],
-						validate: "required",
 						itemTemplate: tournamentLinkTemplate,
 						css: "tourneynamefield",
 						width: tournamentsGridFieldWidth * 2,
@@ -111,7 +110,7 @@ $(function() {
 								}
 								if (this.deleteButton && editOK) {
 									$result = $result.add(
-										this._createDeleteButton(item));
+										createTournamentDeleteButton(item));
 								}
 								if (auth['user']) {
 									$result = $result.add(createDuplicateButton(
@@ -489,9 +488,39 @@ $(function() {
 			}
 
 			function duplicateTournament(e) {
-				var tourneyID = $(this).data('tourneyid');
-				$.notify('Duplicate tournament ' + tourneyID);
+				var tourneyID = $(this).data('tournamentid');
+				$.notify('Duplicate tournament ' + tourneyID + ' is not working yet');
 				e.stopPropagation();
+			};
+
+			function createTournamentDeleteButton(item) {
+				var grid = $('#tournamentsgrid').data('JSGrid');
+
+				return $("<input>").addClass('jsgrid-button')
+					.addClass('jsgrid-delete-button')
+					.attr({
+						type: "button",
+						title: "Delete tournament"
+					})
+					.on("click", function(e) {
+						$('#delete-tournament-confirmation span#tournamentToDelete').text(item.Name);
+						$('#delete-tournament-confirmation').dialog({
+							resizable: false,
+							height: "auto",
+							width: 400,
+							modal: true,
+							buttons: {
+								"Delete tournament": function() {
+									$(this).dialog("close");
+									grid.deleteItem(item);
+								},
+								Cancel: function() {
+									$(this).dialog("close");
+								}
+							}
+						});
+						e.stopPropagation();
+					});
 			};
 
 			function updateAvailablePlayers() {
@@ -621,9 +650,7 @@ $(function() {
 				autoload: true,
 				paging: false,
 				pageLoading: false,
-				deleteConfirm: function(item) {
-					return 'Are you sure you want to delete the tournament "' + item.Name + '"?'
-				},
+				confirmDeleting: false,
 				noDataContent: 'None found',
 				controller: tournamentsGridController,
 				fields: tournamentFieldDescriptions,

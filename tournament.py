@@ -95,11 +95,16 @@ class TournamentListHandler(handler.BaseHandler):
         item = json.loads(encoded_item)
         result = {'status': 0, 'message': ''}
         tmt_fields = db.table_field_names('Tournaments')
+        cleanTournamentItem(item, tmt_fields, self.current_user)
         columns = [f for f in tmt_fields if f in item and f not in ['Id']]
-        cleanTournamentItem(item, columns, self.current_user)
         if item.get('Id', None) is None or not isinstance(item['Id'], int):
             result['message'] = 'Invalid Id field for tournament, {}'.format(
                 item)
+            result['status'] = -1
+            return self.write(result)
+        if (item.get('Name', None) is None or not isinstance(item['Name'], str)
+            or len(item['Name']) == 0):
+            result['message'] = 'Missing name for tournament'
             result['status'] = -1
             return self.write(result)
         if (not self.get_is_admin() and item['Id'] != 0 and 
@@ -107,21 +112,25 @@ class TournamentListHandler(handler.BaseHandler):
             result['message'] = 'Only owners and admins may edit tournaments'
             result['status'] = -2
             return self.write(result)
-        if (not isinstance(item.get('Country', None), int) or
-            not handler.valid_ID(item['Country'], 'Countries',
-                                 response=result)):
+        if not handler.valid_ID(item.get('Country', None), 'Countries',
+                                response=result):
             return self.write(result)
         id = abs(item['Id'])
-        if id !=0 and not handler.valid_ID(id, 'Tournaments', response=result):
+        if id != 0 and not handler.valid_ID(id, 'Tournaments', response=result):
             return self.write(result)
         if not handler.valid_ID(item.get('Owner', -1), 'Users', response=result,
                                 msg='Invalid tournament owner'):
             return self.write(result)
-        if item['Id'] >= 0 and item['End'] < item['Start']:
-            result['message'] = 'End date must follow start date {}'.format(
-                item['Start'])
-            result['status'] = -7
-            return self.write(result)
+        if item['Id'] >= 0:
+            if len(item['End']) == 0 or len(item['Start']) == 0:
+                result['message'] = 'Missing Start or End date'
+                result['status'] = -7
+                return self.write(result)
+            elif item['End'] < item['Start']:
+                result['message'] = 'End date must follow start date {}'.format(
+                    item['Start'])
+                result['status'] = -7
+                return self.write(result)
         result['message'] = 'Item {}'.format(
             'inserted' if id == 0 else 'deleted' if item['Id'] < 0 else
             'updated')
@@ -161,11 +170,12 @@ class TournamentListHandler(handler.BaseHandler):
 
 def cleanTournamentItem(item, columns, current_user):
     global sql, args
-    for field in ['Name', 'Location', 'Start', 'End', 'Logo', 'LinkURL']:
-        if field in columns and item[field]:
+    for field in item:
+        if isinstance(item[field], str):
             item[field] = item[field].strip()
     item['Owner'] = item.get('Owner', None) or current_user
-    if 'Country' in columns and isinstance(item['Country'], str):
+    if 'Country' in columns and 'Country' in item and isinstance(
+            item['Country'], str):
         with db.getCur() as cur:
             sql = 'SELECT Id FROM Countries WHERE Code = ?'
             args = (item['Country'].upper(), )

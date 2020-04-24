@@ -1,5 +1,5 @@
 $(function() {
-	countryList = null;
+	countryList = null, countries = [];
 	withCountries = function(todo) {
 		if (countryList === null) {
 			$.getJSON("/countries", function(countryRecs) {
@@ -21,8 +21,12 @@ $(function() {
 	};
 
 	countryTemplate = function(value, item) {
-		var flag = $('<span class="flagimage">').html(countries[value].Flag_Image);
-		return $('<span class="countrypair">').text(countries[value].Code).append(flag);
+		var country = countries && countries[value] || {
+				Code: '?',
+				Flag_Image: ''
+			},
+			flag = $('<span class="flagimage">').html(country.Flag_Image);
+		return $('<span class="countrypair">').text(country.Code).append(flag);
 	};
 
 	makeFilter = function(filterItem, fieldDescriptions) {
@@ -59,7 +63,7 @@ $(function() {
 					deferred.resolve(resp.item);
 				}
 			}, "json").fail(function(jqXHR, textStatus, errorThrown) {
-			$.notify('Posting change failed. ' + textStatus);
+			$.notify('Posting change failed. ' + textStatus + ' ' + errorThrown);
 			deferred.reject(textStatus);
 		});
 	};

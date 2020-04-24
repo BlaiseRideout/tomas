@@ -159,12 +159,15 @@ def valid_ID(ID, tablename, response=None, msg=None, IDfield='Id'):
     If a single matching ID is found and the response is a dictionary,
     the status field of the response is set to 0.
     Return True if ID is valid, False otherwise."""
-    with db.getCur() as cur:
-        sql = "SELECT {} FROM {} WHERE {} = ?".format(
-            IDfield, tablename, IDfield)
-        args = (ID, )
-        cur.execute(sql, args)
-        rows = cur.fetchall()
+    if ID or isinstance(ID, int):
+        with db.getCur() as cur:
+            sql = "SELECT {} FROM {} WHERE {} = ?".format(
+                IDfield, tablename, IDfield)
+            args = (ID, )
+            cur.execute(sql, args)
+            rows = cur.fetchall()
+    else:
+        rows = []
     if len(rows) == 0:
         if response:
             response['status'] = -1
