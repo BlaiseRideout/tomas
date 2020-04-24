@@ -145,7 +145,7 @@ def makeSettingsSheet(book, tournamentID, tournamentName, sheet=None):
             field)
         cell.font = column_header_font
         cell.alignment = top_center_align
-    if len(rounds) == 1 and not rounds[0].Name:
+    if len(rounds) == 1 and not rounds[0]['Name']:
         row += 1
         merge_cells(sheet, row, first_column, 1,
                     len(round_display_fields), font=default_font,
