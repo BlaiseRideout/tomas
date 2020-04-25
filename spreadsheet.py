@@ -213,11 +213,11 @@ def makeScoresSheet(book, tournamentID, tournamentName, sheet=None):
         color = 0
         for roundID, roundName in rounds:
             for j, rfield in enumerate(round_display_fields):
-                cell = sheet.cell(
-                    row = row, column = col + j,
-                    value=player['scores'][roundID][
-                        'score' if rfield == 'Points' else rfield.lower()])
+                cell = sheet.cell(row = row, column = col + j)
                 cell.fill = roundColorFills[color]
+                if roundID in player['scores']:
+                    cell.value=player['scores'][roundID][
+                        'score' if rfield == 'Points' else rfield.lower()]
             col += len(round_display_fields)
             color = 1 - color
         
