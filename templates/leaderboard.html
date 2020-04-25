@@ -5,7 +5,7 @@
 		{% end %}
 		{% comment <th>CUT</th>	%}
 		<th>NAME</th>
-		<th colspan="2" >COUNTRY</th>
+		<th>COUNTRY</th>
 		<th>GAMES</th>
 		<th>RAW PTS</th>
 		<th>PENALTY</th>
@@ -16,7 +16,7 @@
 	{% for row in leaderboard %}
 		{% if row['cutName'] and row['cutName'] != last_cutName %}
 		<tr>
-			<td class="cut-separator" colspan="22"> <hr> CUT {{ row['cutName'] }} </td>
+			<td class="cut-separator" colspan="8"> <hr> CUT {{ row['cutName'] }} </td>
 		</tr>
 		{% set last_cutName = row['cutName'] %}
 		{% end %}
@@ -26,8 +26,9 @@
 				<td>{{ row['place'] }}</td>
 				{% end %}
 			<td><a href="{{ proxyprefix }}playerStats/{{ row['player'] }}">{{ row['name'] }}</a></td>
-			<td>{{ row['country'] }}</td>
-			<td>{% raw row['flag_image'] %}</td>
+			<td><span class="countrypair">{{ row['country'] }}
+			    <span class="flagimage">{% raw row['flag_image'] %}</span></span>
+			</td>
 			<td>{{ row['gamesPlayed'] }}</td>
 			<td>{{ row['points'] }}</td>
 			<td>{{ row['penalty'] }}</td>
