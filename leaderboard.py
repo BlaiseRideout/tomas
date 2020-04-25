@@ -186,7 +186,7 @@ def getTournamentScores(tournamentID):
       LEFT JOIN Compete ON Players.Id = Compete.Player
       LEFT JOIN Countries ON Players.Country = Countries.Id
       LEFT OUTER JOIN Penalties ON Scores.Id = Penalties.ScoreId
-    WHERE Compete.Tournament = ?
+    WHERE Compete.Tournament = ? AND Rounds.Tournament = Compete.Tournament
     GROUP BY Scores.Id
     ORDER BY Type ASC, Players.Name ASC
     """.strip() 

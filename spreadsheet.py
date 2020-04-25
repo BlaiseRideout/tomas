@@ -258,6 +258,10 @@ def makeStandingsSheet(book, tournamentID, tournamentName, sheet=None):
                                   border=thin_outline, font=default_font,
                                   value = 'CUT ' + player['cutName'])
             cutname.fill = paleGreenFill
+            sheet.cell(row = row, column = first_column).fill = paleGreenFill
+            sheet.cell(
+                row = row, 
+                column = first_column + len(fields) - 1).fill = paleGreenFill
             row += 1
             last_cutname = player['cutName']
         for i, field in enumerate(fields):
