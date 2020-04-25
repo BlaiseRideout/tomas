@@ -37,6 +37,8 @@ paleGreenFill = openpyxl.styles.fills.PatternFill(
     patternType='solid', fgColor="DDFFDD", fill_type='solid')
 paleBlueFill = openpyxl.styles.fills.PatternFill(
     patternType='solid', fgColor="DDDDFF", fill_type='solid')
+blackFill = openpyxl.styles.fills.PatternFill(
+    patternType='solid', fgColor="000000", fill_type='solid')
 
 def merge_cells(sheet, row, column, height=1, width=1, 
                 font=title_font, align=top_center_align, border=no_border,
@@ -221,14 +223,61 @@ def makeScoresSheet(book, tournamentID, tournamentName, sheet=None):
         
     for col in range(first_column, first_column + total_columns):
         resizeColumn(sheet, col, min_row = header_row)
-       
+
+def makeStandingsSheet(book, tournamentID, tournamentName, sheet=None):
+    if sheet is None:
+        sheet = book.create_sheet() 
+    sheet.title = 'Standings'
+    players, allTied = leaderboard.leaderData(tournamentID)
+    fields = ([] if allTied else ['Place']) + [
+        'Name', 'Country', 'Status', 'Games', 'Points', 'Penalty', 'Total']
+    header_row = 3
+    first_column = 1
+    row = header_row
+    merge_cells(sheet, header_row - 2, first_column, 1, len(fields),
+                font=title_font, border=thin_outline,
+                value='{} Standings'.format(tournamentName))
+    sheet.row_dimensions[header_row - 2].height = title_font.size * 3 // 2
+    for i, field in enumerate(fields):
+        cell = sheet.cell(
+            row = row, column = first_column + i,
+            value = 'Raw Points' if field == 'Points' else field)
+        cell.font = column_header_font
+        cell.alignment = top_center_align
+    last_cutname = None
+    for player in players:
+        row += 1
+        if player['cutName'] and player['cutName'] != last_cutname:
+            separator = merge_cells(sheet, row, first_column, 1, len(fields),
+                                    border=thin_outline)
+            separator.fill = blackFill
+            sheet.row_dimensions[row].height = title_font.size // 3
+            row += 1
+            cutname = merge_cells(sheet, row, first_column + 1,
+                                  1, len(fields) - 2,
+                                  border=thin_outline, font=default_font,
+                                  value = 'CUT ' + player['cutName'])
+            cutname.fill = paleGreenFill
+            row += 1
+            last_cutname = player['cutName']
+        for i, field in enumerate(fields):
+            cell = sheet.cell(
+                row = row, column = first_column + i,
+                value=player['gamesPlayed' if field == 'Games' else
+                             'type' if field == 'Status' else
+                             field.lower()])
+    for col in range(first_column, first_column + len(fields)):
+        resizeColumn(sheet, col, min_row = header_row)
+        
 class DownloadTournamentSheetHandler(handler.BaseHandler):
     @handler.tournament_handler
     def get(self):
         book = openpyxl.Workbook()
-        playersSheet = makePlayersSheet(
+        standingsSheet = makeStandingsSheet(
             book, self.tournamentid, self.tournamentname, book.active)
         scoresSheet = makeScoresSheet(
+            book, self.tournamentid, self.tournamentname)
+        playersSheet = makePlayersSheet(
             book, self.tournamentid, self.tournamentname)
         settingsSheet = makeSettingsSheet(
             book, self.tournamentid, self.tournamentname)
