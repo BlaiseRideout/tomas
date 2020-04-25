@@ -83,11 +83,12 @@ def leaderData(tournamentid):
          COALESCE(Seating.CutName, ?)
        FROM Players
        LEFT JOIN Compete ON Players.Id = Compete.Player
-       LEFT JOIN Scores ON Players.Id = Scores.PlayerId
-       LEFT JOIN Rounds ON Scores.Round = Rounds.Id
-       LEFT JOIN Seating ON Scores.Round = Seating.Round AND 
+       LEFT JOIN Rounds ON Rounds.Tournament = Compete.Tournament
+       LEFT JOIN Scores ON Players.Id = Scores.PlayerId AND
+            Rounds.Id = Scores.Round
+       LEFT JOIN Seating ON Rounds.Id = Seating.Round AND 
             Players.Id = Seating.Player AND 
-            Compete.Tournament = Seating.Tournament 
+            Seating.Tournament = Compete.Tournament 
        LEFT JOIN Countries ON Players.Country = Countries.Id
        WHERE Compete.Tournament = ?
        GROUP BY Players.Id, Rounds.Id
