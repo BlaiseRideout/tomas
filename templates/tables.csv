@@ -1,3 +1,3 @@
-Table,{% if round['winds'] %}Wind,{% end %}Name,Country,Raw Score,Rank,Score,Penalty
-{% for table in round['tables'] %}{% for player in table['players'] %}{{ table['table'] }},{% if round['winds'] %}{{ player['wind'] }},{% end %}"{{ player['player']['name'] }}",{{ player['player']['country'] }},{{ player['player']['rawscore'] }},{{ player['player']['rank'] }},{{ player['player']['score'] }},{{ player['player']['penalty'] }}
+Table,{% if round['winds'] %}Wind,{% end %}Name,Association,Country,Raw Score,Rank,Score,Penalty
+{% for table in round['tables'] %}{% for player in table['players'] %}{{ table['table'] }},{% if round['winds'] %}{{ player['wind'] }},{% end %}"{{ player['player']['name'] }}","{{ player['player']['association'] }}",{{ player['player']['country'] }},{{ player['player']['rawscore'] }},{{ player['player']['rank'] }},{{ player['player']['score'] }},{{ player['player']['penalty'] }}
 {% end %}{% end %}

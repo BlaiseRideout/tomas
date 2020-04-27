@@ -26,7 +26,8 @@
 							<th>Wind</th>
 						{% end %}
 						<th>Name</th>
-						<th colspan="2">Country</th>
+						<th>Assoc.</th>
+						<th>Country</th>
 						<th>Raw Score</th>
 						<th>Rank</th>
 						<th>Score</th>
@@ -58,8 +59,11 @@
 									<td class="windicator">{{ player['wind'] }}</td>
 								{% end %}
 								<td class="name"><a href="{{ proxyprefix }}playerStats/{{ player['player']['id'] }}?tournament={{ tournamentid }}">{{ player['player']['name'] }}</a></td>
-								<td class="country">{{ player['player']['country'] }}</td>
-								<td class="flag">{% raw player['player']['flag'] %}</td>
+								<td class="association">{{ player['player']['association'] }}</td>
+								<td class="country">
+								  <span class="countrypair">{{ player['player']['country'] }}
+								  <span class="flagimage">{% raw player['player']['flag'] %}</span></span>
+								</td>
 								<td class="rawscore">
 									{% if current_user %}
 										<input type="number" value="{{ player['player']['rawscore'] }}" class="playerscore" step="100" />

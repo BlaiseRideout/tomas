@@ -127,7 +127,7 @@ def duplicateCountHeuristic(oldheuristic = None, factor = 1, players = [], round
 def noHeuristic():
     return lambda p1, p2: 0
 
-def getSeating(tournamentid, roundid = None):
+def getSeating(tournamentID, roundId = None):
     with db.getCur() as cur:
         query = """
                 SELECT Rounds.Id,
@@ -142,6 +142,7 @@ def getSeating(tournamentid, roundid = None):
                  Countries.Code,
                  Countries.Flag_Image,
                  Players.Country,
+                 COALESCE(Players.Association, ''),
                  Scores.Id,
                  COALESCE(Scores.Rank, 0),
                  COALESCE(Scores.RawScore, 0),
@@ -169,16 +170,16 @@ def getSeating(tournamentid, roundid = None):
                    ON Countries.Id = Players.Country
                  WHERE Rounds.Tournament = ?
             """
-        bindings = (tournamentid,)
-        if roundid is not None:
+        bindings = (tournamentID,)
+        if roundId is not None:
             query += " AND Rounds.Id = ?"
-            bindings = (tournamentid, roundid)
+            bindings = (tournamentID, roundId)
         cur.execute(query, bindings)
         rounds = {}
         for row in cur.fetchall():
             (roundID, roundNum, roundname, winds, cutName, table, wind,
-             playerid, name, country, flag, countryid, scoreid, rank, rawscore,
-             score, penalty)  = row
+             playerid, name, country, flag, countryid, association, scoreid,
+             rank, rawscore, score, penalty)  = row
             if roundID is not None:
                 if not roundID in rounds:
                     rounds[roundID] = {
@@ -197,16 +198,18 @@ def getSeating(tournamentid, roundid = None):
                     if wind is not None and name is not None:
                         rounds[roundID]['has_scores'] |= rawscore > 0
                     rounds[roundID]['tables'][table][wind] = {
-                        "id":playerid,
-                        "name":name,
-                        "country":country,
-                        "countryid":countryid,
-                        "flag":flag,
-                        "scoreid":scoreid,
-                        "rank":rank,
-                        "rawscore":rawscore,
-                        "score": round(score, 1) if isinstance(score, float) else score,
-                        "penalty":penalty
+                        "id": playerid,
+                        "name" :name,
+                        "country": country,
+                        "countryid": countryid,
+                        "flag": flag,
+                        "association": association,
+                        "scoreid": scoreid,
+                        "rank": rank,
+                        "rawscore": rawscore,
+                        "score": round(score, 1) if isinstance(score, float) 
+                        else score,
+                        "penalty": penalty
                     }
         cur.execute("""SELECT Scores.Id, Rounds.Id, GameId, RawScore
                          FROM Scores
@@ -214,10 +217,11 @@ def getSeating(tournamentid, roundid = None):
                            ON Rounds.Id = Scores.Round
                            WHERE Scores.PlayerId = ? AND Rounds.Tournament = ?
                            """,
-                    (db.getUnusedPointsPlayerID(), tournamentid))
+                    (db.getUnusedPointsPlayerID(), tournamentID))
         for Id, Round, GameId, RawScore in cur.fetchall():
-            rounds[Round]['tables'][GameId]['unusedPoints'] = {
-                'scoreid': Id, 'rawscore': RawScore}
+            if Round in rounds:
+                rounds[Round]['tables'][GameId]['unusedPoints'] = {
+                    'scoreid': Id, 'rawscore': RawScore}
 
         rounds = [
                 {
@@ -257,8 +261,11 @@ def getSeating(tournamentid, roundid = None):
                     "Id": player['player']['id'],
                     "Country": player['player']['countryid']
                 } for player in table['players']]
-            a_round['diversityplayers'], a_round['diversity'] = tablesScore(players, countriesHeuristic())
-            a_round['duplicateplayers'], a_round['duplicates'] = tablesScore(players, duplicateCountHeuristic(players = players, round = a_round['round']))
+            a_round['diversityplayers'], a_round['diversity'] = tablesScore(
+                players, countriesHeuristic())
+            a_round['duplicateplayers'], a_round['duplicates'] = tablesScore(
+                players, duplicateCountHeuristic(players = players,
+                                                 round = a_round['round']))
         return rounds
 
 class SeatingCsvHandler(handler.BaseHandler):
