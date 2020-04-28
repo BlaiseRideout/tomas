@@ -169,6 +169,8 @@ def getSeating(tournamentID, roundId = None):
                  LEFT OUTER JOIN Countries
                    ON Countries.Id = Players.Country
                  WHERE Rounds.Tournament = ?
+                 ORDER BY Rounds.Number ASC, Seating.TableNum ASC, 
+                   Seating.Wind ASC
             """
         bindings = (tournamentID,)
         if roundId is not None:
@@ -238,10 +240,10 @@ def getSeating(tournamentID, roundId = None):
                                 'players':
                                     [
                                         {
-                                            'player': name,
+                                            'player': playerrec,
                                             'wind':util.winds[wind]
                                         }
-                                        for wind, name in players.items()
+                                        for wind, playerrec in players.items()
                                         if isinstance(wind, int)
                                     ],
                                 'unusedPoints': players['unusedPoints']
@@ -285,7 +287,7 @@ class SeatingCsvHandler(handler.BaseHandler):
 class ShowSeatingHandler(handler.BaseHandler):
     @handler.tournament_handler
     def get(self):
-        return self.render("tables.html", rounds = getSeating(self.tournamentid),
+        return self.render("tables.html", rounds=getSeating(self.tournamentid),
                            umas_4_player=settings.UMAS[4], winds=util.winds,
                            unusedPointsIncrement=settings.UNUSEDSCOREINCREMENT,
                            unusedPointsPlayerID=db.getUnusedPointsPlayerID())

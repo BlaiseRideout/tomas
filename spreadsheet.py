@@ -33,6 +33,8 @@ no_border = openpyxl.styles.Border()
 thin_outline = openpyxl.styles.Border(
    outline=openpyxl.styles.Side(border_style="thin")
 )
+paleYellowFill = openpyxl.styles.fills.PatternFill(
+    patternType='solid', fgColor="FFFFCC", fill_type='solid')
 paleGreenFill = openpyxl.styles.fills.PatternFill(
     patternType='solid', fgColor="DDFFDD", fill_type='solid')
 paleBlueFill = openpyxl.styles.fills.PatternFill(
@@ -42,28 +44,33 @@ blackFill = openpyxl.styles.fills.PatternFill(
 
 def merge_cells(sheet, row, column, height=1, width=1, 
                 font=title_font, align=top_center_align, border=no_border,
-                value=None):
+                value=None, fill=None):
    if height > 1 or width > 1:
       sheet.merge_cells(
          start_row=row, start_column=column,
          end_row=row + height -1, end_column=column + width - 1)
-   top_left = sheet.cell(row=row, column=column)
+   top_left = sheet.cell(row, column)
    top_left.alignment = align
    top_left.font = font
    top_left.border = border
    if value:
        top_left.value = value
+   if fill:
+       top_left.fill = fill
    return top_left
 
-def resizeColumn(sheet, column, min_row=None, max_row=None, characterWidth=1):
-    width = 0
-    for value in sheet.iter_rows(
-            min_col=column, max_col=column, min_row=min_row, max_row=max_row,
-            values_only=True):
-        width = max(width, len(str(value)))
+def resizeColumn(sheet, column, min_row=None, max_row=None, 
+                 character_width=1, min_width=0):
+    base_font_size = 10
+    width = min_width * base_font_size
+    for tup in sheet.iter_rows(
+            min_col=column, max_col=column, min_row=min_row, max_row=max_row):
+        cell = tup[0]
+        font_size = cell.font.sz if cell.font and cell.font.sz else 10
+        width = max(width, len(str(cell.value)) * font_size)
     letter = openpyxl.utils.cell.get_column_letter(column)
-    sheet.column_dimensions[letter].width = int(
-        math.ceil(width * characterWidth))
+    sheet.column_dimensions[letter].width = math.ceil(
+        width * character_width / base_font_size)
         
 def makePlayersSheet(book, tournamentID, tournamentName, sheet=None):
     if sheet is None:
@@ -79,7 +86,7 @@ def makePlayersSheet(book, tournamentID, tournamentName, sheet=None):
                 value='{} Players'.format(tournamentName))
     sheet.row_dimensions[header_row - 2].height = title_font.size * 3 // 2
     for i, column in enumerate(columns):
-        cell = sheet.cell(row=row, column=first_column + i, value = column)
+        cell = sheet.cell(row, first_column + i, value = column)
         cell.font = column_header_font
         cell.alignment = top_center_align
     for player in players:
@@ -130,16 +137,14 @@ def makeSettingsSheet(book, tournamentID, tournamentName, sheet=None):
     for field in tmt_fields + ['Code']:
         if field not in ('Name', ):
             namecell = sheet.cell(
-                row=row, column=top_left,
-                value='Country ' + field if field == 'Code' else
+                row, top_left, value='Country ' + field if field == 'Code' else
                 'Owner ' + field if field == 'Email' else field)
-            valuecell = sheet.cell(row=row, column=top_left + 1,
-                                   value=rounds[0][field])
+            valuecell = sheet.cell(row, top_left + 1, value=rounds[0][field])
             row += 1
     row += 2
     for i, field in enumerate(round_display_fields):
         cell = sheet.cell(
-            row = row, column = first_column + i,
+            row, first_column + i,
             value = 'Seating Algorithm' if field == 'Algortihm' else
             'Cut Size' if field == 'CutSize' else
             'Round Name' if field == 'Name' else
@@ -157,7 +162,7 @@ def makeSettingsSheet(book, tournamentID, tournamentName, sheet=None):
             row += 1
             for i, field in enumerate(round_display_fields):
                 cell = sheet.cell(
-                    row = row, column = first_column + i,
+                    row, first_column + i,
                     value = seating.ALGORITHMS[round[field] or 0].name
                     if field == 'Algorithm' else
                     seating.ORDERINGS[round[field] or 0][0]
@@ -166,6 +171,7 @@ def makeSettingsSheet(book, tournamentID, tournamentName, sheet=None):
     for col in range(first_column, 
                      first_column + max(2, len(round_display_fields))):
         resizeColumn(sheet, col, min_row = header_row)
+    return sheet
 
 def makeScoresSheet(book, tournamentID, tournamentName, sheet=None):
     if sheet is None:
@@ -185,18 +191,17 @@ def makeScoresSheet(book, tournamentID, tournamentName, sheet=None):
                 value='{} Scores'.format(tournamentName))
     sheet.row_dimensions[header_row - 2].height = title_font.size * 3 // 2
     for i, field in enumerate(player_fields):
-        cell = sheet.cell(
-            row = row + 1, column = first_column + i, value = field)
+        cell = sheet.cell(row + 1, first_column + i, value=field)
         cell.font = column_header_font
         cell.alignment = top_center_align
     col = first_column + len(player_fields)
     color = 0
     for roundID, roundName in rounds:
         round_cell = merge_cells(
-            sheet, row, col, 1, len(round_display_fields), value=roundName)
-        round_cell.fill = roundColorFills[color]
+            sheet, row, col, 1, len(round_display_fields), value=roundName,
+            fill=roundColorFills[color])
         for j, rfield in enumerate(round_display_fields):
-            cell = sheet.cell(row = row + 1, column = col + j, value=rfield)
+            cell = sheet.cell(row + 1, col + j, value=rfield)
             cell.font = column_header_font
             cell.alignment = top_center_align
             cell.fill = roundColorFills[color]
@@ -207,13 +212,13 @@ def makeScoresSheet(book, tournamentID, tournamentName, sheet=None):
         row += 1
         for i, field in enumerate(player_fields):
             cell = sheet.cell(
-                row = row, column = first_column + i, 
-                value = player['type' if field == 'Status' else field.lower()])
+                row, first_column + i, 
+                value=player['type' if field == 'Status' else field.lower()])
         col = first_column + len(player_fields)
         color = 0
         for roundID, roundName in rounds:
             for j, rfield in enumerate(round_display_fields):
-                cell = sheet.cell(row = row, column = col + j)
+                cell = sheet.cell(row, col + j)
                 cell.fill = roundColorFills[color]
                 if roundID in player['scores']:
                     cell.value=player['scores'][roundID][
@@ -223,6 +228,7 @@ def makeScoresSheet(book, tournamentID, tournamentName, sheet=None):
         
     for col in range(first_column, first_column + total_columns):
         resizeColumn(sheet, col, min_row = header_row)
+    return sheet
 
 def makeStandingsSheet(book, tournamentID, tournamentName, sheet=None):
     if sheet is None:
@@ -240,38 +246,129 @@ def makeStandingsSheet(book, tournamentID, tournamentName, sheet=None):
     sheet.row_dimensions[header_row - 2].height = title_font.size * 3 // 2
     for i, field in enumerate(fields):
         cell = sheet.cell(
-            row = row, column = first_column + i,
+            row, first_column + i,
             value = 'Raw Points' if field == 'Points' else field)
         cell.font = column_header_font
         cell.alignment = top_center_align
-    last_cutname = None
+    last_cut = None
     for player in players:
         row += 1
-        if player['cutName'] and player['cutName'] != last_cutname:
+        if player['cutName'] and player['cutName'] != last_cut:
             separator = merge_cells(sheet, row, first_column, 1, len(fields),
-                                    border=thin_outline)
-            separator.fill = blackFill
+                                    border=thin_outline, fill = blackFill)
             sheet.row_dimensions[row].height = title_font.size // 3
             row += 1
             cutname = merge_cells(sheet, row, first_column + 1,
                                   1, len(fields) - 2,
                                   border=thin_outline, font=default_font,
-                                  value = 'CUT ' + player['cutName'])
-            cutname.fill = paleGreenFill
-            sheet.cell(row = row, column = first_column).fill = paleGreenFill
-            sheet.cell(
-                row = row, 
-                column = first_column + len(fields) - 1).fill = paleGreenFill
+                                  value = 'CUT ' + player['cutName'],
+                                  fill = paleYellowFill)
+            for col in (first_column, first_column + len(fields) - 1):
+                sheet.cell(row = row, column = col).fill = paleYellowFill
             row += 1
-            last_cutname = player['cutName']
+            last_cut = player['cutName']
         for i, field in enumerate(fields):
             cell = sheet.cell(
-                row = row, column = first_column + i,
+                row, first_column + i,
                 value=player['gamesPlayed' if field == 'Games' else
                              'type' if field == 'Status' else
                              field.lower()])
     for col in range(first_column, first_column + len(fields)):
         resizeColumn(sheet, col, min_row = header_row)
+    return sheet
+        
+def makeSeatingAndScoresSheet(book, tournamentID, tournamentName, sheet=None):
+    if sheet is None:
+        sheet = book.create_sheet() 
+    sheet.title = 'Seating & Scores'
+    rounds = seating.getSeating(tournamentID)
+    fields = (('Wind', ) if rounds and rounds[0]['winds'] else tuple()) + (
+        'Name', 'Assoc.', 'Country', 'RawScore', 'Rank', 'Score', 'Penalty')
+    header_row = 3
+    first_column = 1
+    row = header_row
+    merge_cells(sheet, header_row - 2, first_column, 
+                1, (len(fields) + 1) * max(1, len(rounds)),
+                font=title_font, border=thin_outline,
+                value='{} Seating & Scores'.format(tournamentName))
+    sheet.row_dimensions[header_row - 2].height = title_font.size * 3 // 2
+    if len(rounds) == 0:
+        merge_cells(sheet, row, first_column, 1, len(fields),
+                    font=column_header_font,
+                    value='No seating or scores found')
+    roundColorFills = [paleGreenFill, paleBlueFill]
+    color = 0
+    rounds.sort(key=lambda r: r['round'])
+    for r, round in enumerate(rounds):
+        col = first_column + r * (len(fields) + 1)
+        row = header_row
+        merge_cells(sheet, row, col, 1, len(fields),
+                    font=column_header_font,
+                    value=round['name'], fill=roundColorFills[color])
+        row += 1
+        if len(round['tables']) == 0:
+            merge_cells(sheet, row, col, 1, len(fields),
+                        value='No seating or scores found',
+                        fill=roundColorFills[color])
+            row += 1
+        last_cut = None
+        for table in sorted(round['tables'], key=lambda t: t['table']):
+            if table['cutName'] and table['cutName'] != last_cut:
+                separator = merge_cells(sheet, row, col, 1, len(fields),
+                                        border=thin_outline, fill = blackFill)
+                # sheet.row_dimensions[row].height = title_font.size // 3
+                row += 1
+                cutname = merge_cells(sheet, row, col, 1, len(fields),
+                                      border=thin_outline, font=default_font,
+                                      value = 'CUT ' + table['cutName'],
+                                      fill = paleYellowFill)
+                row += 1
+                last_cut = table['cutName']
+            for c in range(col, col + len(fields)):
+                sheet.cell(row, c).fill = roundColorFills[color]
+            row += 1
+            table_name = merge_cells(
+                sheet, row, col, 1, len(fields),
+                border=thin_outline, font=column_header_font,
+                value = 'Table {}'.format(table['table']),
+                fill=roundColorFills[color])
+            row += 1
+            for i, field in enumerate(fields):
+                cell = sheet.cell(
+                    row, col + i,
+                    value='Raw Score' if field == 'RawScore' else field)
+                cell.alignment = top_center_align
+                cell.fill = roundColorFills[color]
+            row += 1
+            for wind_and_player in table['players']:
+                for i, field in enumerate(fields):
+                    cell = sheet.cell(
+                        row, col + i,
+                        value=wind_and_player['wind'] if field == 'Wind' else
+                        wind_and_player['player'][
+                            'association' if field == 'Assoc.' else
+                            field.lower()])
+                    cell.fill = roundColorFills[color]
+                row += 1
+            if table['unusedPoints']['rawscore']:
+                extra = 1 if 'Wind' in fields else 0
+                merge_cells(
+                    sheet, row, col, 1, 3 + extra, font=default_font,
+                    value='Unused Points', fill = roundColorFills[color])
+                merge_cells(
+                    sheet, row, col + 3 + extra, 1, 4, font=default_font,
+                    value=table['unusedPoints']['rawscore'],
+                    fill = roundColorFills[color])
+                row += 1
+        color = 1 - color
+    # for col in range(first_column + len(fields), len(rounds) * len(fields),
+    #                  len(fields) + 1):
+    #     letter = openpyxl.utils.cell.get_column_letter(col)
+    #     sheet.column_dimensions[letter].width = 2
+    for col in range(first_column, 
+                     first_column + max(1, len(rounds)) * (len(fields) + 1)):
+       resizeColumn(sheet, col, min_row=header_row, min_width=2)
+    return sheet
         
 class DownloadTournamentSheetHandler(handler.BaseHandler):
     @handler.tournament_handler
@@ -279,6 +376,8 @@ class DownloadTournamentSheetHandler(handler.BaseHandler):
         book = openpyxl.Workbook()
         standingsSheet = makeStandingsSheet(
             book, self.tournamentid, self.tournamentname, book.active)
+        seatingAndScoresSheet = makeSeatingAndScoresSheet(
+            book, self.tournamentid, self.tournamentname)
         scoresSheet = makeScoresSheet(
             book, self.tournamentid, self.tournamentname)
         playersSheet = makePlayersSheet(
