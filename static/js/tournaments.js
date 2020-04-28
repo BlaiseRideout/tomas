@@ -507,8 +507,9 @@ $(function() {
 						$('#delete-tournament-confirmation').dialog({
 							resizable: false,
 							height: "auto",
-							width: 400,
+							minWidth: 400,
 							modal: true,
+							dialogClass: "no-close",
 							buttons: {
 								"Delete tournament": function() {
 									$(this).dialog("close");
