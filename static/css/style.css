@@ -279,7 +279,6 @@ button.clearplayercomplete {
 #playerspanel {
     font-size: 0.8em;
     width: 30%;
-    display: inline-block;
 }
 
 #availableplayersgrid {
@@ -302,7 +301,7 @@ button.clearplayercomplete {
     height: 1em;
 }
 
-.hidden, .hidden * {
+.hidden {
     display: none;
 }
 
