@@ -275,6 +275,14 @@ $(function() {
 				return $('<span class="countrypair">').text(countries[value].Code).append(flag);
 			}
 
+		    function verifySpreadsheet() {
+			console.log('Verify spreadsheet ' + $(this).val())
+		    }
+
+		    function uploadSelectedPlayers() {
+			console.log('Uploading selected players')
+		    }
+
 			$("#playersGrid").text('').jsGrid({
 				width: "100%",
 				height: "auto",
@@ -290,6 +298,27 @@ $(function() {
 				fields: fieldDescriptions,
 				noDataContent: 'None found',
 			});
+		    
+		    $("#uploadPlayerSpreadsheetButton").click(function (event) {
+			$('#add-players-dialog input[type="file"]').change(verifySpreadsheet);
+			$('#add-players-dialog > div').show();
+			$('#add-players-dialog').dialog({
+			    height: "auto",
+			    minWidth: 600,
+			    modal: true,
+			    dialogClass: "no-close",
+			    buttons: {
+				"Upload players": function() {
+				    $(this).dialog("close");
+				    uploadSelectedPlayers();
+				},
+				Cancel: function() {
+				    $(this).dialog("close");
+				}
+			    }
+			});
+			event.stopPropagation();
+		    });
 		});
 	});
 });

@@ -12,9 +12,21 @@
 	All Players
 {% end %}
 {% block content %}
-    <h2 class="playerListTitle">All Tournment Players</h2>
+<h2 class="playerListTitle">All Tournment Players</h2>
+    <button id="uploadPlayerSpreadsheetButton">Add players...</button>
     <div id="playersGrid">
       Loading...
+    </div>
+    <div id="add-players-dialog" class="confirm-dialog hidden"
+	 title="Upload Player Spreadsheet" >
+      <div class="spreadsheet-to-upload">
+	Spreadsheet:
+	<span id="spreadsheet-picker">
+	  <input type="file"></input>
+	</span>
+      </div>
+      <div class="possible-ranges">
+      </div>
     </div>
 
 {% end %}
