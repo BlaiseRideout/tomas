@@ -26,9 +26,10 @@ application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'''.strip()
 # OpenPyXL formatting definitions
 top_center_align = openpyxl.styles.Alignment(
    horizontal='center', vertical='top', wrap_text=True)
-title_font = openpyxl.styles.Font(name='Arial', size=14, bold=True)
 default_font = openpyxl.styles.Font()
-column_header_font = openpyxl.styles.Font(name='Arial', size=12, bold=True)
+title_font = openpyxl.styles.Font(name=default_font.name, size=14, bold=True)
+column_header_font = openpyxl.styles.Font(
+    name=default_font.name, size=12, bold=True)
 no_border = openpyxl.styles.Border()
 thin_outline = openpyxl.styles.Border(
    outline=openpyxl.styles.Side(border_style="thin")
@@ -59,15 +60,26 @@ def merge_cells(sheet, row, column, height=1, width=1,
        top_left.fill = fill
    return top_left
 
+def inMergedCell(cell, sheet):
+    "Test if cell is within a merged cell of the sheet"
+    for mergedCellRange in sheet.merged_cells.ranges:
+        if (mergedCellRange.min_col <= cell.column and
+            cell.column <= mergedCellRange.max_col and
+            mergedCellRange.min_row <= cell.row and
+            cell.row <= mergedCellRange.max_row):
+            return True
+    return False
+
 def resizeColumn(sheet, column, min_row=None, max_row=None, 
-                 character_width=1, min_width=0):
+                 character_width=1.01, min_width=0, exclude_merged=True):
     base_font_size = 10
     width = min_width * base_font_size
     for tup in sheet.iter_rows(
             min_col=column, max_col=column, min_row=min_row, max_row=max_row):
         cell = tup[0]
-        font_size = cell.font.sz if cell.font and cell.font.sz else 10
-        width = max(width, len(str(cell.value)) * font_size)
+        if cell.value and not (exclude_merged and inMergedCell(cell, sheet)):
+            font_size = cell.font.sz if cell.font and cell.font.sz else 10
+            width = max(width, len(str(cell.value)) * font_size)
     letter = openpyxl.utils.cell.get_column_letter(column)
     sheet.column_dimensions[letter].width = math.ceil(
         width * character_width / base_font_size)
