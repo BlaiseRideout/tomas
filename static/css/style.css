@@ -336,3 +336,13 @@ button.clearplayercomplete {
     top: .3em;
     left: .25em
 }
+
+#tournamentToDelete {
+    text-decoration: underline;
+}
+
+.warning-icon {
+    float:left;
+    margin: 1em;
+    font-size: 1.5em;
+}

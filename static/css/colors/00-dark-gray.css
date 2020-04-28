@@ -172,3 +172,7 @@ input[type="checkbox"].priority:checked + label {
     background:	#511;
     color:	#f44;
 }
+
+.warning-icon {
+    color: yellow;
+}
