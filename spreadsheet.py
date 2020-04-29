@@ -430,7 +430,7 @@ class FindPlayersInSpreadsheetHandler(handler.BaseHandler):
         content = self.request.files['file'][0]['body']
         try:
             workbook = openpyxl.load_workbook(
-                io.BytesIO(content), read_only=True, keep_vba=False,
+                io.BytesIO(content), read_only=False, keep_vba=False,
                 data_only=True, keep_links=False)
             playerLists = []
             for sheet in workbook:
@@ -446,72 +446,100 @@ class FindPlayersInSpreadsheetHandler(handler.BaseHandler):
 
         return self.write(response)
 
+player_columns = [c.lower() for c in Player_Columns]
+
 def find_players_in_sheet(sheet):
+    """Return collections of players in contiguous ranges of the worksheet
+    that start with a row of 3 or more of the expected player column headers.
+    The results are dictionaries of the form {'sheet': s, 'top': t,
+    'players': [d]} where s is the sheet title, t is a worksheet cell like 'B7'
+    for the top left corner of the contiguous range of cells, and d is
+    a dictionary mapping capitalized column header names to the values for
+    a particular player row.  The 'players' entry is a list of these 
+    dictionaries.
+    """
     result = []
-    if sheet.title == 'Players':
-        result.append({'sheet': sheet.title, 'players': [], 'top': 'A1'})
+    runs = {}
+    last_run = None
+    for rtuple in sheet.iter_rows():
+        for ctuple in sheet.iter_cols(min_row=rtuple[0].row):
+            cell = ctuple[0]
+            head = (isinstance(cell.value, str) and
+                    cell.value.lower() in player_columns)
+            if head:
+                extend = (last_run and last_run[1] + 1 == cell.column and
+                          runs[last_run]['row'] == cell.row)
+                newrun = all(cell.column < run[0] or run[1] < cell.column
+                             for run in runs) 
+                if extend or newrun:
+                    if extend:
+                        del runs[last_run]
+                        last_run = (last_run[0], cell.column)
+                    else:
+                        last_run = (cell.column, cell.column)
+                    runs[last_run] = {
+                        'row': cell.row,
+                        'min_column': last_run[0],
+                        'max_column': last_run[1],
+                        'players': {},
+                        'fields': [sheet.cell(cell.row, c).value.capitalize()
+                                   for c in range(last_run[0], last_run[1]+1)],
+                        'max_row': cell.row
+                    }
+                else:
+                    pass # Spurious match to column head label within players
+            else:
+                for run in runs if cell.value else []:
+                    if (cell.row == runs[run]['max_row'] + 1 and  # contiguous
+                        cell.row not in runs[run]['players'] and  # new row
+                        run[0] <= cell.column and cell.column <= run[1]):
+                        runs[run]['max_row'] = cell.row
+                        runs[run]['players'][cell.row] = dict(
+                            zip(runs[run]['fields'],
+                                [sheet.cell(cell.row, c).value
+                                 for c in range(runs[run]['min_column'],
+                                                runs[run]['max_column'] + 1)]))
+                        break
+    for run in runs:
+        if (len(set(runs[run]['fields']) - set(['Tournament'])) >= 3 and 
+            len(runs[run]['players']) > 0):
+            result.append({
+                'sheet': sheet.title,
+                'top': sheet.cell(runs[run]['row'],
+                                  runs[run]['min_column']).coordinate,
+                'players': list(runs[run]['players'].values())
+                })
     return result
 
-def process():
-        try:
-            with db.getCur() as cur:
-                reader = csv.reader(players.decode('utf-8').splitlines())
-                good = 0
-                bad = 0
-                first = True
-                unrecognized = []
-                for row in reader:
-                    hasheader = first and sum(
-                        1 if v.lower() in colnames else 0 for v in row) >= len(row) - 1
-                    first = False
-                    if hasheader:
-                        unrecognized = [v for v in row
-                                        if v.lower() not in colnames]
-                        colnames = [v.lower() for v in row]
-                        colnames += [c.lower() for c in Player_Columns
-                                     if c.lower() not in colnames]
-                        continue
-                    if len(row) < 3:
-                        bad += 1;
-                        continue
-                    filled = 0
-                    for i in range(len(row)):
-                        if row[i] == '':
-                            row[i] = None
-                        else:
-                            filled += 1
-                    if filled < 3:
-                        bad += 1
-                        continue
-                    rowdict = dict(zip(
-                        colnames, list(row) + [None] * len(colnames)))
-                    if not (rowdict['name'] or
-                            (rowdict['number'] and
-                             not rowdict['number'].isdigit()) or
-                            (rowdict['type'] and
-                             not rowdict['type'] in db.playertypes)):
-                        bad += 1
-                        continue
-                    rowdict['type'] = db.playertypecode[rowdict['type']] if (
-                        rowdict['type'] in db.playertypecode) else 0
-                    cur.execute(
-                        "INSERT INTO Players(Name, Number, Country, "
-                        "                    Association, Pool, Type, Wheel, Tournament)"
-                        " VALUES(?, ?,"
-                        "   (SELECT Id FROM Countries"
-                        "      WHERE Name = ? OR Code = ? OR IOC_Code = ?),"
-                        "   ?, ?, ?, ?, ?);",
-                        (rowdict['name'], rowdict['number'], rowdict['country'],
-                         rowdict['country'], rowdict['country'],
-                         rowdict['association'], rowdict['pool'],
-                         rowdict['type'], rowdict['wheel'], self.tournamentid))
-                    good += 1
-            message = ("{} player record(s) loaded, "
-                       "{} player record(s) skipped").format(good,bad)
-            if unrecognized:
-                message += ", skipped column header(s): {}".format(
-                    ', '.join(unrecognized))
-            return self.write({'status':"success", 'message': message})
-        except Exception as e:
-            return self.write({'status':"error",
-                    'message':"Invalid players file provided: " + str(e)})
+if __name__ == '__main__':
+    import os, argparse
+    from pprint import *
+    parser = argparse.ArgumentParser(
+        description="Test player extraction from spreadsheet",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument(
+        'spreadsheet', nargs='+',
+        help='Spreadsheet to search for players')
+    parser.add_argument(
+        '-v', '--verbose', action='count', default=0,
+        help='Add details on players and verbose comments')
+
+    args = parser.parse_args()
+    
+    for f in args.spreadsheet:
+        workbook = openpyxl.load_workbook(f)
+        for sheet in workbook:
+            playerLists = find_players_in_sheet(sheet)
+            print(os.path.basename(f), '- worksheet', sheet.title, 'has',
+                  len(playerLists), 'group{} of players'.format(
+                      '' if len(playerLists) == 1 else 's'))
+            for pList in playerLists:
+                print('  Top cell at', pList['top'], 
+                      'has {} player{} with {} attribute{}:'.format(
+                          len(pList['players']), 
+                          '' if len(pList['players']) == 1 else 's',
+                          len(pList['players'][0]),
+                          '' if len(pList['players'][0]) == 1 else 's'))
+                if args.verbose > 0:
+                    pprint(pList['players'])
+        

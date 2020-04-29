@@ -47,10 +47,10 @@ def getTournaments(tournamentID=None):
     return tournaments
 
 def getCompetitors(tournamentID, tournamentOwner=0):
-    player_fields = ['Name', 'Association', 'Country']
+    competing_player_fields = ['Name', 'Association', 'Country']
     cFields = ['Compete.{}'.format(f)
                for f in db.table_field_names('Compete')] + [
-                       'Players.{}'.format(f) for f in player_fields]
+                       'Players.{}'.format(f) for f in competing_player_fields]
     sql = """
     SELECT {}, COUNT(DISTINCT Scores.Id)
       FROM Compete JOIN Players on Player = Players.Id
@@ -442,10 +442,11 @@ class TournamentHandler(handler.BaseHandler):
 
 player_columns = ['Players.Id', 'Players.Name', 'Number', 'Countries.Code',
                   'Countries.Id', 'Flag_Image',
-                  'Association', 'Pool', 'Type', 'Wheel']
-player_fields = ["id", "name", "number", "country", 
-                 "countryid", "flag_image",
-                 "association", "pool", "type", "wheel"]
+                  'Association', 'BirthYear', 'Pool', 'Type', 'Wheel']
+player_fields = [f.lower() for f in map(
+    lambda c: 'countryid' if c == 'Countries.Id' else
+    'country' if c == 'Countries.Code' else db.fieldname(c), 
+    player_columns)]
 
 def getPlayers(tournamentid):
     global player_fields
