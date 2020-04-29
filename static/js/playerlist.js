@@ -275,13 +275,52 @@ $(function() {
 				return $('<span class="countrypair">').text(countries[value].Code).append(flag);
 			}
 
-		    function verifySpreadsheet() {
-			console.log('Verify spreadsheet ' + $(this).val())
-		    }
+			function verifySpreadsheet() {
+				var data = new FormData($('#add-players-dialog #spreadsheet-picker')[0]);
+				$.ajax({
+					'url': 'findPlayersInSpreadsheet',
+					'data': data,
+					'type': 'POST',
+					'contentType': false,
+					'processData': false,
+					success: function(data) {
+						if (data["status"] == 0)
+							showPlayerUploadChoices(data);
+						else
+							console.log(data);
+						if (data["message"])
+							$.notify(data["message"], data["status"]);
+					},
+					fail: function(jqXHR, textStatus, errorThrown) {
+						$.notify('File upload failed. ' + textStatus + ' ' + errorThrown)
+					}
+				})
+			};
 
-		    function uploadSelectedPlayers() {
-			console.log('Uploading selected players')
-		    }
+			function showPlayerUploadChoices(data) {
+				var table = $('<table class="playerLists">'),
+					columnHeaders = $('<tr "playerList header">');
+				columnHeaders.append($('<th>').text('Sheet'));
+				columnHeaders.append($('<th>').text('Top Cell'));
+				columnHeaders.append($('<th>').text('Count'));
+				columnHeaders.append($('<th>'));
+				table.append(columnHeaders);
+				data.playerLists.map(function(pList) {
+					var row = $('<tr class="playerList">');
+					row.append($('<td>').text(pList.sheet));
+					row.append($('<td>').text(pList.top));
+					row.append($('<td>').text(pList.players.length));
+					row.append($('<td>').append($('<input type="radio" class="playerListSelector">')));
+					table.append(row);
+				});
+				$('#add-players-dialog .possible-ranges').text(
+					'Players found'
+				).append(table);
+			};
+
+			function uploadSelectedPlayers() {
+				console.log('Uploading selected players')
+			};
 
 			$("#playersGrid").text('').jsGrid({
 				width: "100%",
@@ -298,27 +337,27 @@ $(function() {
 				fields: fieldDescriptions,
 				noDataContent: 'None found',
 			});
-		    
-		    $("#uploadPlayerSpreadsheetButton").click(function (event) {
-			$('#add-players-dialog input[type="file"]').change(verifySpreadsheet);
-			$('#add-players-dialog > div').show();
-			$('#add-players-dialog').dialog({
-			    height: "auto",
-			    minWidth: 600,
-			    modal: true,
-			    dialogClass: "no-close",
-			    buttons: {
-				"Upload players": function() {
-				    $(this).dialog("close");
-				    uploadSelectedPlayers();
-				},
-				Cancel: function() {
-				    $(this).dialog("close");
-				}
-			    }
+
+			$("#uploadPlayerSpreadsheetButton").click(function(event) {
+				$('#add-players-dialog input[type="file"]').change(verifySpreadsheet);
+				$('#add-players-dialog > div').show();
+				$('#add-players-dialog').dialog({
+					height: "auto",
+					minWidth: 600,
+					modal: true,
+					dialogClass: "no-close",
+					buttons: {
+						"Upload players": function() {
+							$(this).dialog("close");
+							uploadSelectedPlayers();
+						},
+						Cancel: function() {
+							$(this).dialog("close");
+						}
+					}
+				});
+				event.stopPropagation();
 			});
-			event.stopPropagation();
-		    });
 		});
 	});
 });

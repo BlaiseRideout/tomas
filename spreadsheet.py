@@ -6,6 +6,7 @@ import sqlite3
 import os.path
 from collections import *
 import math
+import io
 
 import tornado.web
 import openpyxl
@@ -15,11 +16,13 @@ import db
 import tournament
 import seating
 import leaderboard
+import util
 
 log = logging.getLogger('WebServer')
 
 Player_Columns = [f.capitalize() for f in tournament.player_fields
-                     if f not in ('id', 'countryid', 'flag_image')]
+                     if f not in ('id', 'countryid', 'flag_image')] + [
+                             'Tournament']
 excel_mime_type = '''
 application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'''.strip()
 
@@ -92,7 +95,7 @@ def makePlayersSheet(book, tournamentID, tournamentName, sheet=None):
     header_row = 3
     first_column = 1
     row = header_row
-    columns = Player_Columns + ['Tournament']
+    columns = Player_Columns
     merge_cells(sheet, header_row - 2, first_column, 1, len(columns),
                 font=title_font, border=thin_outline,
                 value='{} Players'.format(tournamentName))
@@ -398,7 +401,8 @@ class DownloadTournamentSheetHandler(handler.BaseHandler):
             book, self.tournamentid, self.tournamentname)
         with tempfile.NamedTemporaryFile(
                 suffix='.xlsx',
-                prefix='{}_'.format(self.tournamentname)) as outf:
+                prefix='{}_'.format(util.makeFilename(self.tournamentname))
+        ) as outf:
             book.save(outf.name)
             outf.seek(0)
             self.write(outf.read())
@@ -410,13 +414,45 @@ class DownloadTournamentSheetHandler(handler.BaseHandler):
         return
 
 class UploadPlayersHandler(handler.BaseHandler):
-    @handler.tournament_handler_ajax
-    @handler.is_owner_ajax
+    @handler.is_authenticated_ajax
     def post(self):
-        if 'file' not in self.request.files or len(self.request.files['file']) == 0:
-            return self.write({'status':"error", 'message':"Please provide a players file"})
-        players = self.request.files['file'][0]['body']
-        colnames = [c.lower() for c in Player_Columns]
+        response = {'status': 0, 'message': 'Player data received'}
+        return self.write(response)
+
+class FindPlayersInSpreadsheetHandler(handler.BaseHandler):
+    @handler.is_authenticated_ajax
+    def post(self):
+        if not ('file' in self.request.files and
+                len(self.request.files['file']) > 0):
+            return self.write({'status': -1,
+                               'message':"Please provide a players file"})
+        response = {'status': 0, 'message': 'Valid spreadsheet received'}
+        content = self.request.files['file'][0]['body']
+        try:
+            workbook = openpyxl.load_workbook(
+                io.BytesIO(content), read_only=True, keep_vba=False,
+                data_only=True, keep_links=False)
+            playerLists = []
+            for sheet in workbook:
+                playerLists.extend(find_players_in_sheet(sheet))
+            playerLists.sort(key=lambda pl: len(pl['players']),
+                             reverse=True)
+            response['message'] = 'Found {} player lists'.format(
+                len(playerLists))
+            response['playerLists'] = playerLists
+        except Exception as e:
+            response['status'] = -1
+            response['message'] = 'Error processing spreadsheet. {}'.format(e)
+
+        return self.write(response)
+
+def find_players_in_sheet(sheet):
+    result = []
+    if sheet.title == 'Players':
+        result.append({'sheet': sheet.title, 'players': [], 'top': 'A1'})
+    return result
+
+def process():
         try:
             with db.getCur() as cur:
                 reader = csv.reader(players.decode('utf-8').splitlines())

@@ -52,6 +52,11 @@ def prettyWords(text):
 capword = re.compile(r'[A-Z]?[a-z-]*')
 def breakCamelCase(words):
     return [m.group(0) for m in capword.finditer(words) if m.group(0) != '']
+
+taboo_filename_character = re.compile(r'[^.,$@^_+=()<>\[\]{}\w-]')
+def makeFilename(text):
+    return taboo_filename_character.sub('_', text)
+    
     
 winds = "東南西北"
 
