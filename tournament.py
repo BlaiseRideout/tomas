@@ -7,6 +7,7 @@ import io
 import logging
 from datetime import *
 import sqlite3
+import collections
 
 import tornado.web
 import handler
@@ -719,6 +720,12 @@ def getCountries():
                 countries.append(sub)
                 break
     return countries
+
+countryLookup = collections.defaultdict(lambda: None)
+def initializeCountryLookup():
+    if len(countryLookup) < 200:
+        for country in getCountries():
+            countryLookup[country['Code']] = country['Id']
 
 class CountriesHandler(handler.BaseHandler):
     def get(self):

@@ -6,6 +6,7 @@ import sqlite3
 import os.path
 from collections import *
 import math
+import json
 import io
 
 import tornado.web
@@ -413,10 +414,78 @@ class DownloadTournamentSheetHandler(handler.BaseHandler):
             log.debug('Temporary file: {}'.format(outf.name))
         return
 
+player_columns = [c.lower() for c in Player_Columns]
+player_ID_fields = [f.capitalize() for f in db.table_field_names('Players')
+                    if f not in ('Id', 'ReplacedBy')]
+competition_fields = [f for f in db.table_field_names('Compete')
+                      if f not in ('Id',)]
+
 class UploadPlayersHandler(handler.BaseHandler):
     @handler.is_authenticated_ajax
     def post(self):
-        response = {'status': 0, 'message': 'Player data received'}
+        tournament.initializeCountryLookup()
+        encoded_players = self.get_argument('players', None)
+        players = json.loads(encoded_players)
+        response = {'status': 0,
+                    'message': '{} candidate player records received'
+                    .format(len(players))}
+        rejects, nonCompete = [], []
+        tournaments = defaultdict(lambda: None)
+        try:
+            with db.getCur() as cur:
+                cur.execute('SELECT Id, Name FROM Tournaments')
+                for ID, name in cur.fetchall():
+                    tournaments[name] = ID
+                for player in players:
+                    if 'Country' in player and player['Country']:
+                        player['Country'] = tournament.countryLookup[
+                            player['Country']]
+                    if 'Tournament' in player and player['Tournament']:
+                        player['Tournament'] = tournaments[player['Tournament']]
+                    if 'Type' in player:
+                        player['Type'] = db.playertypecode.get(
+                            player['Type'], 0)
+                    ID_fields = [f for f in player 
+                                 if player[f] and f in player_ID_fields]
+                    if len(ID_fields) < 2:
+                        rejects.append(player)
+                        continue
+                    sql = "SELECT Id FROM Players WHERE {}".format(
+                        ' AND '.join('{} = {}'.format(f, repr(player[f]))
+                                     for f in ID_fields))
+                    cur.execute(sql)  # Check for duplicate player
+                    if len(cur.fetchall()) > 0:
+                        rejects.append(player)
+                        continue
+                    sql = "INSERT INTO Players ({}) VALUES ({})".format(
+                        ','.join(ID_fields), ','.join('?' for f in ID_fields))
+                    cur.execute(sql, [player[f] for f in ID_fields])
+                    player['Player'] = cur.lastrowid
+                    if 'Tournament' in player and not player['Tournament']:
+                        nonCompete.append(player)
+                        continue
+                    compete_fields = [f for f in player 
+                                      if player[f] and f in competition_fields]
+                    sql = "INSERT INTO Compete ({}) VALUES ({})".format(
+                        ','.join(compete_fields), 
+                        ','.join('?' for f in compete_fields))
+                    cur.execute(sql, [player[f] for f in compete_fields])
+                response['message'] = (
+                    'No players uploaded.' if len(players) <= len(rejects) else
+                    '{} player{} uploaded.'.format(
+                        len(players) - len(rejects),
+                        '' if len(players) - len(rejects) == 1 else 's'))
+                if rejects:
+                    response['message'] += '\n{} record{} rejected.'.format(
+                        len(rejects), '' if len(rejects) == 1 else 's')
+                if nonCompete:
+                    response['message'] += (
+                        '\n{} record{} not linked to tournament.'.format(
+                            len(nonCompete), 
+                            '' if len(nonCompete) == 1 else 's'))
+        except sqlite3.DatabaseError as e:
+            response['status'] = -1
+            response['mesage'] = 'Error inserting player. {}'.format(e)
         return self.write(response)
 
 class FindPlayersInSpreadsheetHandler(handler.BaseHandler):
@@ -446,11 +515,12 @@ class FindPlayersInSpreadsheetHandler(handler.BaseHandler):
 
         return self.write(response)
 
-player_columns = [c.lower() for c in Player_Columns]
-
 def find_players_in_sheet(sheet):
     """Return collections of players in contiguous ranges of the worksheet
-    that start with a row of 3 or more of the expected player column headers.
+    that start with a row of the expected player column headers.
+    The column headers must include at least 3 of the player identification
+    fields used in finding duplicate players.
+    The player fields are in the rows beneath the column header row.
     The results are dictionaries of the form {'sheet': s, 'top': t,
     'players': [d]} where s is the sheet title, t is a worksheet cell like 'B7'
     for the top left corner of the contiguous range of cells, and d is
@@ -501,8 +571,8 @@ def find_players_in_sheet(sheet):
                                                 runs[run]['max_column'] + 1)]))
                         break
     for run in runs:
-        if (len(set(runs[run]['fields']) - set(['Tournament'])) >= 3 and 
-            len(runs[run]['players']) > 0):
+        if (len(set(runs[run]['fields']).intersection(set(player_ID_fields)))
+            >= 3 and len(runs[run]['players']) > 0):
             result.append({
                 'sheet': sheet.title,
                 'top': sheet.cell(runs[run]['row'],

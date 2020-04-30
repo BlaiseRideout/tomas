@@ -312,11 +312,13 @@ $(function() {
 			function showPlayerUploadChoices(data) {
 				var table = $('<table class="playerLists table">'),
 					columnHeaders = $('<tr "playerList header">');
-				columnHeaders.append($('<th>').text('Sheet'));
-				columnHeaders.append($('<th>').text('Top Cell'));
-				columnHeaders.append($('<th>').text('Count'));
-				columnHeaders.append($('<th>'));
-				table.append(columnHeaders);
+				if (data.playerLists.length > 0) {
+					columnHeaders.append($('<th>').text('Sheet'));
+					columnHeaders.append($('<th>').text('Top Cell'));
+					columnHeaders.append($('<th>').text('Count'));
+					columnHeaders.append($('<th>'));
+					table.append(columnHeaders);
+				}
 				data.playerLists.map(function(pList) {
 					var row = $('<tr class="playerList">');
 					row.append($('<td>').text(pList.sheet));
@@ -330,7 +332,7 @@ $(function() {
 					table.append(row);
 				});
 				$('#add-players-dialog .possible-ranges').text(
-					'Players found'
+					(data.playerLists.length == 0 ? 'No player' : 'Player') + ' groups found'
 				).append(table);
 				updatePlayerListSelector();
 			};
@@ -353,7 +355,28 @@ $(function() {
 						players = players.concat($(elem).data('playerList'))
 					}
 				});
-				console.log('Uploading ' + players.length + ' selected players')
+				$.ajax({
+					url: 'uploadplayers',
+					data: {
+						players: JSON.stringify(players)
+					},
+					type: 'POST',
+					timeout: 30000,
+					success: function(data) {
+						if (data["status"] != 0) {
+							console.log(data);
+						};
+						$("#playersGrid").jsGrid("loadData");
+						if (data["message"]) {
+							data["message"].split('\n').map(function(msg) {
+								$.notify(msg)
+							})
+						}
+					},
+					error: function(jqXHR, textStatus, errorThrown) {
+						$.notify('Player upload failed. ' + textStatus + ' ' + errorThrown)
+					}
+				});
 			};
 
 			$("#playersGrid").text('').jsGrid({
