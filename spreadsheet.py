@@ -447,7 +447,8 @@ class UploadPlayersHandler(handler.BaseHandler):
                             player['Type'], 0)
                     ID_fields = [f for f in player 
                                  if player[f] and f in player_ID_fields]
-                    if len(ID_fields) < 2:
+                    if (len(ID_fields) < 2 or not player.get('Name', None) or
+                        not player.get('Country', None)):
                         rejects.append(player)
                         continue
                     sql = "SELECT Id FROM Players WHERE {}".format(
@@ -477,12 +478,16 @@ class UploadPlayersHandler(handler.BaseHandler):
                         '' if len(players) - len(rejects) == 1 else 's'))
                 if rejects:
                     response['message'] += '\n{} record{} rejected.'.format(
-                        len(rejects), '' if len(rejects) == 1 else 's')
+                        len(rejects), '' if len(rejects) == 1 else 's') + (
+                            '\nReject: ' + '\nReject: '.join(
+                                '{}'.format(p) for p in rejects))
                 if nonCompete:
                     response['message'] += (
                         '\n{} record{} not linked to tournament.'.format(
                             len(nonCompete), 
-                            '' if len(nonCompete) == 1 else 's'))
+                            '' if len(nonCompete) == 1 else 's')) + (
+                            '\nNot linked: ' + '\nNot linked: '.join(
+                                '{}'.format(p) for p in rejects))
         except sqlite3.DatabaseError as e:
             response['status'] = -1
             response['mesage'] = 'Error inserting player. {}'.format(e)
