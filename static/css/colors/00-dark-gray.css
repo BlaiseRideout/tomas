@@ -176,3 +176,7 @@ input[type="checkbox"].priority:checked + label {
 .warning-icon {
     color: yellow;
 }
+
+table.playerLists td, table.playerLists th {
+	border:1px solid #ccc;
+}

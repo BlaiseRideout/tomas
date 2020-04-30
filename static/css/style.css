@@ -345,3 +345,8 @@ button.clearplayercomplete {
     margin: 1em;
     font-size: 1.5em;
 }
+
+.playerLists {
+	margin: auto;
+	vertical-align: middle;
+}

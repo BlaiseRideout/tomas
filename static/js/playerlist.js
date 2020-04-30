@@ -48,7 +48,7 @@ $(function() {
 						return box;
 					}
 				},
-				fieldDescriptions = [{
+				playersGridFields = [{
 						name: "Id",
 						type: "number",
 						width: 5,
@@ -84,6 +84,15 @@ $(function() {
 						valueType: "number",
 						textField: "Code",
 						itemTemplate: countryTemplate,
+					},
+					{
+						name: "BirthYear",
+						title: "Birth Year",
+						type: "number",
+						width: null,
+						css: "playerbirthyearfield",
+						inserting: auth['user'],
+						editing: auth['user']
 					},
 					{
 						name: "Tournaments",
@@ -134,7 +143,7 @@ $(function() {
 					}
 				],
 				gridController = makeController(base + 'playerlist',
-					fieldDescriptions);
+					playersGridFields);
 
 			function selectedPlayerIDs() {
 				var playerlist = [];
@@ -278,27 +287,30 @@ $(function() {
 			function verifySpreadsheet() {
 				var data = new FormData($('#add-players-dialog #spreadsheet-picker')[0]);
 				$.ajax({
-					'url': 'findPlayersInSpreadsheet',
-					'data': data,
-					'type': 'POST',
-					'contentType': false,
-					'processData': false,
+					url: 'findPlayersInSpreadsheet',
+					data: data,
+					type: 'POST',
+					contentType: false,
+					processData: false,
+					timeout: 30000,
 					success: function(data) {
-						if (data["status"] == 0)
+						if (data["status"] == 0) {
 							showPlayerUploadChoices(data);
-						else
+						}
+						else {
 							console.log(data);
-						if (data["message"])
-							$.notify(data["message"], data["status"]);
+							if (data["message"])
+								$.notify(data["message"]);
+						}
 					},
-					fail: function(jqXHR, textStatus, errorThrown) {
+					error: function(jqXHR, textStatus, errorThrown) {
 						$.notify('File upload failed. ' + textStatus + ' ' + errorThrown)
 					}
 				})
 			};
 
 			function showPlayerUploadChoices(data) {
-				var table = $('<table class="playerLists">'),
+				var table = $('<table class="playerLists table">'),
 					columnHeaders = $('<tr "playerList header">');
 				columnHeaders.append($('<th>').text('Sheet'));
 				columnHeaders.append($('<th>').text('Top Cell'));
@@ -310,16 +322,38 @@ $(function() {
 					row.append($('<td>').text(pList.sheet));
 					row.append($('<td>').text(pList.top));
 					row.append($('<td>').text(pList.players.length));
-					row.append($('<td>').append($('<input type="radio" class="playerListSelector">')));
+					row.append($('<td>').append(
+						$('<input type="checkbox" class="playerListSelector">')
+						.prop('checked', data.playerLists.length == 1)
+						.change(updatePlayerListSelector)
+						.data('playerList', pList.players)));
 					table.append(row);
 				});
 				$('#add-players-dialog .possible-ranges').text(
 					'Players found'
 				).append(table);
+				updatePlayerListSelector();
+			};
+
+			function updatePlayerListSelector() {
+				var selected = 0;
+				$('#add-players-dialog .playerLists input[type="checkbox"]').each(function(i, elem) {
+					if ($(elem).prop('checked')) {
+						selected++
+					}
+				});
+				$('#add-players-dialog').parent().find('button:contains("Upload players")')
+					.prop('disabled', selected == 0);
 			};
 
 			function uploadSelectedPlayers() {
-				console.log('Uploading selected players')
+				var players = [];
+				$('#add-players-dialog .playerLists input[type="checkbox"]').each(function(i, elem) {
+					if ($(elem).prop('checked')) {
+						players = players.concat($(elem).data('playerList'))
+					}
+				});
+				console.log('Uploading ' + players.length + ' selected players')
 			};
 
 			$("#playersGrid").text('').jsGrid({
@@ -334,12 +368,13 @@ $(function() {
 				paging: false,
 				pageLoading: false,
 				controller: gridController,
-				fields: fieldDescriptions,
+				fields: playersGridFields,
 				noDataContent: 'None found',
 			});
 
 			$("#uploadPlayerSpreadsheetButton").click(function(event) {
 				$('#add-players-dialog input[type="file"]').change(verifySpreadsheet);
+				$('#add-players-dialog > div.possible-ranges').empty();
 				$('#add-players-dialog > div').show();
 				$('#add-players-dialog').dialog({
 					height: "auto",
@@ -356,6 +391,7 @@ $(function() {
 						}
 					}
 				});
+				$('#add-players-dialog').parent().find('button:contains("Upload players")').prop('disabled', true);
 				event.stopPropagation();
 			});
 		});

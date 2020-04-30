@@ -55,13 +55,6 @@
 	<a href="/tournaments">All Tournaments</a>
       </td>
     </tr>
-    {% if current_user %} 
-    <tr>
-      <td colspan={{ len(tmt_colnames) }} class="table-button">
-	<a href="/edittournament">Create New Tournament</a>
-      </td>
-    </tr>
-    {% end %}
   </table>
 </div>
 
@@ -93,13 +86,6 @@
 	<a href="/players">All Players</a>
       </td>
     </tr>
-    {% if current_user %} 
-    <tr>
-      <td colspan={{ len(tmt_colnames) }} class="table-button">
-	<a href="/loadplayers">Load New Players</a>
-      </td>
-    </tr>
-    {% end %}
   </table>
 </div>
 {% end %}
